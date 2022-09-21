@@ -30,14 +30,39 @@ describe('Hooks', function() {
         }
         const testRenderer = TestRenderer.create(html`<${Suspense} fallback="Cow"><${Test} /></<${Suspense}}`);
         expect(testRenderer.toJSON()).to.equal('Cow');
-        await delay(100);
+        await delay(10);
         expect(testRenderer.toJSON()).to.equal('Pig');
       })
-
+      it('should return a component that eventually shows the final item from the generator', async function() {
+        const stoppage = createStoppage();
+        function Test() {
+          const seq = useSequence();
+          return seq(async function *() {
+            yield 'Pig';
+            await stoppage;
+            yield 'Chicken';
+          });
+        }
+        const testRenderer = TestRenderer.create(html`<${Suspense} fallback="Cow"><${Test} /></<${Suspense}}`);
+        expect(testRenderer.toJSON()).to.equal('Cow');
+        await delay(100);
+        expect(testRenderer.toJSON()).to.equal('Pig');
+        stoppage.resolve();
+        await delay(100);
+        expect(testRenderer.toJSON()).to.equal('Chicken');
+      })
     })
   })
 })
 
 async function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function createStoppage() {
+  let r;
+  const promise = new Promise((resolve, reject) => r = [ resolve, reject ]);
+  promise.resolve = r[0];
+  promise.reject = r[1];
+  return promise;
 }
