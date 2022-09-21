@@ -1,0 +1,35 @@
+{
+  "name": "react-seq",
+  "version": "0.0.1",
+  "description": "Create React components that output contents from async generators",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "./node_modules/mocha/bin/mocha.js -- test/*.js",
+    "test:watch": "./node_modules/mocha/bin/mocha.js --parallel --watch -- test/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chung-leong/react-seq.git"
+  },
+  "keywords": [
+    "react",
+    "async",
+    "generator"
+  ],
+  "author": "Chung Leong",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chung-leong/react-seq/issues"
+  },
+  "homepage": "https://github.com/chung-leong/react-seq#readme",
+  "dependencies": {
+    "react": "^18.2.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.6",
+    "htm": "^3.1.1",
+    "mocha": "^10.0.0",
+    "react-test-renderer": "^18.2.0"
+  }
+}

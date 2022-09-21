@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 export function useSequence(options = {}, deps) {
   const [ cxt, setContext ] = useState(() => {
     const cxt = {
-      state: '',
+      status: '',
       generator: null,
       iteration: 0,
       element: null,
@@ -19,11 +19,12 @@ export function useSequence(options = {}, deps) {
       lastError: null,
       throwError: (err) => setContext({ ...cxt, lastError: err }),
     };
+    cxt.createElement.context = cxt;
     return cxt;
   });
   useMemo(() => {
     // start over whenever the dependencies change
-    cxt.state = 'pending';
+    cxt.status = 'pending';
     cxt.lastError = null;
   }, deps);
   useEffect(() => {
@@ -35,14 +36,14 @@ export function useSequence(options = {}, deps) {
       cxt.generator = null;
       cxt.content = null;
       cxt.mounted = false;
-      if (cxt.state === 'running') {
+      if (cxt.status === 'running') {
         // component is being unmounted while we're looping through the generator
         // we'll need to start from the beginning again if the component is remounted again
-        cxt.state = 'pending';
+        cxt.status = 'pending';
       }
     };
   }, []);
-  return ref.createElement;
+  return cxt.createElement;
 }
 
 function createElement(cxt, cb) {
@@ -83,14 +84,15 @@ async function iterateGenerator(cxt) {
       cxt.timeout = 0;
     }
     // loop through the generator
-    let done = false;
-    while (!done) {
+    for(;;) {
       const res = await generator.next();
       if (cxt.generator !== generator) {
         // we're being interrupted by either a change of deps or unmounting of component
         throw new Interruption;
       }
-      done = res.done;
+      if (res.done) {
+        break;
+      }
       cxt.content = res.value;
       updateContent(cxt);
     }
@@ -138,11 +140,12 @@ function updateContent(cxt) {
   if (cxt.resolveLazy) {
     // the Sequence component has not been "loaded" yet
     // resolve it now
-    cxt.resolveLazy(Sequence);
+    const initialContent = cxt.content;
+    cxt.resolveLazy({ default: Sequence });
     cxt.resolveLazy = null;
 
     function Sequence() {
-      const [ content, setContent ] = useState(cxt.content);
+      const [ content, setContent ] = useState(initialContent);
       if (!cxt.setContent) {
         cxt.setContent = setContent;
       }
