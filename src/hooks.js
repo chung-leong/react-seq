@@ -1,6 +1,75 @@
 import React, { useState, useMemo, useEffect } from 'react';
 
-export function useSequence(options = {}, deps) {
+export function useHandlers(warning = false) {
+  const [ pairs ] = useState(() => {
+    const cxt = {
+      handlers: {},
+      callbacks: {},
+      promises: {},
+      resolves: {},
+      warning,
+    };
+    return [
+      new Proxy(cxt, { get: getHandler, set: setCallback }),
+      new Proxy(cxt, { get: getPromise, set: setPromise }),
+    ];
+  });
+  return pairs;
+}
+
+function getHandler(cxt, name) {
+  let handler = cxt.handlers[name];
+  if (!handler) {
+    cxt.handlers[name] = handler = (evt) => callHandler(cxt, name, evt);
+  }
+  return handler;
+}
+
+function setCallback(cxt, name, cb) {
+  cxt.callbacks[name] = cb;
+  return true;
+}
+
+async function callHandler(cxt, name, evt) {
+  try {
+    let triggered = false;
+    const cb = cxt.callbacks[name];
+    if(cb) {
+      await cb(evt);
+      triggered = true;
+    }
+    const resolve = cxt.resolves[name];
+    if (resolve) {
+      resolve(evt);
+      triggered = true;
+      delete cxt.promises[name];
+      delete cxt.resolves[name];
+    }
+    if (!triggered) {
+      if (callHandler.warning) {
+        console.warn(`No action was triggered by handler "${name}"`);
+      }
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+function getPromise(cxt, name) {
+  let promise = cxt.promises[name];
+  if (!promise) {
+    let resolve;
+    cxt.promises[name] = promise = new Promise(r => resolve = r);
+    cxt.resolves[name] = resolve;
+  }
+  return promise;
+}
+
+function setPromise(cxt, name, value) {
+  throw new Error('Promise is read-only');
+}
+
+export function useSequence(delay = 0, deps) {
   const [ cxt, setContext ] = useState(() => {
     const cxt = {
       status: '',
@@ -11,11 +80,11 @@ export function useSequence(options = {}, deps) {
       resolveLazy: null,
       createElement: (cb) => createElement(cxt, cb),
       content: null,
+      pending: true,
+      deferring: false,
       setContent: null,
-      timeout: 0,
-      renderDelay: 50,
-      rerenderDelay: 500,
-      serverSide: true,
+      interval: 0,
+      renderDelay: delay,
       lastError: null,
       throwError: (err) => setContext({ ...cxt, lastError: err }),
     };
@@ -30,8 +99,8 @@ export function useSequence(options = {}, deps) {
   useEffect(() => {
     cxt.mounted = true;
     return () => {
-      clearTimeout(cxt.timeout);
-      cxt.timeout = 0;
+      clearInterval(cxt.interval);
+      cxt.interval = 0;
       cxt.mounted = false;
       cxt.generator = null;
       cxt.content = null;
@@ -60,6 +129,8 @@ function createElement(cxt, cb) {
   if (cxt.status === 'pending') {
     cxt.generator = cb(cxt.iteration);
     cxt.status = 'running';
+    cxt.content = null;
+    cxt.pending = true;
     iterateGenerator(cxt);
   }
   return cxt.element;
@@ -69,19 +140,22 @@ async function iterateGenerator(cxt) {
   const { generator } = cxt;
   try {
     // set up timer for deferred renderring
-    const delay = (cxt.iteration > 0) ? cxt.rerenderDelay : cxt.renderDelay;
-    clearTimeout(cxt.timeout);
+    clearInterval(cxt.interval);
+    let delay = cxt.renderDelay;
     if (delay > 0) {
-      const timeout = cxt.timeout = setTimeout(() => {
-        // sometimes the callback can still run even after a call to clearTimeout()
-        if (cxt.timeout !== timeout) {
+      const interval = cxt.interval = setInterval(() => {
+        // sometimes the callback can still run even after a call to clearInterval()
+        if (cxt.interval !== interval) {
           return;
         }
-        cxt.timeout = 0;
+        cxt.deferring = false;
         updateContent(cxt);
+        cxt.deferring = true;
       }, delay);
+      cxt.deferring = true;
     } else {
-      cxt.timeout = 0;
+      cxt.interval = 0;
+      cxt.deferring = false;
     }
     // loop through the generator
     for(;;) {
@@ -94,13 +168,17 @@ async function iterateGenerator(cxt) {
         break;
       }
       cxt.content = res.value;
+      cxt.pending = true;
       updateContent(cxt);
     }
     // okay, we've reach the end of the loop--time to render any deferred content
-    if (cxt.timeout) {
-      clearTimeout(cxt.timeout);
-      cxt.timeout = 0;
-      updateContent(cxt);
+    if (cxt.interval) {
+      clearInterval(cxt.interval);
+      cxt.interval = 0;
+      if (cxt.deferring) {
+        cxt.deferring = false;
+        updateContent(cxt);
+      }
     }
     cxt.iteration++;
     cxt.status = 'success';
@@ -126,20 +204,19 @@ async function iterateGenerator(cxt) {
       }
     }
     if (cxt.generator === generator) {
-      // let generator get gc'ed
+      // let generator be gc'ed
       cxt.generator = null;
     }
   }
 }
 
 function updateContent(cxt) {
-  if (cxt.timeout) {
-    // rendering is being deferred
+  if (!cxt.pending || cxt.deferring) {
+    // do nothing when there's no pending content or rendering is being deferred
     return;
   }
   if (cxt.resolveLazy) {
-    // the Sequence component has not been "loaded" yet
-    // resolve it now
+    // the Sequence component has not been "loaded" yet--resolve it now
     const initialContent = cxt.content;
     cxt.resolveLazy({ default: Sequence });
     cxt.resolveLazy = null;
@@ -155,6 +232,7 @@ function updateContent(cxt) {
     cxt.setContent(cxt.content);
   }
   cxt.content = null;
+  cxt.pending = false;
 }
 
 class Interruption extends Error {}
