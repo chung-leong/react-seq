@@ -1,101 +1,40 @@
 import React, { useState, useMemo, useEffect } from 'react';
 
-export function useHandlers(warning = false) {
-  const [ pairs ] = useState(() => {
-    const cxt = {
-      handlers: {},
-      callbacks: {},
-      promises: {},
-      resolves: {},
-      warning,
-    };
-    return [
-      new Proxy(cxt, { get: getHandler, set: setCallback }),
-      new Proxy(cxt, { get: getPromise, set: setPromise }),
-    ];
-  });
-  return pairs;
-}
-
-function getHandler(cxt, name) {
-  let handler = cxt.handlers[name];
-  if (!handler) {
-    cxt.handlers[name] = handler = (evt) => callHandler(cxt, name, evt);
-  }
-  return handler;
-}
-
-function setCallback(cxt, name, cb) {
-  cxt.callbacks[name] = cb;
-  return true;
-}
-
-async function callHandler(cxt, name, evt) {
-  try {
-    let triggered = false;
-    const cb = cxt.callbacks[name];
-    if(cb) {
-      await cb(evt);
-      triggered = true;
-    }
-    const resolve = cxt.resolves[name];
-    if (resolve) {
-      resolve(evt);
-      triggered = true;
-      delete cxt.promises[name];
-      delete cxt.resolves[name];
-    }
-    if (!triggered) {
-      if (callHandler.warning) {
-        console.warn(`No action was triggered by handler "${name}"`);
-      }
-    }
-  } catch (err) {
-    console.error(err);
-  }
-}
-
-function getPromise(cxt, name) {
-  let promise = cxt.promises[name];
-  if (!promise) {
-    let resolve;
-    cxt.promises[name] = promise = new Promise(r => resolve = r);
-    cxt.resolves[name] = resolve;
-  }
-  return promise;
-}
-
-function setPromise(cxt, name, value) {
-  throw new Error('Promise is read-only');
-}
-
 export function useSequence(delay = 0, deps) {
   const [ cxt, setContext ] = useState(() => {
-    const cxt = {
+    let cxt = {
       status: '',
       generator: null,
       iteration: 0,
       element: null,
+      placeholder: null,
       mounted: false,
       resolveLazy: null,
       createElement: (cb) => createElement(cxt, cb),
+      fallback: (el) => setPlaceholder(cxt, el),
+      fallbackAllowed: true,
       content: null,
       pending: true,
       deferring: false,
       setContent: null,
+      suspend: false,
       interval: 0,
-      renderDelay: delay,
+      delay: delay,
       lastError: null,
-      throwError: (err) => setContext({ ...cxt, lastError: err }),
+      lastErrorThrown: false,
+      // ensure the closures above are pointing to the new cxt
+      throwError: (err) => setContext(cxt = { ...cxt, lastError: err, lastErrorThrown: false }),
     };
     cxt.createElement.context = cxt;
     return cxt;
   });
   useMemo(() => {
-    // start over whenever the dependencies change
-    cxt.status = 'pending';
-    cxt.lastError = null;
-  }, deps);
+    // start over whenever the dependencies change (unless we're reporting an error)
+    if (!cxt.lastError || cxt.lastErrorThrown) {
+      cxt.status = 'unresolved';
+      cxt.lastError = null;
+    }
+  }, deps || []);
   useEffect(() => {
     cxt.mounted = true;
     return () => {
@@ -107,31 +46,46 @@ export function useSequence(delay = 0, deps) {
       cxt.mounted = false;
       if (cxt.status === 'running') {
         // component is being unmounted while we're looping through the generator
-        // we'll need to start from the beginning again if the component is remounted again
-        cxt.status = 'pending';
+        // we'll need to start from the beginning if the component is remounted again
+        cxt.status = 'unresolved';
+        cxt.element = null;
       }
     };
   }, []);
   return cxt.createElement;
 }
 
+let delayMultiplier = 1;
+
+export function extendDelay(multiplier) {
+  delayMultiplier = multiplier;
+}
+
 function createElement(cxt, cb) {
   if (cxt.lastError) {
+    cxt.lastErrorThrown = true;
     throw cxt.lastError;
+  }
+  if (cxt.status === 'unresolved') {
+    // start running the async generator
+    const { iteration, fallback } = cxt;
+    cxt.generator = cb({ iteration, fallback });
+    iterateGenerator(cxt);
+    cxt.fallbackAllowed = false;
   }
   if (!cxt.element) {
     // this promise will resolve to the Sequence component when
     // we receive the first item from our generator
     const promise = new Promise(r => cxt.resolveLazy = r);
     // create a "lazy-load" component
-    cxt.element = React.createElement(React.lazy(() => promise));
-  }
-  if (cxt.status === 'pending') {
-    cxt.generator = cb(cxt.iteration);
-    cxt.status = 'running';
-    cxt.content = null;
-    cxt.pending = true;
-    iterateGenerator(cxt);
+    const lazyElement = React.createElement(React.lazy(() => promise));
+    if (cxt.suspend) {
+      cxt.element = lazyElement;
+    } else {
+      cxt.element = React.createElement(React.Suspense, { fallback: cxt.placeholder }, lazyElement);
+    }
+    // placeholder can no longer to change at this point
+    cxt.fallback = () => {};
   }
   return cxt.element;
 }
@@ -139,21 +93,28 @@ function createElement(cxt, cb) {
 async function iterateGenerator(cxt) {
   const { generator } = cxt;
   try {
-    // set up timer for deferred renderring
+    // set up timer for deferred rendering
+    cxt.status = 'running';
     clearInterval(cxt.interval);
-    let delay = cxt.renderDelay;
+    const delay = cxt.delay * delayMultiplier;
     if (delay > 0) {
       const interval = cxt.interval = setInterval(() => {
         // sometimes the callback can still run even after a call to clearInterval()
         if (cxt.interval !== interval) {
           return;
         }
+        // update when delay is reached
         cxt.deferring = false;
         updateContent(cxt);
         cxt.deferring = true;
       }, delay);
+      cxt.content = cxt.placeholder;
+      cxt.pending = true;
       cxt.deferring = true;
     } else {
+      // don't show placeholder again when no delay is used
+      cxt.content = null;
+      cxt.pending = false;
       cxt.interval = 0;
       cxt.deferring = false;
     }
@@ -210,9 +171,22 @@ async function iterateGenerator(cxt) {
   }
 }
 
+function setPlaceholder(cxt, el) {
+  if (!cxt.fallbackAllowed) {
+    throw new Error('Fallback component must be set prior to any yield or await statement');
+  }
+  if (typeof(el) === 'function') {
+    el = el();
+  }
+  cxt.placeholder = el;
+}
+
 function updateContent(cxt) {
   if (!cxt.pending || cxt.deferring) {
     // do nothing when there's no pending content or rendering is being deferred
+    return;
+  }
+  if (!cxt.resolveLazy && !cxt.setContent) {
     return;
   }
   if (cxt.resolveLazy) {
