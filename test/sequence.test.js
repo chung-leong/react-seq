@@ -96,7 +96,7 @@ describe('#useSequence()', function() {
     it('should return a component that uses fallback', async function() {
       const stoppage = createStoppage();
       function Test() {
-        const seq = useSequence(20, []);
+        const seq = useSequence(20);
         return seq(async function *({ fallback }) {
           fallback('Cow');
           yield 'Pig';
@@ -112,14 +112,15 @@ describe('#useSequence()', function() {
       await delay(30);
       expect(testRenderer.toJSON()).to.equal('Chicken');
     })
-
   })
 })
 
-function createStoppage() {
+function createStoppage(delay = 500) {
   let r;
   const promise = new Promise((resolve, reject) => r = [ resolve, reject ]);
   promise.resolve = r[0];
   promise.reject = r[1];
+  // prevent failed test from stalling the test script
+  setTimeout(() => { promise.reject(new Error(`Timeout`)); }, delay);
   return promise;
 }

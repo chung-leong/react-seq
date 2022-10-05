@@ -22,19 +22,19 @@ export function useSequence(delay = 0, deps) {
       delay: delay,
       lastError: null,
       lastErrorThrown: false,
-      // ensure the closures above are pointing to the new cxt
+      // ensure the closures above are pointing to the new cxt object
       throwError: (err) => setContext(cxt = { ...cxt, lastError: err, lastErrorThrown: false }),
     };
     cxt.createElement.context = cxt;
     return cxt;
   });
   useMemo(() => {
-    // start over whenever the dependencies change (unless we're reporting an error)
+    // start over whenever the dependencies change (unless we're reporting a new error)
     if (!cxt.lastError || cxt.lastErrorThrown) {
       cxt.status = 'unresolved';
       cxt.lastError = null;
     }
-  }, deps || []);
+  }, deps);
   useEffect(() => {
     cxt.mounted = true;
     return () => {
