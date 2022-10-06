@@ -1,10 +1,10 @@
 export {
   userSequence,
+  extendDelay,
 } from './src/sequence.js';
 export {
-  userHandlers,
-  extendDelay,
-} from './src/handlers.js';
+  manageEvents,
+} from './src/events.js';
 export {
   delay,
 } from './src/utils.js';
