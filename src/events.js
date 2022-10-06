@@ -3,15 +3,21 @@ export function manageEvents(options = {}) {
     warning = false,
   } = options;
   const cxt = {
+    // whether to output a warning when no promises are fulfilled
     warning,
+    // functions for creating event handlers
     builders: {},
+    // promises that get triggered by handlers
     promises: {},
+    // resolve functions of promises
     resolves: {},
-    eventual: null,
+    // proxy yielding handler-creating functions
     trigger: null,
+    // proxy yielding promises
+    eventual: null,
   };
-  cxt.eventual = new Proxy(cxt, { get: getPromise });
-  cxt.trigger = new Proxy(cxt, { get: getTriggerBuilders });
+  cxt.eventual = new Proxy(cxt, { get: getPromise, set: throwError });
+  cxt.trigger = new Proxy(cxt, { get: getTriggerBuilders, set: throwError });
   return [ cxt.trigger, cxt.eventual ];
 }
 
@@ -33,7 +39,7 @@ function getPromise(cxt, name) {
 function enablePromiseMerge(parentCxt, promises, op) {
   const { eventual } = parentCxt;
   const cxt = { promises, op, eventual };
-  return new Proxy(cxt, { get: getMergedPromise })
+  return new Proxy(cxt, { get: getMergedPromise, set: throwError })
 }
 
 const promiseMergeMethods = { or: 'race', and: 'all' };
@@ -63,10 +69,13 @@ function getTriggerBuilders(cxt, name) {
       if (args.length === 1) {
         // promise will fulfill with value given to the builder
         const [ value ] = args;
-        if (process.NODE_DEV === 'development') {
-          // TODO: check if value is a React SyntheticEvent during development
-          // to warn  developers when the trigger builder is passed as the handler
+        if (process.env.NODE_DEV === 'development') {
+          // check if value is a React SyntheticEvent during development
+          // to warn developers when the trigger builder is passed as the handler
           // instead of it being called to create the handler (i.e. missing parantheses)
+          if (value instanceof Object && value.nativeEvent) {
+            console.warn(`${name}() received a React SyntheticEvent as fulfillment value. Perhaps you have neglected to invoke it?`);
+          }
         }
         return () => triggerFulfillment(cxt, name, value);
       } else {
@@ -90,4 +99,8 @@ function triggerFulfillment(cxt, name, value) {
   if (!resolve && warning) {
     console.warn(`No promise was fulfilled by call to handler created by ${name}()`);
   }
+}
+
+function throwError() {
+  throw new Error('Property is read-only');
 }

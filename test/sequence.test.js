@@ -17,18 +17,18 @@ describe('#useSequence()', function() {
     }
     const testRenderer = TestRenderer.create(html`<${Test} />`);
     expect(f).to.be.instanceOf(Function);
-    expect(f.context).to.be.instanceOf(Object);
     expect(testRenderer.toJSON()).to.equal('Hello');
   })
   describe('seq()', function() {
     it('should return a component that uses the first item from the generator as its content', async function() {
       function Test() {
         const seq = useSequence();
-        return seq(async function *() {
+        return seq(async function *({ fallback }) {
+          fallback('Cow');
           yield 'Pig';
         });
       }
-      const testRenderer = TestRenderer.create(html`<${Suspense} fallback="Cow"><${Test} /></<${Suspense}}`);
+      const testRenderer = TestRenderer.create(html`<${Test} />`);
       expect(testRenderer.toJSON()).to.equal('Cow');
       await delay(10);
       expect(testRenderer.toJSON()).to.equal('Pig');
@@ -36,17 +36,20 @@ describe('#useSequence()', function() {
     it('should return a component that defers rendering', async function() {
       const stoppage = createStoppage();
       function Test() {
-        const seq = useSequence(50);
-        return seq(async function *() {
+        const seq = useSequence({ delay: 50 });
+        return seq(async function *({ fallback }) {
+          fallback('Cow');
           yield 'Pig';
           await stoppage;
           yield 'Chicken';
         });
       }
-      const testRenderer = TestRenderer.create(html`<${Suspense} fallback="Cow"><${Test} /></<${Suspense}}`);
+      const testRenderer = TestRenderer.create(html`<${Test} />`);
       expect(testRenderer.toJSON()).to.equal('Cow');
       await delay(30);
       expect(testRenderer.toJSON()).to.equal('Cow');
+      await delay(30);
+      expect(testRenderer.toJSON()).to.equal('Pig');
       stoppage.resolve();
       await delay(10);
       expect(testRenderer.toJSON()).to.equal('Chicken');
@@ -54,7 +57,7 @@ describe('#useSequence()', function() {
     it('should return a component that displays new contents intermittently', async function() {
       const stoppage = createStoppage();
       function Test() {
-        const seq = useSequence(50);
+        const seq = useSequence({ delay: 50 });
         return seq(async function *() {
           yield 'Pig';
           await delay(70);
@@ -63,10 +66,10 @@ describe('#useSequence()', function() {
           yield 'Chicken';
         });
       }
-      const testRenderer = TestRenderer.create(html`<${Suspense} fallback="Cow"><${Test} /></<${Suspense}}`);
-      expect(testRenderer.toJSON()).to.equal('Cow');
+      const testRenderer = TestRenderer.create(html`<${Test} />`);
+      expect(testRenderer.toJSON()).to.equal(null);
       await delay(30);
-      expect(testRenderer.toJSON()).to.equal('Cow');
+      expect(testRenderer.toJSON()).to.equal(null);
       await delay(30);
       expect(testRenderer.toJSON()).to.equal('Pig');
       await delay(50);
@@ -78,14 +81,15 @@ describe('#useSequence()', function() {
     it('should return a component that eventually shows the final item from the generator', async function() {
       const stoppage = createStoppage();
       function Test() {
-        const seq = useSequence(20);
-        return seq(async function *() {
+        const seq = useSequence({ delay: 20 });
+        return seq(async function *({ fallback }) {
+          fallback('Cow');
           yield 'Pig';
           await stoppage;
           yield 'Chicken';
         });
       }
-      const testRenderer = TestRenderer.create(html`<${Suspense} fallback="Cow"><${Test} /></<${Suspense}}`);
+      const testRenderer = TestRenderer.create(html`<${Test} />`);
       expect(testRenderer.toJSON()).to.equal('Cow');
       await delay(30);
       expect(testRenderer.toJSON()).to.equal('Pig');
@@ -96,7 +100,7 @@ describe('#useSequence()', function() {
     it('should return a component that uses fallback', async function() {
       const stoppage = createStoppage();
       function Test() {
-        const seq = useSequence(20);
+        const seq = useSequence({ delay: 20 });
         return seq(async function *({ fallback }) {
           fallback('Cow');
           yield 'Pig';

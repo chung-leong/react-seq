@@ -1,38 +1,60 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, startTransition } from 'react';
 
-export function useSequence(delay = 0, deps) {
+export function useSequence(options = {}, deps) {
+  const {
+    delay = 0,
+    suspend = false,
+  } = options;
   const [ cxt, setContext ] = useState(() => {
-    let cxt = {
+    return {
+      // the number of ms to wait until new content is handed to React for rendering
+      delay,
+      // whether we should leave our lazy component not wrapped by <Suspense></Suspense>
+      suspend,
+      // current status can be 'unresolved', 'running', 'success', or 'failure'
       status: '',
+      // generator return by callback function passed to createElement()
       generator: null,
+      // the number of times generators were successfully iterated through
       iteration: 0,
+      // the actual React element which holds the current content
       element: null,
+      // placeholder element to be shown prior to receiving the first item from the generator
       placeholder: null,
-      mounted: false,
-      resolveLazy: null,
-      createElement: (cb) => createElement(cxt, cb),
+      // function for setting fallback content; passed to callback given to createElement()
       fallback: (el) => setPlaceholder(cxt, el),
-      fallbackAllowed: true,
+      // whether the callback is in its initial synchronous portion (i.e. prior to any await operation)
+      sync: true,
+      // function that is returned by the hook
+      createElement: (cb) => createElement(cxt, cb),
+      // function that resolves the lazy component
+      resolveLazy: null,
+      // pending content
       content: null,
+      // whether there's any content pending
       pending: true,
+      // whether rerendering should be deferred
       deferring: false,
+      // function for handing new content to React; we get it after the first content is rendered
       setContent: null,
-      suspend: false,
+      // interval used to trigger rendering of deferred content
       interval: 0,
-      delay: delay,
-      lastError: null,
-      lastErrorThrown: false,
-      // ensure the closures above are pointing to the new cxt object
-      throwError: (err) => setContext(cxt = { ...cxt, lastError: err, lastErrorThrown: false }),
+      // the last error encountered while iterating through generator
+      error: null,
+      // whether we're in the midst of throwing an error
+      throwing: false,
+      // function for setting the last error; it triggers a redraw so the error can be thrown
+      // in the middle of rerendering, permitting the capture of the error by error boundary
+      throwError: (err) => setContext({ ...cxt, error: err, throwing: true }),
+      // whether the component is mounted
+      mounted: false,
     };
-    cxt.createElement.context = cxt;
-    return cxt;
   });
   useMemo(() => {
     // start over whenever the dependencies change (unless we're reporting a new error)
-    if (!cxt.lastError || cxt.lastErrorThrown) {
+    if (!cxt.throwing) {
       cxt.status = 'unresolved';
-      cxt.lastError = null;
+      cxt.error = null;
     }
   }, deps);
   useEffect(() => {
@@ -62,30 +84,30 @@ export function extendDelay(multiplier) {
 }
 
 function createElement(cxt, cb) {
-  if (cxt.lastError) {
-    cxt.lastErrorThrown = true;
-    throw cxt.lastError;
+  if (cxt.error) {
+    cxt.throwing = false;
+    throw cxt.error;
   }
   if (cxt.status === 'unresolved') {
-    // start running the async generator
+    // create async generator and start iterating through it
     const { iteration, fallback } = cxt;
+    cxt.sync = true;
     cxt.generator = cb({ iteration, fallback });
     iterateGenerator(cxt);
-    cxt.fallbackAllowed = false;
+    cxt.sync = false;
   }
   if (!cxt.element) {
-    // this promise will resolve to the Sequence component when
+    const { placeholder: fallback, suspend } = cxt;
+    // this promise will resolve to the Sequence (or React.lazy) component when
     // we receive the first item from our generator
     const promise = new Promise(r => cxt.resolveLazy = r);
     // create a "lazy-load" component
     const lazyElement = React.createElement(React.lazy(() => promise));
-    if (cxt.suspend) {
+    if (suspend) {
       cxt.element = lazyElement;
     } else {
-      cxt.element = React.createElement(React.Suspense, { fallback: cxt.placeholder }, lazyElement);
+      cxt.element = React.createElement(React.Suspense, { fallback }, lazyElement);
     }
-    // placeholder can no longer to change at this point
-    cxt.fallback = () => {};
   }
   return cxt.element;
 }
@@ -95,6 +117,9 @@ async function iterateGenerator(cxt) {
   try {
     // set up timer for deferred rendering
     cxt.status = 'running';
+    cxt.content = null;
+    cxt.pending = false;
+    cxt.element = null;
     clearInterval(cxt.interval);
     const delay = cxt.delay * delayMultiplier;
     if (delay > 0) {
@@ -103,18 +128,15 @@ async function iterateGenerator(cxt) {
         if (cxt.interval !== interval) {
           return;
         }
-        // update when delay is reached
-        cxt.deferring = false;
-        updateContent(cxt);
-        cxt.deferring = true;
+        if (cxt.pending) {
+          // render pending content
+          updateContent(cxt, cxt.content, false);
+          cxt.content = null;
+          cxt.pending = false;
+        }
       }, delay);
-      cxt.content = cxt.placeholder;
-      cxt.pending = true;
       cxt.deferring = true;
     } else {
-      // don't show placeholder again when no delay is used
-      cxt.content = null;
-      cxt.pending = false;
       cxt.interval = 0;
       cxt.deferring = false;
     }
@@ -128,17 +150,21 @@ async function iterateGenerator(cxt) {
       if (res.done) {
         break;
       }
-      cxt.content = res.value;
-      cxt.pending = true;
-      updateContent(cxt);
+      if (cxt.deferring) {
+        cxt.content = res.value;
+        cxt.pending = true;
+      } else {
+        updateContent(cxt, res.value, true);
+      }
     }
     // okay, we've reach the end of the loop--time to render any deferred content
     if (cxt.interval) {
       clearInterval(cxt.interval);
       cxt.interval = 0;
-      if (cxt.deferring) {
-        cxt.deferring = false;
-        updateContent(cxt);
+      if (cxt.pending) {
+        updateContent(cxt, cxt.content, true);
+        cxt.content = null;
+        cxt.pending = false;
       }
     }
     cxt.iteration++;
@@ -172,8 +198,11 @@ async function iterateGenerator(cxt) {
 }
 
 function setPlaceholder(cxt, el) {
-  if (!cxt.fallbackAllowed) {
+  if (!cxt.sync) {
     throw new Error('Fallback component must be set prior to any yield or await statement');
+  }
+  if (cxt.suspend) {
+    throw new Error('A component that suspends cannot have a fallback component');
   }
   if (typeof(el) === 'function') {
     el = el();
@@ -181,32 +210,26 @@ function setPlaceholder(cxt, el) {
   cxt.placeholder = el;
 }
 
-function updateContent(cxt) {
-  if (!cxt.pending || cxt.deferring) {
-    // do nothing when there's no pending content or rendering is being deferred
-    return;
-  }
-  if (!cxt.resolveLazy && !cxt.setContent) {
-    return;
-  }
+function updateContent(cxt, content, urgent) {
   if (cxt.resolveLazy) {
     // the Sequence component has not been "loaded" yet--resolve it now
-    const initialContent = cxt.content;
+    const initialContent = content;
     cxt.resolveLazy({ default: Sequence });
     cxt.resolveLazy = null;
 
     function Sequence() {
       const [ content, setContent ] = useState(initialContent);
-      if (!cxt.setContent) {
-        cxt.setContent = setContent;
-      }
+      cxt.setContent = setContent;
       return content;
     }
   } else {
-    cxt.setContent(cxt.content);
+    if (urgent) {
+      cxt.setContent(content);
+    } else {
+      // wrap call in startTransition() when update is not urgent
+      startTransition(() => cxt.setContent(content));
+    }
   }
-  cxt.content = null;
-  cxt.pending = false;
 }
 
 class Interruption extends Error {}

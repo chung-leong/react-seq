@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { delay } from '../src/utils.js';
+import React from 'react';
 
 import {
   manageEvents,
@@ -60,10 +61,39 @@ describe('#manageEvents()', function() {
     const value3 = await Promise.race([ promise2, delay(10) ]);
     expect(value3).to.eql([ 8, 17 ]);
   })
+  it('should not allow the setting of properties', function() {
+    const [ on, eventual ] = manageEvents();
+    expect(() => on.click = null).to.throw();
+    expect(() => eventual.click = null).to.throw();
+  })
   it('should issue warning about lack of action when warning is set to true', async function() {
-    // TODO
+    const warnFn = console.warn;
+    let message;
+    console.warn = (msg) => message = msg;
+    try {
+      const [ on, eventual ] = manageEvents({ warning: true });
+      const handler = on.click(5);
+      handler();
+    } finally {
+      console.warn = warnFn;
+    }
+    expect(message).to.be.a('string');
+  })
+  it('should issue warning when trigger receives a SyntheticEvent', async function() {
+    const warnFn = console.warn;
+    let message;
+    console.warn = (msg) => message = msg;
+    process.env.NODE_DEV = 'development';
+    try {
+      const [ on, eventual ] = manageEvents();
+      const handler = on.click({ nativeEvent: {} });
+    } finally {
+      console.warn = warnFn;
+    }
+    expect(message).to.be.a('string');
   })
   it('should throw when more than one parameters are passed to handler-building function', function() {
-    // TODO
+    const [ on, eventual ] = manageEvents();
+    expect(() => eventual.click(1, 2, 3)).to.throw();
   })
 })
