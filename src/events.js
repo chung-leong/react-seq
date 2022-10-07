@@ -69,7 +69,7 @@ function getTriggerBuilders(cxt, name) {
       if (args.length === 1) {
         // promise will fulfill with value given to the builder
         const [ value ] = args;
-        if (process.env.NODE_DEV === 'development') {
+        if (process.env.NODE_ENV === 'development') {
           // check if value is a React SyntheticEvent during development
           // to warn developers when the trigger builder is passed as the handler
           // instead of it being called to create the handler (i.e. missing parantheses)

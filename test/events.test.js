@@ -83,12 +83,14 @@ describe('#manageEvents()', function() {
     const warnFn = console.warn;
     let message;
     console.warn = (msg) => message = msg;
-    process.env.NODE_DEV = 'development';
+    const nodeEnv = process.env.NODE_ENV
+    process.env.NODE_ENV = 'development';
     try {
       const [ on, eventual ] = manageEvents();
       const handler = on.click({ nativeEvent: {} });
     } finally {
       console.warn = warnFn;
+      process.env.NODE_ENV = nodeEnv;
     }
     expect(message).to.be.a('string');
   })
