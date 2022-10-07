@@ -72,7 +72,6 @@ describe('#when()', function() {
       console.warn = warnFn;
       process.env.NODE_ENV = nodeEnv;
     }
-    console.log(message);
     expect(message).to.be.a('string');
   })
 })

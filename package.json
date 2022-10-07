@@ -1,6 +1,6 @@
 {
   "name": "react-seq",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Create React components that output contents from async generators",
   "main": "index.js",
   "type": "module",
@@ -17,6 +17,10 @@
     "async",
     "generator"
   ],
+  "files": [
+    "src/",
+    "index.js"
+  ],
   "author": "Chung Leong",
   "license": "MIT",
   "bugs": {
@@ -24,12 +28,13 @@
   },
   "homepage": "https://github.com/chung-leong/react-seq#readme",
   "dependencies": {
-    "react": "^18.2.0"
+    "react": "^18.0.0"
   },
   "devDependencies": {
     "chai": "^4.3.6",
     "htm": "^3.1.1",
     "mocha": "^10.0.0",
+    "react-dom": "^18.2.0",
     "react-test-renderer": "^18.2.0"
   }
 }

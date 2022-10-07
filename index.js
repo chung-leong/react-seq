@@ -1,5 +1,5 @@
 export {
-  userSequence,
+  useSequence,
   extendDelay,
 } from './src/sequence.js';
 export {
