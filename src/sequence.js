@@ -88,9 +88,11 @@ export function useSequence(options = {}, deps) {
 }
 
 let delayMultiplier = 1;
+let delayAddend = 0;
 
-export function extendDelay(multiplier) {
+export function extendDelay(multiplier, addend = 0) {
   delayMultiplier = multiplier;
+  delayAddend = addend;
 }
 
 function createElement(cxt, cb) {
@@ -142,7 +144,7 @@ async function iterateGenerator(cxt) {
     cxt.pending = false;
     cxt.element = null;
     clearInterval(cxt.interval);
-    const delay = cxt.delay * delayMultiplier;
+    const delay = (cxt.delay + delayAddend) * delayMultiplier;
     if (delay > 0) {
       const interval = cxt.interval = setInterval(() => {
         // sometimes the callback can still run even after a call to clearInterval()

@@ -2,11 +2,15 @@ import { expect } from 'chai';
 import { html } from 'htm/react';
 import { Suspense } from 'react';
 import { create, act } from 'react-test-renderer';
-import { delay } from '../src/utils.js';
+import { renderToPipeableStream } from 'react-dom/server';
+import MemoryStream from 'memorystream';
+import { createWriteStream } from 'fs';
+import { delay } from '../index.js';
 import 'mocha-skip-if';
 
 import {
   useSequence,
+  extendDelay,
 } from '../index.js';
 
 describe('#useSequence()', function() {
@@ -366,16 +370,73 @@ describe('#useSequence()', function() {
     expect(cats).to.eql([ 'Barbie' ]);
     expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
   })
-  skip.//if(!global.gc).
-  it('should not leak memory', async function() {
-    async function test() {
-      /* TODO */
+  it('should render correctly to a stream', async function() {
+    function Test({ cat }) {
+      const seq = useSequence({ delay: 100 }, [ cat ]);
+      return seq(async function*({ fallback, manageEvents }) {
+        fallback(html`<div>Cow</div>`);
+        await delay(10);
+        yield html`<div>Pig</div>`;
+        await delay(10);
+        yield html`<div>Chicken</div>`;
+        await delay(10);
+        yield html`<div>${cat}</div>`;
+      });
     }
+    const element = html`<${Test} cat="Rocky" />`;
+    const stream = await new Promise((resolve, reject) => {
+      const stream = renderToPipeableStream(element, {
+        onShellError: reject,
+        onError: reject,
+        onAllReady: () => resolve(stream),
+      });
+    });
+    const text = await readStream(stream);
+    expect(text).to.contain('<div>Rocky</div>')
+  })
+  skip.if(!global.gc).
+  it('should not leak memory', async function() {
+    this.timeout(5000);
+    async function step() {
+      function Test({ cat }) {
+        const seq = useSequence({}, [ cat ]);
+        return seq(async function*({ fallback, manageEvents }) {
+          fallback(html`<div>Cow</div>`);
+          await delay(0);
+          yield html`<div>Pig</div>`;
+          await delay(10);
+          yield html`<div>Chicken</div>`;
+          await delay(10);
+          yield html`<div>${cat}</div>`;
+        });
+      }
+      const element = html`<${Test} cat="Rocky"/>`;
+      const stream = await new Promise((resolve, reject) => {
+        const stream = renderToPipeableStream(element, {
+          onShellError: reject,
+          onError: reject,
+          onAllReady: () => resolve(stream),
+        });
+      });
+      const outStream = createWriteStream('/dev/null');
+      stream.pipe(outStream);
+      await new Promise(resolve => outStream.on('finish', resolve));
+    }
+    async function test() {
+      for (let i = 0; i < 500; i++) {
+        await step();
+      }
+    }
+
+    // establish base-line memory usage first
+    await test();
+    // perform garbage collection
     gc();
     const before = process.memoryUsage().heapUsed;
-    for (let i = 0; i < 100; i++) {
-      await test();
-    }
+    await test();
+    // a bit of time for timer to finish
+    await delay(500);
+    // perform initiate garbage collection again
     gc();
     const after = process.memoryUsage().heapUsed;
     const diff = Math.round((after - before) / 1024);
@@ -391,4 +452,15 @@ function createStoppage(delay = 500) {
   // prevent failed test from stalling the test script
   setTimeout(() => { promise.reject(new Error(`Timeout`)); }, delay);
   return promise;
+}
+
+async function readStream(stream) {
+  const memStream = new MemoryStream;
+  stream.pipe(memStream);
+  await new Promise(resolve => memStream.on('finish', resolve));
+  stream.abort();
+  const data = memStream.read(Infinity);
+  const string = data.toString();
+  memStream.destroy();
+  return string;
 }
