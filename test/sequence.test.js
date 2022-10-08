@@ -3,10 +3,11 @@ import { html } from 'htm/react';
 import { Suspense } from 'react';
 import { create, act } from 'react-test-renderer';
 import { delay } from '../src/utils.js';
+import 'mocha-skip-if';
 
 import {
   useSequence,
-} from '../src/sequence.js';
+} from '../index.js';
 
 describe('#useSequence()', function() {
   it('should return a function', function() {
@@ -22,7 +23,7 @@ describe('#useSequence()', function() {
   it('should return a component that uses the first item from the generator as its content', async function() {
     function Test() {
       const seq = useSequence();
-      return seq(async function *({ fallback }) {
+      return seq(async function*({ fallback }) {
         fallback('Cow');
         yield 'Pig';
       });
@@ -36,7 +37,7 @@ describe('#useSequence()', function() {
     const stoppage = createStoppage();
     function Test() {
       const seq = useSequence({ delay: 50 });
-      return seq(async function *({ fallback }) {
+      return seq(async function*({ fallback }) {
         fallback('Cow');
         yield 'Pig';
         await stoppage;
@@ -57,7 +58,7 @@ describe('#useSequence()', function() {
     const stoppage = createStoppage();
     function Test() {
       const seq = useSequence({ delay: 50 });
-      return seq(async function *() {
+      return seq(async function*() {
         yield 'Pig';
         await delay(70);
         yield 'Duck';
@@ -81,7 +82,7 @@ describe('#useSequence()', function() {
     const stoppage = createStoppage();
     function Test() {
       const seq = useSequence({ delay: 20 });
-      return seq(async function *({ fallback }) {
+      return seq(async function*({ fallback }) {
         fallback('Cow');
         yield 'Pig';
         await stoppage;
@@ -100,7 +101,7 @@ describe('#useSequence()', function() {
     const stoppage = createStoppage();
     function Test() {
       const seq = useSequence({ delay: 20 });
-      return seq(async function *({ fallback }) {
+      return seq(async function*({ fallback }) {
         fallback('Cow');
         yield 'Pig';
         await stoppage;
@@ -120,7 +121,7 @@ describe('#useSequence()', function() {
     const iterations = [];
     function Test({ cat }) {
       const seq = useSequence({ delay: 20 }, [ cat ]);
-      return seq(async function *({ fallback, iteration }) {
+      return seq(async function*({ fallback, iteration }) {
         fallback('Cow');
         delay(10);
         yield 'Pig';
@@ -147,7 +148,7 @@ describe('#useSequence()', function() {
     const iterations = [];
     function Test({ cat }) {
       const seq = useSequence({ delay: 20 });
-      return seq(async function *({ fallback, iteration }) {
+      return seq(async function*({ fallback, iteration }) {
         fallback('Cow');
         delay(10);
         yield 'Pig';
@@ -169,12 +170,37 @@ describe('#useSequence()', function() {
     expect(cats).to.eql([ 'Rocky', 'Barbie' ]);
     expect(iterations).to.eql([ 0, 1 ]);
   })
+  it('should allow management of events using promises', async function() {
+    let triggerClick;
+    function Test({ cat, dog }) {
+      const seq = useSequence({}, [ cat ]);
+      return seq(async function*({ fallback, manageEvents }) {
+        const [ on, eventual ] = manageEvents();
+        triggerClick = on.click();
+        fallback('Cow');
+        yield 'Pig';
+        await eventual.click;
+        yield 'Chicken';
+        await eventual.click;
+        yield cat;
+      });
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    triggerClick();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Chicken');
+    triggerClick();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Rocky');
+  })
   it('should not recreate generator when dependencies has not changed', async function() {
     const cats = [];
     const iterations = [];
     function Test({ cat, dog }) {
       const seq = useSequence({ delay: 20 }, [ cat ]);
-      return seq(async function *({ fallback, iteration }) {
+      return seq(async function*({ fallback, iteration }) {
         fallback('Cow');
         delay(10);
         yield 'Pig';
@@ -201,7 +227,7 @@ describe('#useSequence()', function() {
     const finalizations = [];
     function Test({ cat }) {
       const seq = useSequence({ delay: 20 });
-      return seq(async function *({ fallback, iteration }) {
+      return seq(async function*({ fallback, iteration }) {
         fallback('Cow');
         try {
           delay(10);
@@ -228,6 +254,132 @@ describe('#useSequence()', function() {
     expect(cats).to.eql([ 'Barbie' ]);
     expect(iterations).to.eql([ 0 ]);
     expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
+  })
+  it('should terminate iteration when component is unmounted mid-cycle', async function() {
+    const stoppage = createStoppage();
+    const cats = [];
+    const iterations = [];
+    const finalizations = [];
+    function Test({ cat }) {
+      const seq = useSequence({ delay: 20 });
+      return seq(async function*({ fallback, iteration }) {
+        fallback('Cow');
+        try {
+          delay(10);
+          yield 'Pig';
+          await stoppage;
+          yield cat;
+          cats.push(cat);
+          iterations.push(iteration);
+        } finally {
+          finalizations.push(cat);
+        }
+      });
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    act(() => {
+      testRenderer.update(null);
+    });
+    stoppage.resolve();
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal(null);
+    expect(cats).to.eql([]);
+    expect(iterations).to.eql([]);
+    expect(finalizations).to.eql([ 'Rocky' ]);
+  })
+  it('should cause all event promises to reject on unmount', async function() {
+    const cats = [];
+    const finalizations = [];
+    function Test({ cat }) {
+      const seq = useSequence({}, [ cat ]);
+      return seq(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        try {
+          const [ on, eventual ] = manageEvents();
+          yield 'Pig';
+          await eventual.click.or.keypress;
+          yield 'Chicken';
+          await eventual.click;
+          yield cat;
+          cats.push(cat);
+        } finally {
+          finalizations.push(cat);
+        }
+      });
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(30);
+    act(() => {
+      testRenderer.update(null);
+    });
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal(null);
+    expect(cats).to.eql([]);
+    expect(finalizations).to.eql([ 'Rocky' ]);
+  })
+  it('should cause all event promises to reject on prop change', async function() {
+    const cats = [];
+    const finalizations = [];
+    let triggerClick, triggerKeyPress;
+    function Test({ cat }) {
+      const seq = useSequence({}, [ cat ]);
+      return seq(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        try {
+          const [ on, eventual ] = manageEvents();
+          triggerClick = on.click();
+          triggerKeyPress = on.keypress();
+          yield 'Pig';
+          await eventual.click.and.keypress;
+          yield 'Chicken';
+          await eventual.click;
+          yield cat;
+          cats.push(cat);
+        } finally {
+          finalizations.push(cat);
+        }
+      });
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(30);
+    act(() => {
+      testRenderer.update(html`<${Test} cat="Barbie" />`);
+    });
+    await delay(0);
+    expect(cats).to.eql([]);
+    expect(finalizations).to.eql([ 'Rocky' ]);
+    triggerClick();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    triggerKeyPress();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Chicken');
+    triggerClick();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Barbie');
+    expect(cats).to.eql([ 'Barbie' ]);
+    expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
+  })
+  skip.//if(!global.gc).
+  it('should not leak memory', async function() {
+    async function test() {
+      /* TODO */
+    }
+    gc();
+    const before = process.memoryUsage().heapUsed;
+    for (let i = 0; i < 100; i++) {
+      await test();
+    }
+    gc();
+    const after = process.memoryUsage().heapUsed;
+    const diff = Math.round((after - before) / 1024);
+    expect(diff).to.not.be.above(0);
   })
 })
 

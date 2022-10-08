@@ -11,22 +11,28 @@ export function manageEvents(options = {}) {
     promises: {},
     // resolve functions of promises
     resolves: {},
+    // reject functions of promises
+    rejects: {},
+    // function for rejecting all promises
+    reject: (err) => rejectAll(cxt, err),
     // proxy yielding handler-creating functions
-    trigger: null,
+    on: null,
     // proxy yielding promises
     eventual: null,
   };
   cxt.eventual = new Proxy(cxt, { get: getPromise, set: throwError });
-  cxt.trigger = new Proxy(cxt, { get: getTriggerBuilders, set: throwError });
-  return [ cxt.trigger, cxt.eventual ];
+  cxt.on = new Proxy(cxt, { get: getTriggerBuilders, set: throwError });
+  return cxt;
 }
 
 function getPromise(cxt, name) {
-  let promise = cxt.promises[name];
+  const { promises, resolves, rejects } = cxt;
+  let promise = promises[name];
   if (!promise) {
-    let resolve;
-    cxt.promises[name] = promise = new Promise(r => resolve = r);
-    cxt.resolves[name] = resolve;
+    promises[name] = promise = new Promise((resolve, reject) => {
+      resolves[name] = resolve;
+      rejects[name] = reject;
+    });
     // allow multiple promises to be chained together
     // promise from an 'or' chain fulfills when the quickest one fulfills
     promise.or = enablePromiseMerge(cxt, [ promise ], 'or');
@@ -71,7 +77,7 @@ function getTriggerBuilders(cxt, name) {
         const [ value ] = args;
         if (process.env.NODE_ENV === 'development') {
           // check if value is a React SyntheticEvent during development
-          // to warn developers when the trigger builder is passed as the handler
+          // to warn developers when the handler builder is passed as the handler
           // instead of it being called to create the handler (i.e. missing parantheses)
           if (value instanceof Object && value.nativeEvent) {
             console.warn(`${name}() received a React SyntheticEvent as fulfillment value. Perhaps you have neglected to invoke it?`);
@@ -88,16 +94,27 @@ function getTriggerBuilders(cxt, name) {
 }
 
 function triggerFulfillment(cxt, name, value) {
-  const { promises, resolves, warning } = cxt;
+  const { promises, resolves, rejects, warning } = cxt;
   const resolve = resolves[name];
   if (resolve) {
     resolve(value);
     // remove the promise once it fulfill so a new one will be created later
     delete promises[name];
     delete resolves[name];
+    delete rejects[name];
   }
   if (!resolve && warning) {
     console.warn(`No promise was fulfilled by call to handler created by ${name}()`);
+  }
+}
+
+function rejectAll(cxt, err) {
+  const { promises, resolves, rejects } = cxt;
+  for (const [ name, reject ] of Object.entries(rejects)) {
+    reject(err);
+    delete promises[name];
+    delete resolves[name];
+    delete rejects[name];
   }
 }
 

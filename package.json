@@ -5,7 +5,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha.js -- test/*.js",
+    "test": "node --expose-gc ./node_modules/mocha/bin/mocha.js -- test/*.js",
     "test:watch": "./node_modules/mocha/bin/mocha.js --parallel --watch -- test/*.js"
   },
   "repository": {
@@ -28,6 +28,7 @@
   },
   "homepage": "https://github.com/chung-leong/react-seq#readme",
   "dependencies": {
+    "mocha-skip-if": "^1.0.0",
     "react": "^18.0.0"
   },
   "devDependencies": {

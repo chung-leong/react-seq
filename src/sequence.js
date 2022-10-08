@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, startTransition } from 'react';
+import { manageEvents } from './events.js'
 
 export function useSequence(options = {}, deps) {
   const {
@@ -46,6 +47,16 @@ export function useSequence(options = {}, deps) {
       // function for setting the last error; it triggers a redraw so the error can be thrown
       // in the middle of rerendering, permitting the capture of the error by error boundary
       throwError: (err) => setContext({ ...cxt, error: err, throwing: true }),
+      // function for starting event management
+      manageEvents: (options = {}) => {
+        let m = cxt.eventCtx;
+        if (!m) {
+          m = cxt.eventCtx = manageEvents(options);
+        }
+        return [ m.on, m.eventual ];
+      },
+      // context used for event management
+      eventCtx: null,
       // whether the component is mounted
       mounted: false,
     };
@@ -61,11 +72,10 @@ export function useSequence(options = {}, deps) {
     cxt.mounted = true;
     return () => {
       clearInterval(cxt.interval);
+      interruptGenerator(cxt);
       cxt.interval = 0;
       cxt.mounted = false;
-      cxt.generator = null;
       cxt.content = null;
-      cxt.mounted = false;
       if (cxt.status === 'running') {
         // component is being unmounted while we're looping through the generator
         // we'll need to start from the beginning if the component is remounted again
@@ -89,10 +99,11 @@ function createElement(cxt, cb) {
     throw cxt.error;
   }
   if (cxt.status === 'unresolved') {
+    interruptGenerator(cxt);
     // create async generator and start iterating through it
-    const { iteration, fallback } = cxt;
+    const { iteration, fallback, manageEvents } = cxt;
     cxt.sync = true;
-    cxt.generator = cb({ iteration, fallback });
+    cxt.generator = cb({ iteration, fallback, manageEvents });
     iterateGenerator(cxt);
     cxt.sync = false;
   }
@@ -110,6 +121,16 @@ function createElement(cxt, cb) {
     }
   }
   return cxt.element;
+}
+
+function interruptGenerator(cxt) {
+  if (cxt.generator) {
+    if (cxt.eventCtx) {
+      cxt.eventCtx.reject(new Interruption);
+      cxt.eventCtx = null;
+    }
+    cxt.generator = null;
+  }
 }
 
 async function iterateGenerator(cxt) {
@@ -232,4 +253,4 @@ function updateContent(cxt, content, urgent) {
   }
 }
 
-class Interruption extends Error {}
+export class Interruption extends Error {}
