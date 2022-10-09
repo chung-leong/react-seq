@@ -44,11 +44,15 @@ function getPromise(cxt, name) {
 
 function enablePromiseMerge(parentCxt, promises, op) {
   const { eventual } = parentCxt;
-  const cxt = { promises, op, eventual };
+  // the context itself is callable
+  const cxt = Object.assign((promise) => {
+    const promiseList = [ ...promises, promise ];
+    const mergedPromise = mergePromises(promiseList, op);
+    mergedPromise[op] = enablePromiseMerge(cxt, promiseList, op);
+    return mergedPromise;
+  }, { promises, op, eventual });
   return new Proxy(cxt, { get: getMergedPromise, set: throwError })
 }
-
-const promiseMergeMethods = { or: 'race', and: 'all' };
 
 function getMergedPromise(cxt, name) {
   const { eventual, promises, op } = cxt;
@@ -56,12 +60,18 @@ function getMergedPromise(cxt, name) {
   const lastPromise = eventual[name];
   // merge it with the ones earlier in the chain
   const promiseList = [ ...promises, lastPromise ];
-  const method = promiseMergeMethods[op];
-  const merge = Promise[method];
-  const mergedPromise = merge.call(Promise, promiseList);
+  const mergedPromise = mergePromises(promiseList, op);
   // allow further chaining (but only of the same operation)
   mergedPromise[op] = enablePromiseMerge(cxt, promiseList, op);
   return mergedPromise;
+}
+
+const promiseMergeMethods = { or: 'race', and: 'all' };
+
+function mergePromises(promiseList, op) {
+  const method = promiseMergeMethods[op];
+  const merge = Promise[method];
+  return merge.call(Promise, promiseList);
 }
 
 function getTriggerBuilders(cxt, name) {

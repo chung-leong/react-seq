@@ -61,6 +61,21 @@ describe('#manageEvents()', function() {
     const value3 = await Promise.race([ promise2, delay(10) ]);
     expect(value3).to.eql([ 8, 17 ]);
   })
+  it('should create promises that can be chained with other promises', async function() {
+    const { on, eventual } = manageEvents();
+    const handler1 = on.click();
+    const promise1 = eventual.click.or(delay(100)).or(delay(300));
+    const promise2 = eventual.click.and(delay(30));
+    expect(promise1).to.a('promise');
+    handler1(8);
+    const value1 = await promise1;
+    expect(value1).to.equal(8);
+    const value2 = await Promise.race([ promise2, delay(10) ]);
+    expect(value2).to.be.undefined;
+    delay(25);
+    const value3 = await Promise.race([ promise2, delay(20) ]);
+    expect(value3).to.eql([ 8, undefined ]);
+  })
   it('should cause all promises to reject when reject() is called', async function() {
     const { on, eventual, reject } = manageEvents();
     setTimeout(() => reject(new Error), 10);
