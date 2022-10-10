@@ -7,7 +7,7 @@ export function useSequence(options = {}, deps) {
     suspend = false,
   } = options;
   const [ cxt, setContext ] = useState(() => {
-    return {
+    let cxt = {
       // the number of ms to wait until new content is handed to React for rendering
       delay,
       // whether we should leave our lazy component not wrapped by <Suspense></Suspense>
@@ -46,7 +46,9 @@ export function useSequence(options = {}, deps) {
       throwing: false,
       // function for setting the last error; it triggers a redraw so the error can be thrown
       // in the middle of rerendering, permitting the capture of the error by error boundary
-      throwError: (err) => setContext({ ...cxt, error: err, throwing: true }),
+      //
+      // assigning to cxt to ensure closures point to the new context object
+      throwError: (err) => setContext(cxt = { ...cxt, error: err, throwing: true }),
       // function for starting event management
       manageEvents: (options = {}) => {
         let m = cxt.eventCtx;
@@ -60,6 +62,7 @@ export function useSequence(options = {}, deps) {
       // whether the component is mounted
       mounted: false,
     };
+    return cxt;
   });
   useMemo(() => {
     // start over whenever the dependencies change (unless we're reporting a new error)

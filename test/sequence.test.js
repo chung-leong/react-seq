@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { html } from 'htm/react';
-import { Suspense } from 'react';
+import { Suspense, Component } from 'react';
 import { create, act } from 'react-test-renderer';
 import { renderToPipeableStream } from 'react-dom/server';
 import MemoryStream from 'memorystream';
@@ -370,10 +370,90 @@ describe('#useSequence()', function() {
     expect(cats).to.eql([ 'Barbie' ]);
     expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
   })
+  it('should trigger error boundary', async function() {
+    function Test({ cat }) {
+      const seq = useSequence({}, [ cat ]);
+      return seq(async function*({ fallback }) {
+        fallbak('Cow');
+        await delay(10);
+        yield html`<div>${cat}</div>`;
+      });
+    }
+    let error;
+    class ErrorBoundary extends Component {
+      constructor(props) {
+        super(props);
+        this.state = { error: null };
+      }
+      static getDerivedStateFromError(err) {
+        return { error: err };
+      }
+      componentDidCatch(err) {
+        error = err;
+      }
+      render() {
+        const { error } = this.state;
+        if (error) {
+          return html`<h1>${error.message}</h1>`;
+        }
+        return this.props.children;
+      }
+    }
+    const errorFn = console.error;
+    try {
+      console.error = () => {};
+      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky" /></ErrorBoundary>`);
+      await delay(10);
+      expect(error).to.be.an('error');
+    } finally {
+      console.error = errorFn;
+    }
+  })
+  it('should trigger error boundary after a yield', async function() {
+    function Test({ cat }) {
+      const seq = useSequence({}, [ cat ]);
+      return seq(async function*({ fallback }) {
+        fallback('Cow');
+        await delay(10);
+        yield html`<div>Pig</div>`;
+        await dely(10);
+        yield html`<div>${cat}</div>`;
+      });
+    }
+    let error;
+    class ErrorBoundary extends Component {
+      constructor(props) {
+        super(props);
+        this.state = { error: null };
+      }
+      static getDerivedStateFromError(err) {
+        return { error: err };
+      }
+      componentDidCatch(err) {
+        error = err;
+      }
+      render() {
+        const { error } = this.state;
+        if (error) {
+          return html`<h1>${error.message}</h1>`;
+        }
+        return this.props.children;
+      }
+    }
+    const errorFn = console.error;
+    try {
+      console.error = () => {};
+      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky" /></ErrorBoundary>`);
+      await delay(10);
+      expect(error).to.be.an('error');
+    } finally {
+      console.error = errorFn;
+    }
+  })
   it('should render correctly to a stream', async function() {
     function Test({ cat }) {
       const seq = useSequence({ delay: 100 }, [ cat ]);
-      return seq(async function*({ fallback, manageEvents }) {
+      return seq(async function*({ fallback }) {
         fallback(html`<div>Cow</div>`);
         await delay(10);
         yield html`<div>Pig</div>`;
@@ -400,7 +480,7 @@ describe('#useSequence()', function() {
     async function step() {
       function Test({ cat }) {
         const seq = useSequence({}, [ cat ]);
-        return seq(async function*({ fallback, manageEvents }) {
+        return seq(async function*({ fallback }) {
           fallback(html`<div>Cow</div>`);
           await delay(0);
           yield html`<div>Pig</div>`;
@@ -480,7 +560,7 @@ describe('#extendDelay()', function() {
     expect(testRenderer.toJSON()).to.equal(null);
     await delay(15);
     expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(25);
+    await delay(20);
     expect(testRenderer.toJSON()).to.equal('Duck');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Chicken');
