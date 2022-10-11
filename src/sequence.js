@@ -14,6 +14,8 @@ export function useSequence(options = {}, deps) {
       suspend,
       // current status can be 'unresolved', 'running', 'success', or 'failure'
       status: '',
+      // last callback function invoked
+      callback: null,
       // generator return by callback function passed to createElement()
       generator: null,
       // the number of times generators were successfully iterated through
@@ -64,15 +66,22 @@ export function useSequence(options = {}, deps) {
     };
     return cxt;
   });
+  // using useMemo() for the sole purpose of checking dependencies
+  // cxt is left out of the list on purpose, since cxt only changes
+  // when an error is being thrown
   useMemo(() => {
     // start over whenever the dependencies change (unless we're reporting a new error)
+    // need the check here in the event deps is undefined
     if (!cxt.throwing) {
       cxt.status = 'unresolved';
       cxt.error = null;
     }
-  }, deps);
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     cxt.mounted = true;
+    if (cxt.status === 'unresolved' && cxt.callback) {
+      createGenerator(cxt);
+    }
     return () => {
       clearInterval(cxt.interval);
       interruptGenerator(cxt);
@@ -86,7 +95,7 @@ export function useSequence(options = {}, deps) {
         cxt.element = null;
       }
     };
-  }, []);
+  }, [ cxt ]);
   return cxt.createElement;
 }
 
@@ -104,13 +113,10 @@ function createElement(cxt, cb) {
     throw cxt.error;
   }
   if (cxt.status === 'unresolved') {
+    // interrupt previous generator
     interruptGenerator(cxt);
     // create async generator and start iterating through it
-    const { iteration, fallback, manageEvents } = cxt;
-    cxt.sync = true;
-    cxt.generator = cb({ iteration, fallback, manageEvents });
-    iterateGenerator(cxt);
-    cxt.sync = false;
+    createGenerator(cxt, cb);
   }
   if (!cxt.element) {
     const { placeholder: fallback, suspend } = cxt;
@@ -128,10 +134,23 @@ function createElement(cxt, cb) {
   return cxt.element;
 }
 
+function createGenerator(cxt, cb = null) {
+  if (cb) {
+    cxt.callback = cb;
+  } else {
+    cb = cxt.callback;
+  }
+  const { iteration, fallback, manageEvents } = cxt;
+  cxt.sync = true;
+  cxt.generator = cb({ iteration, fallback, manageEvents });
+  iterateGenerator(cxt);
+  cxt.sync = false;
+}
+
 function interruptGenerator(cxt) {
   if (cxt.generator) {
     if (cxt.eventCtx) {
-      cxt.eventCtx.reject(new Interruption);
+      cxt.eventCtx.reject(new Interruption());
       cxt.eventCtx = null;
     }
     cxt.generator = null;
@@ -171,7 +190,7 @@ async function iterateGenerator(cxt) {
       const res = await generator.next();
       if (cxt.generator !== generator) {
         // we're being interrupted by either a change of deps or unmounting of component
-        throw new Interruption;
+        throw new Interruption();
       }
       if (res.done) {
         break;
@@ -219,6 +238,7 @@ async function iterateGenerator(cxt) {
     if (cxt.generator === generator) {
       // let generator be gc'ed
       cxt.generator = null;
+      cxt.callback = null;
     }
   }
 }
