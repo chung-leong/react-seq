@@ -1,0 +1,29 @@
+.payment {
+  width: 400px;
+  border: 1px solid #ffffff;
+  padding: 12px 12px 12px 12px;
+}
+
+.payment h2:first-child {
+  margin-top: 0;
+}
+
+.payment.selection .methods {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.payment.selection .methods li {
+  padding: 8px 8px 8px 8px;
+  margin-bottom: 8px;
+  border: 1px solid #ffffff;
+  cursor: pointer;
+  text-align: center;
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.payment.method label {
+  display: block;
+  margin-bottom: 12px;
+}
