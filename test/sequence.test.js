@@ -20,7 +20,7 @@ describe('#useSequence()', function() {
       f = useSequence();
       return 'Hello';
     }
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(f).to.be.instanceOf(Function);
     expect(testRenderer.toJSON()).to.equal('Hello');
   })
@@ -32,7 +32,7 @@ describe('#useSequence()', function() {
         yield 'Pig';
       });
     }
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
@@ -48,7 +48,7 @@ describe('#useSequence()', function() {
         yield 'Chicken';
       });
     }
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Cow');
@@ -58,6 +58,25 @@ describe('#useSequence()', function() {
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Chicken');
   })
+  it('should return a component that suspends', async function() {
+    const stoppage = createStoppage();
+    function Test() {
+      const seq = useSequence({ delay: 50, suspend: true });
+      return seq(async function*() {
+        yield 'Pig';
+        await stoppage;
+        yield 'Chicken';
+      });
+    }
+    const testRenderer = create(html`<${Suspense} fallback="Dingo"><${Test}/></${Suspense}>`);
+    expect(testRenderer.toJSON()).to.equal('Dingo');
+    await delay(60);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    stoppage.resolve();
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Chicken');
+  })
+
   it('should return a component that displays new contents intermittently', async function() {
     const stoppage = createStoppage();
     function Test() {
@@ -70,7 +89,7 @@ describe('#useSequence()', function() {
         yield 'Chicken';
       });
     }
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(testRenderer.toJSON()).to.equal(null);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal(null);
@@ -93,7 +112,7 @@ describe('#useSequence()', function() {
         yield 'Chicken';
       });
     }
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
@@ -112,7 +131,7 @@ describe('#useSequence()', function() {
         yield 'Chicken';
       });
     }
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
@@ -135,11 +154,11 @@ describe('#useSequence()', function() {
         iterations.push(iteration);
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Rocky');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie" />`);
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
     });
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
@@ -162,11 +181,11 @@ describe('#useSequence()', function() {
         iterations.push(iteration);
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Rocky');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie" />`);
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
     });
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
@@ -189,7 +208,7 @@ describe('#useSequence()', function() {
         yield cat;
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
     triggerClick();
@@ -214,11 +233,11 @@ describe('#useSequence()', function() {
         iterations.push(iteration);
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" dog="Dingo" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky" dog="Dingo"/>`);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Rocky');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Rocky" dog="Pi" />`);
+      testRenderer.update(html`<${Test} cat="Rocky" dog="Pi"/>`);
     });
     await delay(30);
     expect(cats).to.eql([ 'Rocky' ]);
@@ -245,11 +264,11 @@ describe('#useSequence()', function() {
         }
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie" />`);
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
     });
     expect(testRenderer.toJSON()).to.equal('Cow');
     stoppage.resolve();
@@ -280,7 +299,7 @@ describe('#useSequence()', function() {
         }
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
     act(() => {
@@ -313,7 +332,7 @@ describe('#useSequence()', function() {
         }
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
     await delay(30);
@@ -348,12 +367,12 @@ describe('#useSequence()', function() {
         }
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" />`);
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
     await delay(30);
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie" />`);
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
     });
     await delay(0);
     expect(cats).to.eql([]);
@@ -402,7 +421,7 @@ describe('#useSequence()', function() {
     const errorFn = console.error;
     try {
       console.error = () => {};
-      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky" /></ErrorBoundary>`);
+      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky"/></${ErrorBoundary}>`);
       await delay(10);
       expect(error).to.be.an('error');
     } finally {
@@ -443,7 +462,7 @@ describe('#useSequence()', function() {
     const errorFn = console.error;
     try {
       console.error = () => {};
-      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky" /></ErrorBoundary>`);
+      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky"/></${ErrorBoundary}>`);
       await delay(10);
       expect(error).to.be.an('error');
     } finally {
@@ -463,7 +482,7 @@ describe('#useSequence()', function() {
         yield html`<div>${cat}</div>`;
       });
     }
-    const element = html`<${Test} cat="Rocky" />`;
+    const element = html`<${Test} cat="Rocky"/>`;
     const stream = await new Promise((resolve, reject) => {
       const stream = renderToPipeableStream(element, {
         onShellError: reject,
@@ -537,7 +556,7 @@ describe('#extendDelay()', function() {
       });
     }
     extendDelay(10);
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(testRenderer.toJSON()).to.equal(null);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal(null);
@@ -556,7 +575,7 @@ describe('#extendDelay()', function() {
       });
     }
     extendDelay(1, 10);
-    const testRenderer = create(html`<${Test} />`);
+    const testRenderer = create(html`<${Test}/>`);
     expect(testRenderer.toJSON()).to.equal(null);
     await delay(15);
     expect(testRenderer.toJSON()).to.equal('Pig');

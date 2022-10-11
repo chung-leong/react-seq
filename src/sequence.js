@@ -50,7 +50,14 @@ export function useSequence(options = {}, deps) {
       // in the middle of rerendering, permitting the capture of the error by error boundary
       //
       // assigning to cxt to ensure closures point to the new context object
-      throwError: (err) => setContext(cxt = { ...cxt, error: err, throwing: true }),
+      throwError: (err) => {
+        if (cxt.mounted) {
+          setContext(cxt = { ...cxt, error: err, throwing: true })
+        } else {
+          // error thrown before the component mounts
+          cxt.error = err;
+        }
+      },
       // function for starting event management
       manageEvents: (options = {}) => {
         let m = cxt.eventCtx;
@@ -79,7 +86,9 @@ export function useSequence(options = {}, deps) {
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     cxt.mounted = true;
-    if (cxt.status === 'unresolved' && cxt.callback) {
+    if (cxt.error) {
+      cxt.throwError(cxt.error);
+    } else if (cxt.status === 'unresolved' && cxt.callback) {
       createGenerator(cxt);
     }
     return () => {
