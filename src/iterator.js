@@ -10,7 +10,7 @@ export class TimedIterator {
   constructor(delay = 0) {
     this.generator = null;
     this.promise = null;
-    this.delay = 0;
+    this.delay = delay;
     this.interval = 0;
     this.started = false;
     this.timeout = null;
@@ -113,22 +113,16 @@ export class TimedPropsIterator extends TimedIterator {
     this.propList = [];
   }
 
-  start(props, defaults, usables) {
+  start(props, usables) {
     const list = this.propList;
     for (const [ name, value ] of Object.entries(props)) {
-      let usable = usables[name];
-      if (!usable) {
-        // if the prop has a default value, then it's always usable
-        if (defaults[name]) {
-          usable = allow;
-        }
-      }
+      const usable = usables[name];
       if (isPromise(value)) {
-        list.push({ name, usable, source: value, type: 'promise', resolved: false, promise: null, value: null });
+        list.push({ name, usable, source: value, type: 'promise', resolved: false, promise: null, value: null, changed: true });
       } else if (isAsyncGenerator(value)) {
-        list.push({ name, usable, source: value, type: 'generator', resolved: false, promise: null, value: [] });
+        list.push({ name, usable, source: value, type: 'generator', resolved: false, promise: null, value: [], changed: true });
       } else {
-        list.push({ name, usable, value, type: 'sync', resolved: true });
+        list.push({ name, usable, value, type: 'sync', resolved: true, changed: true });
       }
     }
   }
@@ -163,10 +157,10 @@ export class TimedPropsIterator extends TimedIterator {
           if (!p.promise) {
             if (p.type === 'promise') {
               p.promise = p.source.then((value) => {
-                p.value = true;
+                p.value = value;
                 p.resolved = true;
+                p.changed = true;
                 p.promise = null;
-                return p.name;
               })
             } else if (p.type === 'generator') {
               let res = p.source.next();
@@ -174,6 +168,7 @@ export class TimedPropsIterator extends TimedIterator {
                 p.promise = res.then(({ value, done }) => {
                   if (!done) {
                     p.value.push(value);
+                    p.changed = true;
                   } else {
                     p.resolved = true;
                   }
@@ -198,7 +193,7 @@ export class TimedPropsIterator extends TimedIterator {
         const promise = (promises.length === 1) ? promises[0] : Promise.race(promises);
         this.promise = promise.then(() => {
           const value = this.getUsableProps();
-          return { value, done: false }
+          return { value, done: false };
         });
       } else {
         this.promise = Promise.resolve({ value: undefined, done: true });
@@ -211,27 +206,33 @@ export class TimedPropsIterator extends TimedIterator {
 
   getUsableProps() {
     // check if all props are usable
-    let unusable = false;
+    let setUsable = true;
+    let setChanged = false;
     for (const p of this.propList) {
       if (p.usable) {
-        if (!p.usable(p.value)) {
+        let usable = (typeof(p.usable) === 'function') ? p.usable(p.value) : !!p.usable;
+        if (!usable) {
           if (p.resolved) {
             throw new Error(`Props "${p.name}" is unusable even after having been fully resolved`);
           }
-          unusable = true;
+          setUsable = false;
           break;
         }
       } else if (!p.resolved) {
-        unusable = true;
+        setUsable = false;
         break;
       }
+      if (p.changed) {
+        setChanged = true;
+      }
     }
-    if (unusable) {
+    if (!setUsable || !setChanged) {
       return null;
     }
     const props = {};
     for (const p of this.propList) {
       props[p.name] = p.value;
+      p.changed = false;
     }
     return props;
   }
