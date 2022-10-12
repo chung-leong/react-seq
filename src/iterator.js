@@ -1,7 +1,7 @@
 let delayMultiplier = 1;
 let delayAddend = 0;
 
-export function extendDelay(multiplier, addend = 0) {
+export function extendDelay(multiplier = 1, addend = 0) {
   delayMultiplier = multiplier;
   delayAddend = addend;
 }
