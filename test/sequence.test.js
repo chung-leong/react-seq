@@ -9,46 +9,48 @@ import { delay } from '../index.js';
 import 'mocha-skip-if';
 
 import {
+  sequence,
   useSequence,
   extendDelay,
 } from '../index.js';
 
-describe('#useSequence()', function() {
-  it('should return a function', function() {
-    let f;
-    function Test() {
-      f = useSequence();
-      return 'Hello';
-    }
-    const testRenderer = create(html`<${Test}/>`);
-    expect(f).to.be.instanceOf(Function);
-    expect(testRenderer.toJSON()).to.equal('Hello');
+describe('#sequence()', function() {
+  it('should return a Suspense element', function() {
+    const el = sequence(async function*({ fallback }) {
+      fallback('Cow');
+      await delay(10);
+      yield 'Pig';
+    });
+    expect(el).to.have.property('type', Suspense);
   })
   it('should return a component that uses the first item from the generator as its content', async function() {
     function Test() {
       const seq = useSequence();
-      return seq(async function*({ fallback }) {
-        fallback('Cow');
-        yield 'Pig';
-      });
+      return seq();
     }
-    const testRenderer = create(html`<${Test}/>`);
-    expect(testRenderer.toJSON()).to.equal('Cow');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig');
+    const el = sequence(async function*({ fallback }) {
+      fallback('Cow');
+      yield 'Pig';
+    });
+    const testRenderer = create(el);
+    try {
+      expect(testRenderer.toJSON()).to.equal('Cow');
+      await delay(10);
+      expect(testRenderer.toJSON()).to.equal('Pig');
+    } finally {
+      testRenderer.unmount();
+    }
   })
   it('should return a component that defers rendering', async function() {
     const stoppage = createStoppage();
-    function Test() {
-      const seq = useSequence({ delay: 50 });
-      return seq(async function*({ fallback }) {
-        fallback('Cow');
-        yield 'Pig';
-        await stoppage;
-        yield 'Chicken';
-      });
-    }
-    const testRenderer = create(html`<${Test}/>`);
+    const el = sequence(async function*({ fallback, delay }) {
+      fallback('Cow');
+      delay(50);
+      yield 'Pig';
+      await stoppage;
+      yield 'Chicken';
+    });
+    const testRenderer = create(el);
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Cow');
@@ -58,6 +60,7 @@ describe('#useSequence()', function() {
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Chicken');
   })
+  /*
   it('should return a component that suspends', async function() {
     const stoppage = createStoppage();
     function Test() {
@@ -540,50 +543,7 @@ describe('#useSequence()', function() {
     const after = process.memoryUsage().heapUsed;
     const diff = Math.round((after - before) / 1024);
     expect(diff).to.not.be.above(0);
-  })
-})
-
-describe('#extendDelay()', function() {
-  it('should expand the rendering delay', async function() {
-    function Test() {
-      const seq = useSequence({ delay: 10 });
-      return seq(async function*() {
-        yield 'Pig';
-        await delay(20);
-        yield 'Duck';
-        await delay(20);
-        yield 'Chicken';
-      });
-    }
-    extendDelay(10);
-    const testRenderer = create(html`<${Test}/>`);
-    expect(testRenderer.toJSON()).to.equal(null);
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal(null);
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Chicken');
-  })
-  it('should extend the rendering delay by specific amount', async function() {
-    function Test() {
-      const seq = useSequence({ delay: 0 });
-      return seq(async function*() {
-        yield 'Pig';
-        await delay(20);
-        yield 'Duck';
-        await delay(20);
-        yield 'Chicken';
-      });
-    }
-    extendDelay(1, 10);
-    const testRenderer = create(html`<${Test}/>`);
-    expect(testRenderer.toJSON()).to.equal(null);
-    await delay(15);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(20);
-    expect(testRenderer.toJSON()).to.equal('Duck');
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Chicken');
-  })
+  })*/
 })
 
 function createStoppage(delay = 500) {

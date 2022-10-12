@@ -3,19 +3,19 @@ import { delay } from '../index.js';
 import React from 'react';
 
 import {
-  manageEvents,
+  createEventManager,
 } from '../src/events.js';
 
-describe('#manageEvents()', function() {
+describe('#createEventManager()', function() {
   it('should return two proxies, one yielding functions, the other promises', function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     const builder = on.click;
     const promise = eventual.click;
     expect(builder).to.be.a('function');
     expect(promise).to.be.a('promise');
   })
   it('should create a handler that triggers the fulfillment of the corresponding promise', async function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     const handler = on.click();
     const promise = eventual.click;
     expect(handler).to.be.a('function');
@@ -24,7 +24,7 @@ describe('#manageEvents()', function() {
     expect(value).to.equal(5);
   })
   it('should create a handler that triggers fulfillment with specified value', async function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     const handler = on.click(6);
     const promise1 = eventual.click;
     const promise2 = eventual.keypress;
@@ -35,7 +35,7 @@ describe('#manageEvents()', function() {
     expect(value2).to.be.undefined;
   })
   it('should return new promise after previous one has been fulfilled', async function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     const handler = on.click(6);
     const promise1 = eventual.click;
     handler(5);
@@ -46,7 +46,7 @@ describe('#manageEvents()', function() {
     expect(value2).to.be.undefined;
   })
   it('should create promises that can be chained', async function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     const handler1 = on.click();
     const handler2 = on.keypress();
     const promise1 = eventual.click.or.keypress;
@@ -62,7 +62,7 @@ describe('#manageEvents()', function() {
     expect(value3).to.eql([ 8, 17 ]);
   })
   it('should create promises that can be chained with other promises', async function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     const handler1 = on.click();
     const promise1 = eventual.click.or(delay(100)).or(delay(300));
     const promise2 = eventual.click.and(delay(30));
@@ -77,7 +77,7 @@ describe('#manageEvents()', function() {
     expect(value3).to.eql([ 8, undefined ]);
   })
   it('should cause all promises to reject when reject() is called', async function() {
-    const { on, eventual, reject } = manageEvents();
+    const { on, eventual, reject } = createEventManager();
     setTimeout(() => reject(new Error), 10);
     let error;
     try {
@@ -88,7 +88,7 @@ describe('#manageEvents()', function() {
     expect(error).to.be.an('error');
   })
   it('should not allow the setting of properties', function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     expect(() => on.click = null).to.throw();
     expect(() => eventual.click = null).to.throw();
   })
@@ -97,7 +97,7 @@ describe('#manageEvents()', function() {
     let message;
     console.warn = (msg) => message = msg;
     try {
-      const { on, eventual } = manageEvents({ warning: true });
+      const { on, eventual } = createEventManager({ warning: true });
       const handler = on.click(5);
       handler();
     } finally {
@@ -112,7 +112,7 @@ describe('#manageEvents()', function() {
     const nodeEnv = process.env.NODE_ENV
     process.env.NODE_ENV = 'development';
     try {
-      const { on, eventual } = manageEvents();
+      const { on, eventual } = createEventManager();
       const handler = on.click({ nativeEvent: {} });
     } finally {
       console.warn = warnFn;
@@ -121,7 +121,7 @@ describe('#manageEvents()', function() {
     expect(message).to.be.a('string');
   })
   it('should throw when more than one parameters are passed to handler-building function', function() {
-    const { on, eventual } = manageEvents();
+    const { on, eventual } = createEventManager();
     expect(() => eventual.click(1, 2, 3)).to.throw();
   })
 })

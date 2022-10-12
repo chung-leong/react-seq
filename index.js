@@ -1,8 +1,11 @@
 export {
   useSequence,
+  sequence,
+} from './src/sequence.js';
+export {
   extendDelay,
   Interruption,
-} from './src/sequence.js';
+} from './src/iterator.js';
 export {
   delay,
   preload,

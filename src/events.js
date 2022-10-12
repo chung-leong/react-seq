@@ -1,4 +1,4 @@
-export function manageEvents(options = {}) {
+export function createEventManager(options = {}) {
   const {
     warning = false,
   } = options;
