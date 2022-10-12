@@ -44,7 +44,7 @@ export class TimedIterator {
         this.stopTimer();
         this.startTimer();
         if (this.reject && this.delay === 0) {
-          this.reject(new Interruption);
+          this.reject(new Interruption());
         }
       }
     }
@@ -54,7 +54,7 @@ export class TimedIterator {
     if (this.delay > 0) {
       this.interval = setInterval(() => {
         if (this.reject) {
-          this.reject(new Interruption);
+          this.reject(new Interruption());
         }
       }, this.delay);
     }
@@ -81,13 +81,13 @@ export class TimedIterator {
         this.timeout = new Promise((resolve, reject) => {
           this.reject = reject;
         });
-        this.timeout.catch(() => {
-          this.timeout = null;
-          this.reject = null;
-        });
       } else {
-        this.timeout = Promise.reject(new Interruption);
+        this.timeout = Promise.reject(new Interruption());
       }
+      this.timeout.catch(() => {
+        this.timeout = null;
+        this.reject = null;
+      });
     }
   }
 

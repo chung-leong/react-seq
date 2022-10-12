@@ -33,19 +33,15 @@ describe('#sequence()', function() {
       yield 'Pig';
     });
     const testRenderer = create(el);
-    try {
-      expect(testRenderer.toJSON()).to.equal('Cow');
-      await delay(10);
-      expect(testRenderer.toJSON()).to.equal('Pig');
-    } finally {
-      testRenderer.unmount();
-    }
+    expect(testRenderer.toJSON()).to.equal('Cow');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig');
   })
   it('should return a component that defers rendering', async function() {
     const stoppage = createStoppage();
-    const el = sequence(async function*({ fallback, delay }) {
+    const el = sequence(async function*({ fallback, defer }) {
       fallback('Cow');
-      delay(50);
+      defer(50);
       yield 'Pig';
       await stoppage;
       yield 'Chicken';
@@ -60,39 +56,17 @@ describe('#sequence()', function() {
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Chicken');
   })
-  /*
-  it('should return a component that suspends', async function() {
-    const stoppage = createStoppage();
-    function Test() {
-      const seq = useSequence({ delay: 50, suspend: true });
-      return seq(async function*() {
-        yield 'Pig';
-        await stoppage;
-        yield 'Chicken';
-      });
-    }
-    const testRenderer = create(html`<${Suspense} fallback="Dingo"><${Test}/></${Suspense}>`);
-    expect(testRenderer.toJSON()).to.equal('Dingo');
-    await delay(60);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    stoppage.resolve();
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Chicken');
-  })
-
   it('should return a component that displays new contents intermittently', async function() {
     const stoppage = createStoppage();
-    function Test() {
-      const seq = useSequence({ delay: 50 });
-      return seq(async function*() {
-        yield 'Pig';
-        await delay(70);
-        yield 'Duck';
-        await stoppage;
-        yield 'Chicken';
-      });
-    }
-    const testRenderer = create(html`<${Test}/>`);
+    const el = sequence(async function*({ defer }) {
+      defer(50);
+      yield 'Pig';
+      await delay(70);
+      yield 'Duck';
+      await stoppage;
+      yield 'Chicken';
+    });
+    const testRenderer = create(el);
     expect(testRenderer.toJSON()).to.equal(null);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal(null);
@@ -106,16 +80,14 @@ describe('#sequence()', function() {
   })
   it('should return a component that eventually shows the final item from the generator', async function() {
     const stoppage = createStoppage();
-    function Test() {
-      const seq = useSequence({ delay: 20 });
-      return seq(async function*({ fallback }) {
-        fallback('Cow');
-        yield 'Pig';
-        await stoppage;
-        yield 'Chicken';
-      });
-    }
-    const testRenderer = create(html`<${Test}/>`);
+    const el = sequence(async function*({ fallback, defer }) {
+      fallback('Cow');
+      defer(20);
+      yield 'Pig';
+      await stoppage;
+      yield 'Chicken';
+    });
+    const testRenderer = create(el);
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
@@ -125,16 +97,14 @@ describe('#sequence()', function() {
   })
   it('should return a component that uses fallback', async function() {
     const stoppage = createStoppage();
-    function Test() {
-      const seq = useSequence({ delay: 20 });
-      return seq(async function*({ fallback }) {
-        fallback('Cow');
-        yield 'Pig';
-        await stoppage;
-        yield 'Chicken';
-      });
-    }
-    const testRenderer = create(html`<${Test}/>`);
+    const el = sequence(async function*({ fallback, defer }) {
+      fallback('Cow');
+      defer(20);
+      yield 'Pig';
+      await stoppage;
+      yield 'Chicken';
+    });
+    const testRenderer = create(el);
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
@@ -142,76 +112,19 @@ describe('#sequence()', function() {
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Chicken');
   })
-  it('should recreate generator when dependencies change', async function() {
-    const cats = [];
-    const iterations = [];
-    function Test({ cat }) {
-      const seq = useSequence({ delay: 20 }, [ cat ]);
-      return seq(async function*({ fallback, iteration }) {
-        fallback('Cow');
-        delay(10);
-        yield 'Pig';
-        delay(10);
-        yield cat;
-        cats.push(cat);
-        iterations.push(iteration);
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Rocky');
-    act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
-    });
-    expect(testRenderer.toJSON()).to.equal('Cow');
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Barbie');
-    expect(cats).to.eql([ 'Rocky', 'Barbie' ]);
-    expect(iterations).to.eql([ 0, 1 ]);
-  })
-  it('should recreate generator when dependencies are not specified', async function() {
-    const cats = [];
-    const iterations = [];
-    function Test({ cat }) {
-      const seq = useSequence({ delay: 20 });
-      return seq(async function*({ fallback, iteration }) {
-        fallback('Cow');
-        delay(10);
-        yield 'Pig';
-        delay(10);
-        yield cat;
-        cats.push(cat);
-        iterations.push(iteration);
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Rocky');
-    act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
-    });
-    expect(testRenderer.toJSON()).to.equal('Cow');
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Barbie');
-    expect(cats).to.eql([ 'Rocky', 'Barbie' ]);
-    expect(iterations).to.eql([ 0, 1 ]);
-  })
   it('should allow management of events using promises', async function() {
     let triggerClick;
-    function Test({ cat, dog }) {
-      const seq = useSequence({}, [ cat ]);
-      return seq(async function*({ fallback, manageEvents }) {
-        const [ on, eventual ] = manageEvents();
-        triggerClick = on.click();
-        fallback('Cow');
-        yield 'Pig';
-        await eventual.click;
-        yield 'Chicken';
-        await eventual.click;
-        yield cat;
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    const el = sequence(async function*({ fallback, manageEvents }) {
+      const [ on, eventual ] = manageEvents();
+      triggerClick = on.click();
+      fallback('Cow');
+      yield 'Pig';
+      await eventual.click;
+      yield 'Chicken';
+      await eventual.click;
+      yield 'Rocky';
+    });
+    const testRenderer = create(el);
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
     triggerClick();
@@ -221,88 +134,25 @@ describe('#sequence()', function() {
     await delay(0);
     expect(testRenderer.toJSON()).to.equal('Rocky');
   })
-  it('should not recreate generator when dependencies has not changed', async function() {
-    const cats = [];
-    const iterations = [];
-    function Test({ cat, dog }) {
-      const seq = useSequence({ delay: 20 }, [ cat ]);
-      return seq(async function*({ fallback, iteration }) {
-        fallback('Cow');
-        delay(10);
-        yield 'Pig';
-        delay(10);
-        yield cat;
-        cats.push(cat);
-        iterations.push(iteration);
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky" dog="Dingo"/>`);
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Rocky');
-    act(() => {
-      testRenderer.update(html`<${Test} cat="Rocky" dog="Pi"/>`);
-    });
-    await delay(30);
-    expect(cats).to.eql([ 'Rocky' ]);
-    expect(iterations).to.eql([ 0 ]);
-  })
-  it('should terminate iteration when dependencies change mid-cycle', async function() {
-    const stoppage = createStoppage();
-    const cats = [];
-    const iterations = [];
-    const finalizations = [];
-    function Test({ cat }) {
-      const seq = useSequence({ delay: 20 });
-      return seq(async function*({ fallback, iteration }) {
-        fallback('Cow');
-        try {
-          delay(10);
-          yield 'Pig';
-          await stoppage;
-          yield cat;
-          cats.push(cat);
-          iterations.push(iteration);
-        } finally {
-          finalizations.push(cat);
-        }
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
-    });
-    expect(testRenderer.toJSON()).to.equal('Cow');
-    stoppage.resolve();
-    await delay(20);
-    expect(testRenderer.toJSON()).to.equal('Barbie');
-    expect(cats).to.eql([ 'Barbie' ]);
-    expect(iterations).to.eql([ 0 ]);
-    expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
-  })
   it('should terminate iteration when component is unmounted mid-cycle', async function() {
     const stoppage = createStoppage();
     const cats = [];
-    const iterations = [];
     const finalizations = [];
-    function Test({ cat }) {
-      const seq = useSequence({ delay: 20 });
-      return seq(async function*({ fallback, iteration }) {
-        fallback('Cow');
-        try {
-          delay(10);
-          yield 'Pig';
-          await stoppage;
-          yield cat;
-          cats.push(cat);
-          iterations.push(iteration);
-        } finally {
-          finalizations.push(cat);
-        }
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    const el = sequence(async function*({ fallback }) {
+      fallback('Cow');
+      try {
+        await delay(10);
+        yield 'Pig';
+        await stoppage;
+        yield 'Chicken';
+        await delay(10);
+        yield 'Rocky';
+        cats.push('Rocky');
+      } finally {
+        finalizations.push('Rocky');
+      }
+    });
+    const testRenderer = create(el);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
     act(() => {
@@ -312,95 +162,39 @@ describe('#sequence()', function() {
     await delay(10);
     expect(testRenderer.toJSON()).to.equal(null);
     expect(cats).to.eql([]);
-    expect(iterations).to.eql([]);
     expect(finalizations).to.eql([ 'Rocky' ]);
   })
   it('should cause all event promises to reject on unmount', async function() {
     const cats = [];
     const finalizations = [];
-    function Test({ cat }) {
-      const seq = useSequence({}, [ cat ]);
-      return seq(async function*({ fallback, manageEvents }) {
-        fallback('Cow');
-        try {
-          const [ on, eventual ] = manageEvents();
-          yield 'Pig';
-          await eventual.click.or.keypress;
-          yield 'Chicken';
-          await eventual.click;
-          yield cat;
-          cats.push(cat);
-        } finally {
-          finalizations.push(cat);
-        }
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    const el = sequence(async function*({ fallback, manageEvents }) {
+      fallback('Cow');
+      try {
+        const [ on, eventual ] = manageEvents();
+        yield 'Pig';
+        await eventual.click.or.keypress;
+        yield 'Chicken';
+        await eventual.click;
+        yield 'Rocky';
+        console.log('???')
+        cats.push('Rocky');
+      } finally {
+        finalizations.push('Rocky');
+      }
+    });
+    const testRenderer = create(el);
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
     await delay(30);
     act(() => {
       testRenderer.update(null);
     });
-    await delay(0);
+    await delay(20);
     expect(testRenderer.toJSON()).to.equal(null);
     expect(cats).to.eql([]);
     expect(finalizations).to.eql([ 'Rocky' ]);
   })
-  it('should cause all event promises to reject on prop change', async function() {
-    const cats = [];
-    const finalizations = [];
-    let triggerClick, triggerKeyPress;
-    function Test({ cat }) {
-      const seq = useSequence({}, [ cat ]);
-      return seq(async function*({ fallback, manageEvents }) {
-        fallback('Cow');
-        try {
-          const [ on, eventual ] = manageEvents();
-          triggerClick = on.click();
-          triggerKeyPress = on.keypress();
-          yield 'Pig';
-          await eventual.click.and.keypress;
-          yield 'Chicken';
-          await eventual.click;
-          yield cat;
-          cats.push(cat);
-        } finally {
-          finalizations.push(cat);
-        }
-      });
-    }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(30);
-    act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
-    });
-    await delay(0);
-    expect(cats).to.eql([]);
-    expect(finalizations).to.eql([ 'Rocky' ]);
-    triggerClick();
-    await delay(0);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    triggerKeyPress();
-    await delay(0);
-    expect(testRenderer.toJSON()).to.equal('Chicken');
-    triggerClick();
-    await delay(0);
-    expect(testRenderer.toJSON()).to.equal('Barbie');
-    expect(cats).to.eql([ 'Barbie' ]);
-    expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
-  })
   it('should trigger error boundary', async function() {
-    function Test({ cat }) {
-      const seq = useSequence({}, [ cat ]);
-      return seq(async function*({ fallback }) {
-        fallbak('Cow');
-        await delay(10);
-        yield html`<div>${cat}</div>`;
-      });
-    }
     let error;
     class ErrorBoundary extends Component {
       constructor(props) {
@@ -408,10 +202,8 @@ describe('#sequence()', function() {
         this.state = { error: null };
       }
       static getDerivedStateFromError(err) {
-        return { error: err };
-      }
-      componentDidCatch(err) {
         error = err;
+        return { error: err };
       }
       render() {
         const { error } = this.state;
@@ -421,10 +213,15 @@ describe('#sequence()', function() {
         return this.props.children;
       }
     }
+    const el = sequence(async function*({ fallback }) {
+      fallbak('Cow');
+      await delay(10);
+      yield html`<div>${cat}</div>`;
+    });
     const errorFn = console.error;
     try {
       console.error = () => {};
-      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky"/></${ErrorBoundary}>`);
+      const testRenderer = create(html`<${ErrorBoundary}>${el}</${ErrorBoundary}>`);
       await delay(10);
       expect(error).to.be.an('error');
     } finally {
@@ -432,16 +229,6 @@ describe('#sequence()', function() {
     }
   })
   it('should trigger error boundary after a yield', async function() {
-    function Test({ cat }) {
-      const seq = useSequence({}, [ cat ]);
-      return seq(async function*({ fallback }) {
-        fallback('Cow');
-        await delay(10);
-        yield html`<div>Pig</div>`;
-        await dely(10);
-        yield html`<div>${cat}</div>`;
-      });
-    }
     let error;
     class ErrorBoundary extends Component {
       constructor(props) {
@@ -449,10 +236,10 @@ describe('#sequence()', function() {
         this.state = { error: null };
       }
       static getDerivedStateFromError(err) {
+        error = err;
         return { error: err };
       }
       componentDidCatch(err) {
-        error = err;
       }
       render() {
         const { error } = this.state;
@@ -462,10 +249,17 @@ describe('#sequence()', function() {
         return this.props.children;
       }
     }
+    const el = sequence(async function*({ fallback }) {
+      fallback('Cow');
+      await delay(10);
+      yield html`<div>Pig</div>`;
+      await dely(10);
+      yield html`<div>${cat}</div>`;
+    });
     const errorFn = console.error;
     try {
       console.error = () => {};
-      const testRenderer = create(html`<${ErrorBoundary}><${Test} cat="Rocky"/></${ErrorBoundary}>`);
+      const testRenderer = create(html`<${ErrorBoundary}>${el}</${ErrorBoundary}>`);
       await delay(10);
       expect(error).to.be.an('error');
     } finally {
@@ -473,21 +267,18 @@ describe('#sequence()', function() {
     }
   })
   it('should render correctly to a stream', async function() {
-    function Test({ cat }) {
-      const seq = useSequence({ delay: 100 }, [ cat ]);
-      return seq(async function*({ fallback }) {
-        fallback(html`<div>Cow</div>`);
-        await delay(10);
-        yield html`<div>Pig</div>`;
-        await delay(10);
-        yield html`<div>Chicken</div>`;
-        await delay(10);
-        yield html`<div>${cat}</div>`;
-      });
-    }
-    const element = html`<${Test} cat="Rocky"/>`;
+    const el = sequence(async function*({ fallback, defer }) {
+      fallback(html`<div>Cow</div>`);
+      defer(100);
+      await delay(10);
+      yield html`<div>Pig</div>`;
+      await delay(10);
+      yield html`<div>Chicken</div>`;
+      await delay(10);
+      yield html`<div>Rocky</div>`;
+    });
     const stream = await new Promise((resolve, reject) => {
-      const stream = renderToPipeableStream(element, {
+      const stream = renderToPipeableStream(el, {
         onShellError: reject,
         onError: reject,
         onAllReady: () => resolve(stream),
@@ -500,21 +291,17 @@ describe('#sequence()', function() {
   it('should not leak memory', async function() {
     this.timeout(5000);
     async function step() {
-      function Test({ cat }) {
-        const seq = useSequence({}, [ cat ]);
-        return seq(async function*({ fallback }) {
-          fallback(html`<div>Cow</div>`);
-          await delay(0);
-          yield html`<div>Pig</div>`;
-          await delay(10);
-          yield html`<div>Chicken</div>`;
-          await delay(10);
-          yield html`<div>${cat}</div>`;
-        });
-      }
-      const element = html`<${Test} cat="Rocky"/>`;
+      const el = sequence(async function*({ fallback }) {
+        fallback(html`<div>Cow</div>`);
+        await delay(0);
+        yield html`<div>Pig</div>`;
+        await delay(10);
+        yield html`<div>Chicken</div>`;
+        await delay(10);
+        yield html`<div>Rocky</div>`;
+      });
       const stream = await new Promise((resolve, reject) => {
-        const stream = renderToPipeableStream(element, {
+        const stream = renderToPipeableStream(el, {
           onShellError: reject,
           onError: reject,
           onAllReady: () => resolve(stream),
@@ -543,7 +330,159 @@ describe('#sequence()', function() {
     const after = process.memoryUsage().heapUsed;
     const diff = Math.round((after - before) / 1024);
     expect(diff).to.not.be.above(0);
-  })*/
+  })
+})
+
+describe('#useSequence()', function() {
+  it('should recreate element when dependencies change', async function() {
+    const cats = [];
+    function Test({ cat }) {
+      return useSequence(async function*({ fallback, defer }) {
+        fallback('Cow');
+        defer(20);
+        await delay(10);
+        yield 'Pig';
+        await delay(10);
+        yield cat;
+        cats.push(cat);
+      }, [ cat ]);
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Rocky');
+    act(() => {
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+    });
+    expect(testRenderer.toJSON()).to.equal('Cow');
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Barbie');
+    expect(cats).to.eql([ 'Rocky', 'Barbie' ]);
+  })
+  it('should recreate generator when dependencies are not specified', async function() {
+    const cats = [];
+    function Test({ cat }) {
+      return useSequence(async function*({ fallback, defer }) {
+        fallback('Cow');
+        defer(20);
+        await delay(10);
+        yield 'Pig';
+        await delay(10);
+        yield cat;
+        cats.push(cat);
+      });
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Rocky');
+    act(() => {
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+    });
+    expect(testRenderer.toJSON()).to.equal('Cow');
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Barbie');
+    expect(cats).to.eql([ 'Rocky', 'Barbie' ]);
+  })
+  it('should not recreate generator when dependencies has not changed', async function() {
+    const cats = [];
+    function Test({ cat, dog }) {
+      return useSequence(async function*({ fallback, defer }) {
+        fallback('Cow');
+        defer(20);
+        await delay(10);
+        yield 'Pig';
+        await delay(10);
+        yield cat;
+        cats.push(cat);
+      }, [ cat ]);
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky" dog="Dingo"/>`);
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Rocky');
+    act(() => {
+      testRenderer.update(html`<${Test} cat="Rocky" dog="Pi"/>`);
+    });
+    await delay(30);
+    expect(cats).to.eql([ 'Rocky' ]);
+  })
+  it('should terminate iteration when dependencies change mid-cycle', async function() {
+    const stoppage = createStoppage();
+    const cats = [];
+    const finalizations = [];
+    function Test({ cat }) {
+      return useSequence(async function*({ fallback, defer }) {
+        fallback('Cow');
+        defer(20);
+        try {
+          await delay(10);
+          yield 'Pig';
+          await stoppage;
+          yield 'Chicken';
+          await delay(20);
+          yield cat;
+          cats.push(cat);
+        } finally {
+          finalizations.push(cat);
+        }
+      });
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    act(() => {
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+    });
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Cow');
+    stoppage.resolve();
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Barbie');
+    expect(cats).to.eql([ 'Barbie' ]);
+    expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
+  })
+  it('should cause all event promises to reject on prop change', async function() {
+    const cats = [];
+    const finalizations = [];
+    let triggerClick, triggerKeyPress;
+    function Test({ cat }) {
+      return useSequence(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        try {
+          const [ on, eventual ] = manageEvents();
+          triggerClick = on.click();
+          triggerKeyPress = on.keypress();
+          yield 'Pig';
+          await eventual.click.and.keypress;
+          yield 'Chicken';
+          await eventual.click;
+          yield cat;
+          cats.push(cat);
+        } finally {
+          finalizations.push(cat);
+        }
+      }, [ cat ]);
+    }
+    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(30);
+    act(() => {
+      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+    });
+    await delay(0);
+    expect(cats).to.eql([]);
+    expect(finalizations).to.eql([ 'Rocky' ]);
+    triggerClick();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    triggerKeyPress();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Chicken');
+    triggerClick();
+    await delay(0);
+    expect(testRenderer.toJSON()).to.equal('Barbie');
+    expect(cats).to.eql([ 'Barbie' ]);
+    expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
+  })
 })
 
 function createStoppage(delay = 500) {

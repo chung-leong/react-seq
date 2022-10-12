@@ -9,7 +9,7 @@ export function useSequence(cb, deps) {
 export function sequence(cb) {
   // let callback set content update delay
   const iterator = new TimedIterator();
-  function delay(ms) {
+  function defer(ms) {
     iterator.setDelay(ms);
   }
 
@@ -42,10 +42,16 @@ export function sequence(cb) {
   }
 
   let fallbackUnmounted = false;
+  let fallbackUnmountExpected = false;
   function Fallback({ children }) {
     useEffect(() => {
       return () => {
         fallbackUnmounted = true;
+        if (!fallbackUnmountExpected) {
+          if (rejectEvents) {
+            rejectEvents(new Interruption);
+          }
+        }
       };
     });
     return children;
@@ -53,7 +59,7 @@ export function sequence(cb) {
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ delay, allowEmpty, manageEvents, fallback });
+  const generator = cb({ defer, allowEmpty, manageEvents, fallback });
   iterator.start(generator);
   iterator.fetch();
   sync = false;
@@ -105,11 +111,12 @@ export function sequence(cb) {
     } else {
       iterator.stop();
     }
+    fallbackUnmountExpected = true;
     return { default: Sequence };
 
     function Sequence() {
       // trigger rerendering using useReducer()
-      redrawComponent = useReducer(count => count + 1)[1];
+      redrawComponent = useReducer(c => c + 1, 0)[1];
       if (currentError) {
         throw currentError;
       }
@@ -123,6 +130,9 @@ export function sequence(cb) {
         return () => {
           unmounted = true;
           redrawComponent = null;
+          if (rejectEvents) {
+            rejectEvents(new Interruption());
+          }
         };
       }, [ pendingError ])
       return currentContent;
@@ -133,12 +143,14 @@ export function sequence(cb) {
         if (!unmounted) {
           currentContent = pendingContent;
           pendingContent = undefined;
-          if (urgent) {
-            redrawComponent();
-          } else {
-            startTransition(() => {
+          if (redrawComponent) {
+            if (urgent) {
               redrawComponent();
-            });
+            } else {
+              startTransition(() => {
+                redrawComponent();
+              });
+            }
           }
         }
       }
@@ -147,7 +159,9 @@ export function sequence(cb) {
     function throwError(err) {
       if (!unmounted) {
         currentError = err;
-        redrawComponent();
+        if (redrawComponent) {
+          redrawComponent();
+        }
       }
     }
 
@@ -167,7 +181,11 @@ export function sequence(cb) {
           }
         } catch (err) {
           if (err instanceof Interruption) {
-            updateContent(false);
+            if (unmounted) {
+              stop = true;
+            } else {
+              updateContent(false);
+            }
           } else {
             throwError(err);
             stop = true;
