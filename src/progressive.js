@@ -4,25 +4,16 @@ export async function* generateProps(asyncProps, usables) {
     // see which props need to be handled asynchronously
     for (const [ name, value ] of Object.entries(asyncProps)) {
       const usable = usables[name];
-      if (isPromise(value)) {
+      if (isAsync(value)) {
+        // create a generator that yield the value of this prop as time progresses
+        // (i.e. an array becomes bigger as values are retrieved from generator)
+        const initial = isGenerator(value) ? [] : undefined;
         propSet.push({
           name,
           usable,
-          type: 'promise',
-          source: value,
+          value: initial,
+          generator: generateNext(value, initial),
           promise: null,
-          value: undefined,
-          changed: true,
-          resolved: false,
-        });
-      } else if (isGenerator(value)) {
-        propSet.push({
-          name,
-          usable,
-          type: 'generator',
-          source: value,
-          promise: null,
-          value: [],
           changed: true,
           resolved: false,
         });
@@ -31,9 +22,8 @@ export async function* generateProps(asyncProps, usables) {
           name,
           usable,
           value,
-          type: 'sync',
-          resolved: true,
           changed: true,
+          resolved: true,
         });
       }
     }
@@ -45,41 +35,16 @@ export async function* generateProps(asyncProps, usables) {
       propSet.forEach(p => {
         if (!p.resolved) {
           if (!p.promise) {
-            if (p.type === 'promise') {
-              p.promise = p.source.then((value) => {
-                // see if the promise returned a generator
-                if (isGenerator(value)) {
-                  p.type = 'generator';
-                  p.source = value;
-                  p.value = [];
-                } else {
-                  p.value = value;
-                  p.resolved = true;
-                }
+            p.promise = p.generator.next().then(({ value, done }) => {
+              if (!done) {
+                p.value = value;
                 p.changed = true;
                 p.promise = null;
-              })
-            } else if (p.type === 'generator') {
-              let res = p.source.next();
-              if (isPromise(res)) {
-                p.promise = res.then(({ value, done }) => {
-                  if (!done) {
-                    p.value.push(value);
-                    p.changed = true;
-                  } else {
-                    p.resolved = true;
-                  }
-                  p.promise = null;
-                });
               } else {
-                // pull everything from sync generator
-                while (!res.done) {
-                  p.value.push(res.value);
-                  res = p.source.next();
-                }
                 p.resolved = true;
+                p.generator = null;
               }
-            }
+            });
           }
           promises.push(p.promise);
         }
@@ -102,7 +67,7 @@ export async function* generateProps(asyncProps, usables) {
           let usable = (typeof(p.usable) === 'function') ? p.usable(p.value, props) : !!p.usable;
           if (!usable) {
             if (p.resolved) {
-              throw new Error(`Props "${p.name}" is unusable even after having been fully resolved`);
+              console.warn(`Prop "${p.name}" is unusable even after having been fully resolved`);
             }
             setUsable = false;
             break;
@@ -141,20 +106,93 @@ export async function* generateProps(asyncProps, usables) {
   }
 }
 
-function isPromise(obj) {
-  if (obj instanceof Object) {
-    if (typeof(obj.then) === 'function' && typeof(obj.catch) === 'function') {
-      return true;
+export async function* generateNext(source, current, sent = false) {
+  function add(next) {
+    if (current) {
+      if (sent) {
+        // create a new array as the current one has been sent
+        // to the caller already and we don't want to change it
+        current = [ ...current ];
+        sent = false;
+      }
+      current.push(next);
+    } else if (isGenerator(source)) {
+      current = [ next ];
+    } else {
+      current = next;
     }
   }
-  return false;
+
+  function result() {
+    // remember that we've sent the result to the caller
+    sent = true;
+    return current;
+  }
+
+  if (isGenerator(source)) {
+    // loop through the values returned by the generator
+    let stop = false;
+    try {
+      do {
+        const ret = source.next();
+        // using await if we have an async generator
+        const { value: next, done } = isPromise(ret) ? await ret : ret;
+        if (!done) {
+          if (isAsync(next)) {
+            // a promise or a generator, handle it recursively, with
+            // values appended to the array
+            for await (current of generateNext(next, current, sent)) {
+              yield result();
+            }
+          } else {
+            // add the value to the array, sending it to the caller
+            // if this is an async generator
+            add(next);
+            if (isPromise(ret)) {
+              yield result();
+            }
+          }
+        } else {
+          stop = true;
+        }
+      } while (!stop);
+      // if this is a sync generator, send the updated array now
+      if (!sent) {
+        yield result();
+      }
+    } finally {
+      // run finally section
+      try {
+        const ret = source.return();
+        if (isPromise(ret)) {
+          ret.catch(err => console.error(err));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  } else if (isPromise(source)) {
+    const next = await source;
+    if (isAsync(next)) {
+      // we've probably just resolved a promise of a generator
+      for await (current of generateNext(next, current, sent)) {
+        yield result();
+      }
+    } else {
+      add(next);
+      yield result();
+    }
+  }
+}
+
+function isAsync(obj) {
+  return isPromise(obj) || isGenerator(obj);
+}
+
+function isPromise(obj) {
+  return (obj instanceof Object && typeof(obj.then) === 'function');
 }
 
 function isGenerator(obj) {
-  if (obj instanceof Object) {
-    if (typeof(obj.next) === 'function' && typeof(obj.return) === 'function' && typeof(obj.throw) === 'function') {
-      return true;
-    }
-  }
-  return false;
+  return (obj instanceof Object && typeof(obj.next) === 'function' && typeof(obj.return) === 'function');
 }
