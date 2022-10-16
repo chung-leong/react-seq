@@ -2,8 +2,7 @@ import './css/PaymentPage.css';
 import { useSequence } from 'react-seq';
 
 export function PaymentPage() {
-  const seq = useSequence({}, []);
-  return seq(async function*({ fallback, manageEvents }) {
+  return useSequence(async function*({ fallback, manageEvents }) {
     fallback(<PaymentLoading />);
 
     const [ on, eventual ] = manageEvents();
@@ -47,7 +46,7 @@ export function PaymentPage() {
         await eventual.confirmation;
       }
     }
-  });
+  }, []);
 }
 
 function PaymentLoading() {
