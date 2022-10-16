@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
-import { TimedIterator, Interruption } from './iterator.js';
+import { IntermittentIterator, Interruption, Abort } from './iterator.js';
 import { createEventManager } from './events.js';
 
 export function useSequence(cb, deps) {
@@ -7,8 +7,11 @@ export function useSequence(cb, deps) {
 }
 
 export function sequence(cb) {
+  const abortController = new AbortController();
+  const { signal } = abortController;
+
   // let callback set content update delay
-  const iterator = new TimedIterator();
+  const iterator = new IntermittentIterator();
   function defer(ms) {
     iterator.setDelay(ms);
   }
@@ -20,20 +23,34 @@ export function sequence(cb) {
     emptyAllowed = true;
   }
 
+  // allow the creation of suspending component
+  let suspensionKey;
+  function suspend(key) {
+    if (typeof(key) !== 'string') {
+      throw new Error('suspend() expects a unique string id as parameter');
+    }
+    if (placeholder) {
+      throw new Error('suspend() cannot be used together with fallback()');
+    }
+    suspensionKey = key;
+  }
+
   // let callback manages events with help of promises
-  let rejectEvents;
   function manageEvents(options) {
     const { on, eventual, reject } = createEventManager(options);
-    rejectEvents = reject;
+    signal.addEventListener('abort', () => reject(new Abort), { signal });
     return [ on, eventual ];
   }
 
   // let callback set fallback content
-  let sync = true;
   let placeholder;
+  let sync = true;
   function fallback(el) {
     if (!sync) {
       throw new Error('Fallback component must be set prior to any yield or await statement');
+    }
+    if (suspensionKey) {
+      throw new Error('fallback() cannot be used together with suspend()');
     }
     if (typeof(el) === 'function') {
       el = el();
@@ -41,16 +58,12 @@ export function sequence(cb) {
     placeholder = el;
   }
 
-  let fallbackUnmounted = false;
   let fallbackUnmountExpected = false;
   function Fallback({ children }) {
     useEffect(() => {
       return () => {
-        fallbackUnmounted = true;
         if (!fallbackUnmountExpected) {
-          if (rejectEvents) {
-            rejectEvents(new Interruption);
-          }
+          abortController.abort();
         }
       };
     });
@@ -59,13 +72,16 @@ export function sequence(cb) {
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ defer, allowEmpty, manageEvents, fallback });
+  const generator = cb({ defer, allowEmpty, manageEvents, fallback, suspend, signal });
   iterator.start(generator);
   iterator.fetch();
   sync = false;
 
+  // stop iterator when abort is signaled
+  signal.addEventListener('abort', () => iterator.throw(new Abort()), { signal });
+
   // define lazy component Sequence
-  const Lazy = lazy(async () => {
+  const Lazy = createLazyComponent(suspensionKey, async () => {
     let pendingContent;
     let pendingError;
 
@@ -79,21 +95,20 @@ export function sequence(cb) {
         } else {
           stop = empty = true;
         }
-        if (fallbackUnmounted) {
-          stop = true;
-        }
       } catch (err) {
         if (err instanceof Interruption) {
           // we're done here if we have managed to obtain something
           if (pendingContent !== undefined || allowEmpty) {
             stop = true;
           }
+        } else if (err instanceof Abort) {
+          stop = true;
         } else if (pendingContent !== undefined) {
           // we have retrieved some content--draw it first then throw the error inside <Sequence/>
           pendingError = err;
           stop = true;
-        } else {
-          // throw the error now so the lazy component
+        } else if (err.name !== 'AbortError') {
+          // throw the error now so "loading" of lazy component fails
           throw err;
         }
       }
@@ -102,14 +117,13 @@ export function sequence(cb) {
     let currentContent = pendingContent;
     let currentError;
     let redrawComponent;
-    let unmounted = false;
 
     // retrieve the remaining items from the generator unless an error was encountered
     // or it's empty already
     if (!empty && !pendingError) {
       retrieveRemaining();
     } else {
-      iterator.stop();
+      await iterator.return();
     }
     fallbackUnmountExpected = true;
     return { default: Sequence };
@@ -128,11 +142,8 @@ export function sequence(cb) {
           redrawComponent();
         }
         return () => {
-          unmounted = true;
-          redrawComponent = null;
-          if (rejectEvents) {
-            rejectEvents(new Interruption());
-          }
+          // abort iteration through generator on unmount
+          abortController.abort();
         };
       }, [ pendingError ])
       return currentContent;
@@ -140,28 +151,24 @@ export function sequence(cb) {
 
     function updateContent(urgent) {
       if (pendingContent !== undefined) {
-        if (!unmounted) {
-          currentContent = pendingContent;
-          pendingContent = undefined;
-          if (redrawComponent) {
-            if (urgent) {
+        currentContent = pendingContent;
+        pendingContent = undefined;
+        if (redrawComponent) {
+          if (urgent) {
+            redrawComponent();
+          } else {
+            startTransition(() => {
               redrawComponent();
-            } else {
-              startTransition(() => {
-                redrawComponent();
-              });
-            }
+            });
           }
         }
       }
     }
 
     function throwError(err) {
-      if (!unmounted) {
-        currentError = err;
-        if (redrawComponent) {
-          redrawComponent();
-        }
+      currentError = err;
+      if (redrawComponent) {
+        redrawComponent();
       }
     }
 
@@ -176,16 +183,11 @@ export function sequence(cb) {
           } else {
             stop = true;
           }
-          if (unmounted) {
-            stop = true;
-          }
         } catch (err) {
           if (err instanceof Interruption) {
-            if (unmounted) {
-              stop = true;
-            } else {
-              updateContent(false);
-            }
+            updateContent(false);
+          } else if (err instanceof Abort) {
+            stop = true;
           } else {
             throwError(err);
             stop = true;
@@ -193,12 +195,33 @@ export function sequence(cb) {
         }
       } while (!stop);
       updateContent(true);
-      iterator.stop();
+      await iterator.return();
     }
   });
 
-  // create the component and wrap it in a Suspense
+  // create the component
   const lazyEl = createElement(Lazy);
-  const fallbackEl = createElement(Fallback, {}, placeholder);
-  return createElement(Suspense, { fallback: fallbackEl }, lazyEl);
+  if (suspensionKey) {
+    return lazyEl;
+  } else {
+    // wrap it in a Suspense
+    const fallbackEl = createElement(Fallback, {}, placeholder);
+    return createElement(Suspense, { fallback: fallbackEl }, lazyEl);
+  }
+}
+
+const lazyComponents = {};
+
+function createLazyComponent(key, fn) {
+  if (typeof(key) === 'string') {
+    let c = lazyComponents[key];
+    if (c) {
+      delete lazyComponents[key];
+    } else {
+      c = lazyComponents[key] = lazy(fn);
+    }
+    return c;
+  } else {
+    return lazy(fn);
+  }
 }

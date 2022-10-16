@@ -6,7 +6,10 @@ import { renderToPipeableStream } from 'react-dom/server';
 import MemoryStream from 'memorystream';
 import { createWriteStream } from 'fs';
 import { delay } from '../index.js';
+import AbortController from 'abort-controller';
 import 'mocha-skip-if';
+
+global.AbortController = AbortController;
 
 import {
   sequence,
@@ -176,7 +179,6 @@ describe('#sequence()', function() {
         yield 'Chicken';
         await eventual.click;
         yield 'Rocky';
-        console.log('???')
         cats.push('Rocky');
       } finally {
         finalizations.push('Rocky');
@@ -193,6 +195,19 @@ describe('#sequence()', function() {
     expect(testRenderer.toJSON()).to.equal(null);
     expect(cats).to.eql([]);
     expect(finalizations).to.eql([ 'Rocky' ]);
+  })
+  it('should allow creation of a suspending component', async function() {
+    const el = sequence(async function*({ suspend }) {
+      suspend('unique-id');
+      yield 'Pig';
+      await delay(30);
+      yield 'Chicken';
+    });
+    const testRenderer = create(html`<${Suspense} fallback="Cow">${el}</${Suspense}>`);
+    expect(testRenderer.toJSON()).to.equal('Cow');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(30);
   })
   it('should trigger error boundary', async function() {
     let error;
@@ -236,10 +251,10 @@ describe('#sequence()', function() {
         this.state = { error: null };
       }
       static getDerivedStateFromError(err) {
-        error = err;
         return { error: err };
       }
       componentDidCatch(err) {
+        error = err;
       }
       render() {
         const { error } = this.state;
@@ -260,7 +275,7 @@ describe('#sequence()', function() {
     try {
       console.error = () => {};
       const testRenderer = create(html`<${ErrorBoundary}>${el}</${ErrorBoundary}>`);
-      await delay(10);
+      await delay(30);
       expect(error).to.be.an('error');
     } finally {
       console.error = errorFn;

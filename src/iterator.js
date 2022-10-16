@@ -6,7 +6,7 @@ export function extendDelay(multiplier = 1, addend = 0) {
   delayAddend = addend;
 }
 
-export class TimedIterator {
+export class IntermittentIterator {
   constructor(delay = 0) {
     this.generator = null;
     this.promise = null;
@@ -16,21 +16,6 @@ export class TimedIterator {
     this.timeout = null;
     this.reject = null;
     this.returning = false;
-  }
-
-  start(generator) {
-    this.generator = generator;
-    this.started = true;
-    this.startTimer();
-  }
-
-  stop() {
-    this.stopTimer();
-    this.stopSource();
-    this.promise = null;
-    this.timeout = null;
-    this.reject = null;
-    this.started = false;
   }
 
   setDelay(delay) {
@@ -47,15 +32,48 @@ export class TimedIterator {
     }
   }
 
+  start(generator) {
+    this.generator = generator;
+    this.started = true;
+    this.startTimer();
+  }
+
+  next() {
+    this.fetch();
+    if (this.delay > 0) {
+      return Promise.race([ this.promise, this.timeout ]);
+    } else {
+      // alternate behind the two
+      this.returning = !this.returning;
+      if (this.returning) {
+        return Promise.race([ this.promise, this.timeout ]);
+      } else {
+        return Promise.reject(new Interruption());
+      }
+    }
+  }
+
+  throw(err) {
+    if (this.reject) {
+      this.reject(err);
+    }
+  }
+
+  return() {
+    const { generator } = this
+    this.generator = null;
+    this.promise = null;
+    this.timeout = null;
+    this.reject = null;
+    this.started = false;
+    this.stopTimer();
+    return generator.return();
+  }
+
   startTimer() {
     if (this.delay > 0) {
-      this.interval = setInterval(() => {
-        if (this.reject) {
-          this.reject(new Interruption());
-        }
-      }, this.delay);
+      this.interval = setInterval(() => this.throw(new Interruption()), this.delay);
     }
-    this.started = true;
   }
 
   stopTimer() {
@@ -63,14 +81,6 @@ export class TimedIterator {
       clearInterval(this.interval);
       this.interval = 0;
     }
-    this.started = false;
-  }
-
-  stopSource() {
-    this.generator.return().catch((err) => {
-      console.error(err);
-    });
-    this.generator = null;
   }
 
   fetch() {
@@ -81,30 +91,16 @@ export class TimedIterator {
       });
     }
     if (!this.timeout) {
-      if (this.delay > 0) {
-        this.timeout = new Promise((resolve, reject) => {
-          this.reject = reject;
-        });
-      } else {
-        this.timeout = Promise.reject(new Interruption());
-      }
+      this.timeout = new Promise((resolve, reject) => {
+        this.reject = reject;
+      });
       this.timeout.catch(() => {
         this.timeout = null;
         this.reject = null;
       });
     }
   }
-
-  next() {
-    this.fetch();
-    if (this.delay > 0) {
-      return Promise.race([ this.promise, this.timeout ]);
-    } else {
-      // alternate behind the two
-      this.returning = !this.returning;
-      return (this.returning) ? this.promise : this.timeout;
-    }
-  }
 }
 
 export class Interruption extends Error {}
+export class Abort extends Error {}

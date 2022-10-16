@@ -1,10 +1,13 @@
 import { expect } from 'chai';
 import { delay, Interruption } from '../index.js';
+import AbortController from 'abort-controller';
+
+global.AbortController = AbortController;
 
 import {
   generateNext,
   generateProps,
-} from '../src/progressive.js';
+} from '../index.js';
 
 describe('#generateNext()', function() {
   function p(value) {
@@ -97,24 +100,27 @@ describe('#generateNext()', function() {
     ]);
   })
   it('should run finally sections of generators', async function() {
-    let gCount = 0, aCount = 0;
+    let gStart = 0, aStart = 0;
+    let gFinal = 0, aFinal = 0;
     function* g(...values) {
       try {
+        gStart++;
         for (const value of values) {
           yield value;
         }
       } finally {
-        gCount++;
+        gFinal++;
       }
     }
 
     async function* a(...values) {
       try {
+        aStart++;
         for (const value of values) {
           yield value;
         }
       } finally {
-        aCount++;
+        aFinal++;
       }
     }
 
@@ -124,9 +130,10 @@ describe('#generateNext()', function() {
       g(p(5), 6),
     ));
     const generator = generateNext(source);
-    const list = await getList(generator);
-    expect(gCount).to.equal(2);
-    expect(aCount).to.equal(2);
+    await generator.next();
+    await generator.return();
+    expect(gFinal).to.equal(gStart);
+    expect(aFinal).to.equal(aStart);
   })
 })
 
@@ -212,11 +219,30 @@ describe('#generateProps()', function() {
       world: delay(20).then(() => 'World'),
       animals: create(),
     };
-    const generator = generateProps(props, { animals: arr => arr.length >= 2 });
+    const generator = generateProps(props, { animals: 2 });
     const list = await getList(generator);
     expect(list).to.have.lengthOf(2);
     expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig' ] });
     expect(list[1]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+  })
+  it('should return an array when usability criteria cannot be met', async function() {
+    const create = async function*() {
+      await delay(10);
+      yield 'Cow';
+      await delay(10);
+      yield 'Pig';
+      await delay(10);
+      yield 'Chicken';
+    };
+    const props = {
+      hello: Promise.resolve('Hello'),
+      world: delay(20).then(() => 'World'),
+      animals: create(),
+    };
+    const generator = generateProps(props, { animals: Infinity });
+    const list = await getList(generator);
+    expect(list).to.have.lengthOf(1);
+    expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
   })
   it('should retrieve items from multiple generators', async function() {
     const create = async function*() {
@@ -233,7 +259,7 @@ describe('#generateProps()', function() {
       animals: create(),
       names: create(),
     };
-    const generator = generateProps(props, { animals: arr => arr.length >= 2 });
+    const generator = generateProps(props, { animals: 2 });
     const list = await getList(generator);
     expect(list).to.have.lengthOf(1);
     expect(list[0]).to.eql({
@@ -241,6 +267,29 @@ describe('#generateProps()', function() {
       world: 'World',
       animals: [ 'Cow', 'Pig', 'Chicken' ],
       names: [ 'Cow', 'Pig', 'Chicken' ]
+    });
+  })
+  it('should merge items from multiple generators into single list', async function() {
+    const create = async function*() {
+      await delay(10);
+      yield [ 1, 2, 3 ].values();
+      await delay(10);
+      yield [ 4, 5, 6 ].values();
+      await delay(10);
+      yield [ 7, 8, 9 ].values();
+    };
+    const props = {
+      hello: Promise.resolve('Hello'),
+      world: delay(20).then(() => 'World'),
+      animals: create(),
+    };
+    const generator = generateProps(props, {});
+    const list = await getList(generator);
+    expect(list).to.have.lengthOf(1);
+    expect(list[0]).to.eql({
+      hello: 'Hello',
+      world: 'World',
+      animals: [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ],
     });
   })
 })

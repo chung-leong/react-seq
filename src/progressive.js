@@ -1,3 +1,38 @@
+import { useMemo, createElement } from 'react';
+import { sequence } from './sequence.js';
+
+export function useProgressive(cb, deps) {
+  return useMemo(() => progressive(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+}
+
+export function progressive(Component, cb) {
+  return sequence(async function* (methods) {
+    let usables;
+    function usable(name, cb) {
+      if (!usables) {
+        usables = {};
+      }
+      usables[name] = cb;
+    }
+
+    const asyncProps = await cb({ ...methods, usable });
+    if (!usables) {
+      usables = findDefaultProps(Component);
+    }
+    for await (const props of generateProps(asyncProps, usables)) {
+      yield createElement(Component, props);
+    }
+  });
+}
+
+function findDefaultProps(fn) {
+  const vars = {};
+  if (fn instanceof Function) {
+
+  }
+  return vars;
+}
+
 export async function* generateProps(asyncProps, usables) {
   const propSet = [];
   try {
@@ -63,24 +98,33 @@ export async function* generateProps(asyncProps, usables) {
       let setUsable = true;
       let setChanged = false;
       for (const p of propSet) {
-        if (p.usable !== undefined) {
-          let usable = (typeof(p.usable) === 'function') ? p.usable(p.value, props) : !!p.usable;
-          if (!usable) {
-            if (p.resolved) {
-              console.warn(`Prop "${p.name}" is unusable even after having been fully resolved`);
+        if (!p.resolved) {
+          // see if the prop is usable despite not having been fully resolved
+          if (p.usable !== undefined) {
+            let propUsable;
+            if (typeof(p.usable) === 'function') {
+              propUsable = !!p.usable(p.value, p.resolved, props);
+            } else if (typeof(p.usable) === 'number') {
+              propUsable = (p.value) ? p.value.length >= p.usable : false;
+            } else {
+              propUsable = !!p.usable;
             }
+            if (!propUsable) {
+              setUsable = false;
+              break;
+            }
+          } else {
             setUsable = false;
             break;
           }
-        } else if (!p.resolved) {
-          setUsable = false;
-          break;
         }
         if (p.changed) {
           setChanged = true;
         }
       }
-      if (setUsable && setChanged) {
+      // yield the prop set when it's usable or when we can't generate a new one
+      // unless the set has not been changed since it was last sent
+      if ((setUsable || stop) && setChanged) {
         for (const p of propSet) {
           p.changed = false;
         }
@@ -90,14 +134,9 @@ export async function* generateProps(asyncProps, usables) {
   } finally {
     // run finally section of generators
     for(const p of propSet) {
-      if (p.type === 'generator') {
+      if (p.generator) {
         try {
-          let res = p.source.return();
-          if (isPromise(res)) {
-            res.catch((err) => {
-              console.error(err);
-            });
-          }
+          await p.generator.return();
         } catch (err) {
           console.error(err);
         }
@@ -163,9 +202,11 @@ export async function* generateNext(source, current, sent = false) {
     } finally {
       // run finally section
       try {
-        const ret = source.return();
-        if (isPromise(ret)) {
-          ret.catch(err => console.error(err));
+        if (source.return) {
+          const ret = source.return();
+          if (isPromise(ret)) {
+            ret.catch((err) => console.error(err));
+          }
         }
       } catch (err) {
         console.error(err);
@@ -194,5 +235,5 @@ function isPromise(obj) {
 }
 
 function isGenerator(obj) {
-  return (obj instanceof Object && typeof(obj.next) === 'function' && typeof(obj.return) === 'function');
+  return (obj instanceof Object && typeof(obj.next) === 'function');
 }
