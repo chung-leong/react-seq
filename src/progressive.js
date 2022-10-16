@@ -1,8 +1,8 @@
 import { useMemo, createElement } from 'react';
 import { sequence } from './sequence.js';
 
-export function useProgressive(cb, deps) {
-  return useMemo(() => progressive(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+export function useProgressive(Component, cb, deps) {
+  return useMemo(() => progressive(Component, cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export function progressive(Component, cb) {
@@ -23,7 +23,7 @@ export function progressive(Component, cb) {
       usables = findUsableProps(Component);
     }
     if (process.env.NODE_ENV === 'development') {
-      for (const name of Object.names(usables)) {
+      for (const name of Object.keys(usables)) {
         if (!(name in asyncProps)) {
           console.warn(`The prop "${name}" is given a usability criteria but is absent from the object returned`);
         }
