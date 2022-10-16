@@ -8,16 +8,26 @@ export function useProgressive(cb, deps) {
 export function progressive(Component, cb) {
   return sequence(async function* (methods) {
     let usables;
-    function usable(name, cb) {
-      if (!usables) {
-        usables = {};
+    function usable(obj) {
+      if (!(obj instanceof Object)) {
+        throw new Error('usable() expects an object');
       }
-      usables[name] = cb;
+      usables = obj;
     }
 
     const asyncProps = await cb({ ...methods, usable });
+    if (!(asyncProps instanceof Object)) {
+      throw new Error('Callback function did not return an object');
+    }
     if (!usables) {
-      usables = findDefaultProps(Component);
+      usables = findUsableProps(Component);
+    }
+    if (process.env.NODE_ENV === 'development') {
+      for (const name of Object.names(usables)) {
+        if (!(name in asyncProps)) {
+          console.warn(`The prop "${name}" is given a usability criteria but is absent from the object returned`);
+        }
+      }
     }
     for await (const props of generateProps(asyncProps, usables)) {
       yield createElement(Component, props);
@@ -25,12 +35,30 @@ export function progressive(Component, cb) {
   });
 }
 
-function findDefaultProps(fn) {
-  const vars = {};
+export function findUsableProps(fn) {
+  const props = {};
   if (fn instanceof Function) {
-
+    // look for parameters
+    const s = fn.toString();
+    let p = s.substring(s.indexOf('(') + 1, s.indexOf(')'));
+    // remove comments
+    p = p.replace(/\/\*[\s\S]*?\*\//g, '');
+    p = p.replace(/\/\/(.)*/g, '');
+    // remove whitespaces
+    p = p.replace(/\s+/g, '');
+    if (p.charAt(0) === '{' && p.charAt(p.length - 1) === '}') {
+      // deconstructing props
+      const d = p.substr(1, p.length - 2);
+      for (const param of d.split(',')) {
+        const eq = param.indexOf('=');
+        if (eq !== -1) {
+          const name = param.substr(0, eq);
+          props[name] = true;
+        }
+      }
+    }
   }
-  return vars;
+  return props;
 }
 
 export async function* generateProps(asyncProps, usables) {

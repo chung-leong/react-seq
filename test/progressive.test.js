@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { delay, Interruption } from '../index.js';
+import { create, act } from 'react-test-renderer';
 import AbortController from 'abort-controller';
 
 global.AbortController = AbortController;
@@ -7,25 +8,30 @@ global.AbortController = AbortController;
 import {
   generateNext,
   generateProps,
+  progressive,
+  useProgressive,
 } from '../index.js';
+import {
+  findUsableProps,
+} from '../src/progressive.js';
+
+function p(value) {
+  return Promise.resolve(value);
+}
+
+function* g(...values) {
+  for (const value of values) {
+    yield value;
+  }
+}
+
+async function* a(...values) {
+  for (const value of values) {
+    yield value;
+  }
+}
 
 describe('#generateNext()', function() {
-  function p(value) {
-    return Promise.resolve(value);
-  }
-
-  function* g(...values) {
-    for (const value of values) {
-      yield value;
-    }
-  }
-
-  async function* a(...values) {
-    for (const value of values) {
-      yield value;
-    }
-  }
-
   it('should return fulfillment value of promise', async function() {
     const source = p(123);
     const generator = generateNext(source);
@@ -291,6 +297,138 @@ describe('#generateProps()', function() {
       world: 'World',
       animals: [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ],
     });
+  })
+})
+
+describe('#findUsableProps()', function() {
+  it('should find props with default values', function() {
+    function Component({ a = null, b = [], c, d, e  = {} }) {};
+    const props = findUsableProps(Component);
+    expect(props).to.eql({ a: true, b: true, e: true });
+  });
+  it('should handle arrow function', function() {
+    const Component = ({ a = null, b = [], c, d, e  = {} }) => {};
+    const props = findUsableProps(Component);
+    expect(props).to.eql({ a: true, b: true, e: true });
+  });
+  it('should return empty object when deconstruction is not employed', function() {
+    function Component(props) {
+      let a = null, b = [], c, d, e  = {};
+    };
+    const props = findUsableProps(Component);
+    expect(props).to.eql({});
+  });
+});
+
+describe('#progressive', function() {
+  it('should return a component that renders progressively', async function () {
+    function Component({ animals }) {
+      return animals.join(', ');
+    }
+
+    async function* generate() {
+      yield 'Pig';
+      await delay(10);
+      yield 'Donkey';
+      await delay(10);
+      yield 'Chicken';
+    }
+
+    const el = progressive(Component, ({ fallback, usable }) => {
+      fallback('None');
+      usable({
+        animals: 1
+      });
+      return { animals: generate() };
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(5);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+  })
+  it('should defer rendering until all items is fetched from generator', async function () {
+    function Component({ animals }) {
+      return animals.join(', ');
+    }
+
+    async function* generate() {
+      yield 'Pig';
+      await delay(10);
+      yield 'Donkey';
+      await delay(10);
+      yield 'Chicken';
+    }
+
+    const el = progressive(Component, ({ fallback }) => {
+      fallback('None');
+      return { animals: generate() };
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(5);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+  })
+  it('should rendering with available data when deferrment delay is reached', async function () {
+    function Component({ animals }) {
+      return animals.join(', ');
+    }
+
+    async function* generate() {
+      yield 'Pig';
+      await delay(10);
+      yield 'Donkey';
+      await delay(10);
+      yield 'Chicken';
+    }
+
+    const el = progressive(Component, ({ fallback, defer, usable }) => {
+      fallback('None');
+      defer(15);
+      usable({ animals: 1 })
+      return { animals: generate() };
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(5);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+  })
+  it('should infer usability from defaults', async function () {
+    function Component({ animals = [] }) {
+      return animals.join(', ');
+    }
+
+    async function* generate() {
+      yield 'Pig';
+      await delay(10);
+      yield 'Donkey';
+      await delay(10);
+      yield 'Chicken';
+    }
+
+    const el = progressive(Component, ({ fallback }) => {
+      fallback('None');
+      return { animals: generate() };
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(5);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
 })
 
