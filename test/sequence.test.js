@@ -550,8 +550,7 @@ function createStoppage(delay = 500) {
 async function readStream(stream) {
   const memStream = new MemoryStream;
   stream.pipe(memStream);
-  await new Promise(resolve => memStream.on('finish', resolve));
-  stream.abort();
+  await new Promise(resolve => memStream.once('finish', resolve));
   const data = memStream.read(Infinity);
   const string = data.toString();
   memStream.destroy();

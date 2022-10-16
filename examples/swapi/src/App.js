@@ -11,6 +11,16 @@ const routes = {
     '/test/': () => [ lazy(() => import('./Test.js')) ],
     '/people/?': () => [ lazy(() => import('./CharacterList.js')) ],
     '/people/:id/?': (props) => [ lazy(() => import('./Character.js')), props ],
+    '/films/?': () => [ lazy(() => import('./FilmList.js')) ],
+    '/films/:id/?': (props) => [ lazy(() => import('./Film.js')), props ],
+    '/planets/?': () => [ lazy(() => import('./PlanetList.js')) ],
+    '/planets/:id/?': (props) => [ lazy(() => import('./Planet.js')), props ],
+    '/species/?': () => [ lazy(() => import('./SpeciesList.js')) ],
+    '/species/:id/?': (props) => [ lazy(() => import('./Species.js')), props ],
+    '/starships/?': () => [ lazy(() => import('./StarshipList.js')) ],
+    '/starships/:id/?': (props) => [ lazy(() => import('./Starship.js')), props ],
+    '/vehicles/?': () => [ lazy(() => import('./VehicleList.js')) ],
+    '/vehicles/:id/?': (props) => [ lazy(() => import('./Vehicle.js')), props ],
     '/*': () => [ lazy(() => import('./NotFound.js')) ],
 };
 

@@ -6,9 +6,8 @@ import List from './List.js';
 export default function CharacterList() {
   return useProgressive(CharacterListUI, async ({ defer, usable, suspend }) => {
     defer(100);
-    usable({ people: 30 });
+    usable({ people: 20 });
     suspend(`character-list`);
-
     return { people: fetchList('people/') };
   }, []);
 }

@@ -8,7 +8,7 @@ export default function NavBar() {
       <A href="/people/">Characters</A>
       <A href="/planets/">Planets</A>
       <A href="/species/">Species</A>
-      <A href="/vehicle/">Vehicles</A>
+      <A href="/vehicles/">Vehicles</A>
       <A href="/starships/">Starships</A>
     </div>
   );
