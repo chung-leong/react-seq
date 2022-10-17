@@ -1,9 +1,7 @@
 import { expect } from 'chai';
-import { delay, Interruption } from '../index.js';
+import { createElement, Component } from 'react';
 import { create, act } from 'react-test-renderer';
-import AbortController from 'abort-controller';
-
-global.AbortController = AbortController;
+import { delay, Interruption } from '../index.js';
 
 import {
   generateNext,
@@ -104,6 +102,22 @@ describe('#generateNext()', function() {
       [ 1, 2, 3, 4, 5 ],
       [ 1, 2, 3, 4, 5, 6 ],
     ]);
+  })
+  it('should return promised values from sync generator', async function() {
+    const source = g(
+      p(1), p(2), p(3), p(4), p(5), p(6)
+    );
+    const generator = generateNext(source);
+    const list = await getList(generator);
+    expect(list).to.eql([
+      [ 1 ],
+      [ 1, 2 ],
+      [ 1, 2, 3 ],
+      [ 1, 2, 3, 4 ],
+      [ 1, 2, 3, 4, 5 ],
+      [ 1, 2, 3, 4, 5, 6 ],
+    ]);
+
   })
   it('should run finally sections of generators', async function() {
     let gStart = 0, aStart = 0;
@@ -334,8 +348,9 @@ describe('#progressive', function() {
       yield 'Chicken';
     }
 
-    const el = progressive(Component, ({ fallback, usable }) => {
+    const el = progressive(({ fallback, type, usable }) => {
       fallback('None');
+      type(Component);
       usable({
         animals: 1
       });
@@ -363,8 +378,9 @@ describe('#progressive', function() {
       yield 'Chicken';
     }
 
-    const el = progressive(Component, ({ fallback }) => {
+    const el = progressive(({ fallback, type }) => {
       fallback('None');
+      type(Component);
       return { animals: generate() };
     });
     const testRenderer = create(el);
@@ -383,13 +399,14 @@ describe('#progressive', function() {
 
     async function* generate() {
       yield 'Pig';
-      await delay(10);
+      await delay(20);
       yield 'Donkey';
-      await delay(10);
+      await delay(20);
       yield 'Chicken';
     }
 
-    const el = progressive(Component, ({ fallback, defer, usable }) => {
+    const el = progressive(({ fallback, type, defer, usable }) => {
+      type(Component);
       fallback('None');
       defer(15);
       usable({ animals: 1 })
@@ -397,11 +414,11 @@ describe('#progressive', function() {
     });
     const testRenderer = create(el);
     expect(testRenderer.toJSON()).to.equal('None');
-    await delay(5);
+    await delay(10);
     expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
+    await delay(25);
     expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
-    await delay(10);
+    await delay(20);
     expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
   it('should infer usability from defaults', async function () {
@@ -411,24 +428,171 @@ describe('#progressive', function() {
 
     async function* generate() {
       yield 'Pig';
-      await delay(10);
+      await delay(20);
       yield 'Donkey';
-      await delay(10);
+      await delay(20);
       yield 'Chicken';
     }
 
-    const el = progressive(Component, ({ fallback }) => {
+    const el = progressive(({ fallback, type }) => {
       fallback('None');
+      type(Component);
       return { animals: generate() };
     });
     const testRenderer = create(el);
     expect(testRenderer.toJSON()).to.equal('None');
-    await delay(5);
+    await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(10);
+    await delay(25);
     expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
-    await delay(10);
+    await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+  })
+  it('should accept an element-creating function in lieu of a type', async function() {
+    async function* generate() {
+      yield 'Pig';
+      await delay(20);
+      yield 'Donkey';
+      await delay(20);
+      yield 'Chicken';
+    }
+
+    const el = progressive(({ fallback, element }) => {
+      fallback('None');
+      element(({ animals = [] }) => createElement('span', {}, animals.join(', ')));
+      return { animals: generate() };
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig' ] });
+    await delay(25);
+    expect(testRenderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey' ] });
+    await delay(30);
+    expect(testRenderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
+  })
+  it('should progressively values from sync generator', async function() {
+    function Component({ animals = [] }) {
+      return animals.join(', ');
+    }
+
+    function* generate() {
+      yield Promise.resolve('Pig');
+      yield delay(20).then(() => 'Donkey');
+      yield delay(40).then(() => 'Chicken');
+    }
+
+    const el = progressive(({ fallback, type }) => {
+      fallback('None');
+      type(Component);
+      return { animals: generate() };
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(25);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
+    await delay(30);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+  })
+  it('should throw if an element type is not given', async function() {
+    let error;
+    class ErrorBoundary extends Component {
+      constructor(props) {
+        super(props);
+        this.state = { error: null };
+      }
+      static getDerivedStateFromError(err) {
+        error = err;
+        return { error: err };
+      }
+      render() {
+        const { error } = this.state;
+        if (error) {
+          return createElement('h1', {}, error.message);
+        }
+        return this.props.children;
+      }
+    }
+    const errorFn = console.error;
+    try {
+      console.error = () => {};
+      const el = progressive(() => {
+        return {};
+      });
+      const testRenderer = create(createElement(ErrorBoundary, {}, el));
+      await delay(50);
+      expect(error).to.be.an('error');
+    } finally {
+      console.error = errorFn;
+    }
+  })
+  it('should throw if usable is given a non-object', async function() {
+    let error;
+    class ErrorBoundary extends Component {
+      constructor(props) {
+        super(props);
+        this.state = { error: null };
+      }
+      static getDerivedStateFromError(err) {
+        error = err;
+        return { error: err };
+      }
+      render() {
+        const { error } = this.state;
+        if (error) {
+          return createElement('h1', {}, error.message);
+        }
+        return this.props.children;
+      }
+    }
+    const errorFn = console.error;
+    try {
+      console.error = () => {};
+      const el = progressive(({ usable }) => {
+        usable('cow', 1);
+        return {};
+      });
+      const testRenderer = create(createElement(ErrorBoundary, {}, el));
+      await delay(50);
+      expect(error).to.be.an('error');
+    } finally {
+      console.error = errorFn;
+    }
+  })
+  it('should throw if function returns a non-object', async function() {
+    let error;
+    class ErrorBoundary extends Component {
+      constructor(props) {
+        super(props);
+        this.state = { error: null };
+      }
+      static getDerivedStateFromError(err) {
+        error = err;
+        return { error: err };
+      }
+      render() {
+        const { error } = this.state;
+        if (error) {
+          return createElement('h1', {}, error.message);
+        }
+        return this.props.children;
+      }
+    }
+    const errorFn = console.error;
+    try {
+      console.error = () => {};
+      const el = progressive(({ element }) => {
+        element((props) => 'Hello');
+        return 123;
+      });
+      const testRenderer = create(createElement(ErrorBoundary, {}, el));
+      await delay(50);
+      expect(error).to.be.an('error');
+    } finally {
+      console.error = errorFn;
+    }
   })
 })
 

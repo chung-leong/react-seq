@@ -1,13 +1,13 @@
 {
   "name": "react-seq",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Create React components that output contents from async generators",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "./node_modules/mocha/bin/mocha.js -- test/*.test.js",
-    "test:watch": "./node_modules/mocha/bin/mocha.js --parallel --watch -- test/*.test.js",
-    "test:gc": "node --expose-gc ./node_modules/mocha/bin/mocha.js -- test/*.test.js"
+    "test": "./node_modules/mocha/bin/mocha.js --require test/setup.js -- test/*.test.js",
+    "test:watch": "./node_modules/mocha/bin/mocha.js --require test/setup.js --parallel --watch -- test/*.test.js",
+    "test:gc": "node --expose-gc ./node_modules/mocha/bin/mocha.js --require test/setup.js -- test/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -29,15 +29,15 @@
   },
   "homepage": "https://github.com/chung-leong/react-seq#readme",
   "dependencies": {
-    "mocha-skip-if": "^1.0.0",
     "react": "^18.0.0"
   },
   "devDependencies": {
     "abort-controller": "^3.0.0",
     "chai": "^4.3.6",
-    "htm": "^3.1.1",
+    "chai-as-promised": "^7.1.1",
     "memorystream": "^0.3.1",
     "mocha": "^10.0.0",
+    "mocha-skip-if": "^1.0.1",
     "react-dom": "^18.2.0",
     "react-test-renderer": "^18.2.0"
   }

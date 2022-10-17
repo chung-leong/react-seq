@@ -1,15 +1,10 @@
 import { expect } from 'chai';
-import { html } from 'htm/react';
-import { Suspense, Component } from 'react';
+import { createElement, Suspense, Component } from 'react';
 import { create, act } from 'react-test-renderer';
 import { renderToPipeableStream } from 'react-dom/server';
 import MemoryStream from 'memorystream';
 import { createWriteStream } from 'fs';
 import { delay } from '../index.js';
-import AbortController from 'abort-controller';
-import 'mocha-skip-if';
-
-global.AbortController = AbortController;
 
 import {
   sequence,
@@ -203,7 +198,7 @@ describe('#sequence()', function() {
       await delay(30);
       yield 'Chicken';
     });
-    const testRenderer = create(html`<${Suspense} fallback="Cow">${el}</${Suspense}>`);
+    const testRenderer = create(createElement(Suspense, { fallback: 'Cow' }, el));
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
@@ -223,7 +218,7 @@ describe('#sequence()', function() {
       render() {
         const { error } = this.state;
         if (error) {
-          return html`<h1>${error.message}</h1>`;
+          return createElement('h1', {}, error.message);
         }
         return this.props.children;
       }
@@ -231,12 +226,12 @@ describe('#sequence()', function() {
     const el = sequence(async function*({ fallback }) {
       fallbak('Cow');
       await delay(10);
-      yield html`<div>${cat}</div>`;
+      yield createElement('div', {}, cat);
     });
     const errorFn = console.error;
     try {
       console.error = () => {};
-      const testRenderer = create(html`<${ErrorBoundary}>${el}</${ErrorBoundary}>`);
+      const testRenderer = create(createElement(ErrorBoundary, {}, el));
       await delay(10);
       expect(error).to.be.an('error');
     } finally {
@@ -259,7 +254,7 @@ describe('#sequence()', function() {
       render() {
         const { error } = this.state;
         if (error) {
-          return html`<h1>${error.message}</h1>`;
+          return createElement('h1', {}, error.message);
         }
         return this.props.children;
       }
@@ -267,14 +262,14 @@ describe('#sequence()', function() {
     const el = sequence(async function*({ fallback }) {
       fallback('Cow');
       await delay(10);
-      yield html`<div>Pig</div>`;
+      yield createElement('div', {}, 'Pig');
       await dely(10);
-      yield html`<div>${cat}</div>`;
+      yield createElement('div', {}, cat);
     });
     const errorFn = console.error;
     try {
       console.error = () => {};
-      const testRenderer = create(html`<${ErrorBoundary}>${el}</${ErrorBoundary}>`);
+      const testRenderer = create(createElement(ErrorBoundary, {}, el));
       await delay(30);
       expect(error).to.be.an('error');
     } finally {
@@ -320,14 +315,14 @@ describe('#sequence()', function() {
   })
   it('should render correctly to a stream', async function() {
     const el = sequence(async function*({ fallback, defer }) {
-      fallback(html`<div>Cow</div>`);
+      fallback(createElement('div', {}, 'Cow'));
       defer(100);
       await delay(10);
-      yield html`<div>Pig</div>`;
+      yield createElement('div', {}, 'Pig');
       await delay(10);
-      yield html`<div>Chicken</div>`;
+      yield createElement('div', {}, 'Chicken');
       await delay(10);
-      yield html`<div>Rocky</div>`;
+      yield createElement('div', {}, 'Rocky');
     });
     const stream = await new Promise((resolve, reject) => {
       const stream = renderToPipeableStream(el, {
@@ -344,13 +339,13 @@ describe('#sequence()', function() {
     this.timeout(5000);
     async function step() {
       const el = sequence(async function*({ fallback }) {
-        fallback(html`<div>Cow</div>`);
+        fallback(createElement('div', {}, 'Cow'));
         await delay(0);
-        yield html`<div>Pig</div>`;
+        yield createElement('div', {}, 'Pig');
         await delay(10);
-        yield html`<div>Chicken</div>`;
+        yield createElement('div', {}, 'Chicken');
         await delay(10);
-        yield html`<div>Rocky</div>`;
+        yield createElement('div', {}, 'Rocky');
       });
       const stream = await new Promise((resolve, reject) => {
         const stream = renderToPipeableStream(el, {
@@ -399,11 +394,11 @@ describe('#useSequence()', function() {
         cats.push(cat);
       }, [ cat ]);
     }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    const testRenderer = create(createElement(Test, { cat: 'Rocky' }));
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Rocky');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+      testRenderer.update(createElement(Test, { cat: 'Barbie' }));
     });
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
@@ -423,11 +418,11 @@ describe('#useSequence()', function() {
         cats.push(cat);
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    const testRenderer = create(createElement(Test, { cat: 'Rocky' }));
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Rocky');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+      testRenderer.update(createElement(Test, { cat: 'Barbie' }));
     });
     expect(testRenderer.toJSON()).to.equal('Cow');
     await delay(30);
@@ -447,11 +442,11 @@ describe('#useSequence()', function() {
         cats.push(cat);
       }, [ cat ]);
     }
-    const testRenderer = create(html`<${Test} cat="Rocky" dog="Dingo"/>`);
+    const testRenderer = create(createElement(Test, { cat: 'Rocky', dog: 'Dingo' }));
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Rocky');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Rocky" dog="Pi"/>`);
+      testRenderer.update(createElement(Test, { cat: 'Rocky', dog: 'Pi' }));
     });
     await delay(30);
     expect(cats).to.eql([ 'Rocky' ]);
@@ -477,11 +472,11 @@ describe('#useSequence()', function() {
         }
       });
     }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    const testRenderer = create(createElement(Test, { cat: 'Rocky' }));
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig');
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+      testRenderer.update(createElement(Test, { cat: 'Barbie' }));
     });
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Cow');
@@ -513,12 +508,12 @@ describe('#useSequence()', function() {
         }
       }, [ cat ]);
     }
-    const testRenderer = create(html`<${Test} cat="Rocky"/>`);
+    const testRenderer = create(createElement(Test, { cat: 'Rocky' }));
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Pig');
     await delay(30);
     act(() => {
-      testRenderer.update(html`<${Test} cat="Barbie"/>`);
+      testRenderer.update(createElement(Test, { cat: 'Barbie' }));
     });
     await delay(0);
     expect(cats).to.eql([]);
@@ -531,6 +526,7 @@ describe('#useSequence()', function() {
     expect(testRenderer.toJSON()).to.equal('Chicken');
     triggerClick();
     await delay(0);
+
     expect(testRenderer.toJSON()).to.equal('Barbie');
     expect(cats).to.eql([ 'Barbie' ]);
     expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
@@ -556,3 +552,7 @@ async function readStream(stream) {
   memStream.destroy();
   return string;
 }
+
+process.on('warning', function() {
+  console.log('ERROR');
+});

@@ -1,12 +1,28 @@
 import { useMemo, createElement } from 'react';
 import { sequence } from './sequence.js';
 
-export function useProgressive(Component, cb, deps) {
-  return useMemo(() => progressive(Component, cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+export function useProgressive(cb, deps) {
+  return useMemo(() => progressive(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-export function progressive(Component, cb) {
+export function progressive(cb) {
   return sequence(async function* (methods) {
+    let elementType;
+    function type(type) {
+      if (elementFn) {
+        throw new Error('type() cannot be used together with element()');
+      }
+      elementType = type;
+    }
+
+    let elementFn;
+    function element(fn) {
+      if (elementType) {
+        throw new Error('element() cannot be used together with type()');
+      }
+      elementFn = fn;
+    }
+
     let usables;
     function usable(obj) {
       if (!(obj instanceof Object)) {
@@ -15,12 +31,18 @@ export function progressive(Component, cb) {
       usables = obj;
     }
 
-    const asyncProps = await cb({ ...methods, usable });
+    const asyncProps = await cb({ ...methods, type, element, usable });
     if (!(asyncProps instanceof Object)) {
       throw new Error('Callback function did not return an object');
     }
+    if (!elementType && !elementFn) {
+      throw new Error('Callback function did not call type() to set the element type');
+    }
     if (!usables) {
-      usables = findUsableProps(Component);
+      usables = findUsableProps(elementFn || elementType);
+    }
+    if (!elementFn) {
+      elementFn = (props) => createElement(elementType, props);
     }
     if (process.env.NODE_ENV === 'development') {
       for (const name of Object.keys(usables)) {
@@ -30,7 +52,7 @@ export function progressive(Component, cb) {
       }
     }
     for await (const props of generateProps(asyncProps, usables)) {
-      yield createElement(Component, props);
+      yield elementFn(props);
     }
   });
 }
@@ -70,12 +92,11 @@ export async function* generateProps(asyncProps, usables) {
       if (isAsync(value)) {
         // create a generator that yield the value of this prop as time progresses
         // (i.e. an array becomes bigger as values are retrieved from generator)
-        const initial = isGenerator(value) ? [] : undefined;
         propSet.push({
           name,
           usable,
-          value: initial,
-          generator: generateNext(value, initial),
+          value: isGenerator(value) ? [] : undefined,
+          generator: generateNext(value),
           promise: null,
           changed: true,
           resolved: false,
@@ -128,20 +149,23 @@ export async function* generateProps(asyncProps, usables) {
       for (const p of propSet) {
         if (!p.resolved) {
           // see if the prop is usable despite not having been fully resolved
+          let propUsable = false;
           if (p.usable !== undefined) {
-            let propUsable;
             if (typeof(p.usable) === 'function') {
               propUsable = !!p.usable(p.value, p.resolved, props);
             } else if (typeof(p.usable) === 'number') {
-              propUsable = (p.value) ? p.value.length >= p.usable : false;
+              let length = 0;
+              if (p.value instanceof Array) {
+                length = p.value.length;
+              } else {
+                length = (p.value != null) ? 1 : 0;
+              }
+              propUsable = length >= p.usable;
             } else {
               propUsable = !!p.usable;
             }
-            if (!propUsable) {
-              setUsable = false;
-              break;
-            }
-          } else {
+          }
+          if (!propUsable) {
             setUsable = false;
             break;
           }
@@ -173,7 +197,7 @@ export async function* generateProps(asyncProps, usables) {
   }
 }
 
-export async function* generateNext(source, current, sent = false) {
+export async function* generateNext(source, current = undefined, sent = false) {
   function add(next) {
     if (current) {
       if (sent) {
@@ -199,6 +223,9 @@ export async function* generateNext(source, current, sent = false) {
   if (isGenerator(source)) {
     // loop through the values returned by the generator
     let stop = false;
+    if (current === undefined) {
+      current = [];
+    }
     try {
       do {
         const ret = source.next();

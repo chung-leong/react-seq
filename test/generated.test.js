@@ -1,8 +1,5 @@
 import { expect } from 'chai';
 import { delay, Interruption } from '../index.js';
-import AbortController from 'abort-controller';
-
-global.AbortController = AbortController;
 
 import {
   generatedState,
