@@ -3,7 +3,8 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Species({ id }) {
-  return useProgressive(SpeciesUI, async ({ defer, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, suspend, signal }) => {
+    type(SpeciesUI);
     defer(100);
     suspend(`species-${id}`);
     const species = await fetchOne(`species/${id}`, { signal });

@@ -4,7 +4,8 @@ import { fetchList } from './swapi.js';
 import List from './List.js';
 
 export default function CharacterList() {
-  return useProgressive(CharacterListUI, async ({ defer, usable, suspend }) => {
+  return useProgressive(async ({ type, defer, usable, suspend }) => {
+    type(CharacterListUI);
     defer(100);
     usable({ people: 20 });
     suspend(`character-list`);

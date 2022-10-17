@@ -11,7 +11,7 @@
     "react-app-rewired": "^2.2.1",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "react-seq": "0.1.3",
+    "react-seq": "0.1.4",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
@@ -25,7 +25,15 @@
     "extends": [
       "react-app",
       "react-app/jest"
-    ]
+    ],
+    "rules": {
+      "react-hooks/exhaustive-deps": [
+        "warn",
+        {
+          "additionalHooks": "use(Progressive|Sequence|GeneratedState)"
+        }
+      ]
+    }
   },
   "browserslist": {
     "production": [

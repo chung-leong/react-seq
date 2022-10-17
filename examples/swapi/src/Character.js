@@ -3,7 +3,8 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Character({ id }) {
-  return useProgressive(CharacterUI, async ({ defer, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, suspend, signal }) => {
+    type(CharacterUI);
     defer(100);
     suspend(`character-${id}`);
 

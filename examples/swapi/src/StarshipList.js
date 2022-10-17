@@ -4,7 +4,8 @@ import { fetchList } from './swapi.js';
 import List from './List.js';
 
 export default function StarshipList() {
-  return useProgressive(StarshipListUI, async ({ defer, usable, suspend }) => {
+  return useProgressive(async ({ type, defer, usable, suspend }) => {
+    type(StarshipListUI);
     defer(100);
     usable({ films: 20 });
     suspend(`starship-list`);
