@@ -68,9 +68,21 @@ export function findUsableProps(fn) {
     p = p.replace(/\/\/(.)*/g, '');
     // remove whitespaces
     p = p.replace(/\s+/g, '');
+    let d;
     if (p.charAt(0) === '{' && p.charAt(p.length - 1) === '}') {
-      // deconstructing props
-      const d = p.substr(1, p.length - 2);
+      // destructuring props
+      d = p.substr(1, p.length - 2);
+    } else if (/^\w+$/.test(p)) {
+      // maybe the argument destructuring got transpiled into code in the function body
+      // get the first line of code see if it matches known pattern
+      let l = s.substring(s.indexOf('{') + 1, s.indexOf(';'));
+      // remove whitespaces
+      l = l.replace(/\s+/g, '');
+      if (l.startsWith('let{') && l.endsWith('}=' + p)) {
+        d = l.substr(4, l.length - 4 - 2 - p.length);
+      }
+    }
+    if (d) {
       for (const param of d.split(',')) {
         const eq = param.indexOf('=');
         if (eq !== -1) {

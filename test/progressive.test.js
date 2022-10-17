@@ -316,7 +316,8 @@ describe('#generateProps()', function() {
 
 describe('#findUsableProps()', function() {
   it('should find props with default values', function() {
-    function Component({ a = null, b = [], c, d, e  = {} }) {};
+    function Component({ a = null, b = [], c, d, e  = {} }) {
+    }
     const props = findUsableProps(Component);
     expect(props).to.eql({ a: true, b: true, e: true });
   });
@@ -328,10 +329,24 @@ describe('#findUsableProps()', function() {
   it('should return empty object when deconstruction is not employed', function() {
     function Component(props) {
       let a = null, b = [], c, d, e  = {};
-    };
+    }
     const props = findUsableProps(Component);
     expect(props).to.eql({});
   });
+
+  it('should extract be able to extract props from transpiled function', function() {
+    function Component(_ref3) {
+      let {
+        a = null,
+        b = [],
+        c,
+        d,
+        e = {}
+      } = _ref3;
+    }
+    const props = findUsableProps(Component);
+    expect(props).to.eql({ a: true, b: true, e: true });
+  })
 });
 
 describe('#progressive', function() {
