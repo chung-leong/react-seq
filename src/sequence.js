@@ -20,7 +20,7 @@ export function sequence(cb) {
   // allow the creation of suspending component
   let suspending = false;
   let suspensionKey;
-  function suspend(key) {
+  function suspend(key = undefined) {
     if (placeholder) {
       throw new Error('suspend() cannot be used together with fallback()');
     }
@@ -29,7 +29,7 @@ export function sequence(cb) {
   }
 
   // let callback manages events with help of promises
-  function manageEvents(options) {
+  function manageEvents(options = {}) {
     const { on, eventual, reject } = createEventManager(options);
     signal.addEventListener('abort', () => reject(new Abort), { signal });
     return [ on, eventual ];

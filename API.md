@@ -2,23 +2,23 @@
 
 ## Hooks
 
-* useSequence
-* useProgressive
-* useGeneratedState
+* [useSequence](#useSequence)
+* [useProgressive](#useProgressive)
+* [useGeneratedState](#useGeneratedState)
 
 ## Non-hook functions
 
-* sequence
-* progressive
-* generatedState
+* [sequence](#sequence)
+* [progressive](#progressive)
+* [generatedState](#generatedState)
 
 ## Configuration functions
 
-* [defer](#defer) <sup>`useSequence, useProgressive, useGeneratedState`</sup>
-* [fallback](#fallback) <sup>`useSequence, useProgressive`</sup>
-* [backup](#backup) <sup>`useSequence, useProgressive`</sup>
-* [suspend](#suspend) <sup>`useSequence, useProgressive`</sup>
-* [manageEvents](#manageEvents) <sup>`useSequence, useProgressive, useGeneratedState`</sup>
+* [defer](#defer) <sup>`useSequence`, `useProgressive`, `useGeneratedState`</sup>
+* [fallback](#fallback) <sup>`useSequence`, `useProgressive`</sup>
+* [backup](#backup) <sup>`useSequence`, `useProgressive`</sup>
+* [suspend](#suspend) <sup>`useSequence`, `useProgressive`</sup>
+* [manageEvents](#manageEvents) <sup>`useSequence`, `useProgressive`, `useGeneratedState`</sup>
 * [type](#type) <sup>`useProgressive`</sup>
 * [element](#element) <sup>`useProgressive`</sup>
 * [usable](#usable) <sup>`useProgressive`</sup>
@@ -26,21 +26,20 @@
 
 ## Global configuration functions
 
-* extendDeferment
-* limitDeferment
+* [extendDeferment](#extendDeferment)
+* [limitDeferment](#limitDeferment)
 
 ## Prop generation functions
 
-* generateProps
-* generateNext
+* [generateProps](#generateProps)
+* [generateNext](#generateNext)
 
 ## Utility functions
 
-* delay
-* preload
-* when
+* [delay](#delay)
+* [preload](#preload)
 
-## useSequence(cb, deps)
+## useSequence(cb, deps)<a name="useSequence"></a>
 
 ### Syntax
 
@@ -211,3 +210,208 @@ function useGeneratedState(cb, deps) {
 * `setState` - `<Function>`
 * `setError` - `<Function>`
 * `return` `{ initialState, abortController, on, eventual }`
+
+## defer(delay, limit = Infinity)<a name="defer"></a>
+
+### Syntax
+
+```js
+function Widget({ id }) {
+  return useSequence(async function*({ defer }) {
+    defer(100, 1000);
+    yield <span>Performing A...</span>
+    await taskA();
+    yield <span>Performing B...</span>
+    await taskB();
+    yield <span>Performing C...</span>
+    await taskC();
+    yield <span>Finish</span>
+  }, [ id ])
+}
+```
+
+### Parameters
+
+* `delay` - `<number>`
+* `limit` - `<number>`
+
+## fallback(element)<a name="fallback"></a>
+
+### Syntax
+
+```js
+function Widget({ id }) {
+  return useSequence(async function*({ fallback }) {
+    fallback(<span>Initializing...</span>);
+    const { taskA, taskB, taskC } = await import('./task.js');
+    yield <span>Performing A...</span>
+    await taskA();
+    yield <span>Performing B...</span>
+    await taskB();
+    yield <span>Performing C...</span>
+    await taskC();
+    yield <span>Finish</span>
+  }, [ id ])
+}
+```
+
+### Parameters
+
+* `element` - `<Element>` or `<Function>`
+
+## backup(element)<a name="backup"></a>
+
+### Syntax
+
+```js
+function Widget({ id }) {
+  return useSequence(async function*({ defer, backup }) {
+    defer(100, 1000);
+    backup(<span>Please be patient</span>);
+    yield <span>Performing A...</span>
+    await taskA();
+    yield <span>Performing B...</span>
+    await taskB();
+    yield <span>Performing C...</span>
+    await taskC();
+    yield <span>Finish</span>
+  }, [ id ])
+}
+```
+
+### Parameters
+
+* `element` - `<Element>` or `<AsyncFunction>`
+
+## suspend(key = undefined)<a name="suspend"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `key` - `<String>`
+
+## manageEvents(options = {})<a name="manageEvents"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `options` - `{ warning = false }`
+
+## type(type)<a name="type"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `type` - `<Function>` or `<Class>`
+
+## element(fn)<a name="element"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `fn` - `<Function>`
+
+## usable(obj)<a name="usable"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `obj` - `<Object>`
+
+## initial(state)<a name="initial"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `state` - `<any>`
+
+## extendDeferment(multiplier)<a name="extendDeferment"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `multiplier` - `<number>`
+
+## limitDeferment(limit)<a name="limitDeferment"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `limit` - `<number>`
+
+## generateProps(asyncProps, usables)<a name="generateProps"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `asyncProps` - `<Object>`
+* `usables` - `<Object>`
+
+## generateNext(source)<a name="generateNext"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `source` - `<Promise>` or `<AsyncGenerator>` or `<Generator>`
+
+## delay(ms)<a name="delay"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `ms` - `<number>`
+
+## preload(fn)<a name="preload"></a>
+
+### Syntax
+
+```js
+```
+
+### Parameters
+
+* `fn` - `<AsyncFunction>`
