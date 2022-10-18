@@ -18,14 +18,13 @@ export function sequence(cb) {
   }
 
   // allow the creation of suspending component
+  let suspending = false;
   let suspensionKey;
   function suspend(key) {
-    if (typeof(key) !== 'string') {
-      throw new Error('suspend() expects a unique string id as parameter');
-    }
     if (placeholder) {
       throw new Error('suspend() cannot be used together with fallback()');
     }
+    suspending = true;
     suspensionKey = key;
   }
 
@@ -43,7 +42,7 @@ export function sequence(cb) {
     if (!sync) {
       throw new Error('Fallback component must be set prior to any yield or await statement');
     }
-    if (suspensionKey) {
+    if (suspending) {
       throw new Error('fallback() cannot be used together with suspend()');
     }
     if (typeof(el) === 'function') {
@@ -217,7 +216,7 @@ export function sequence(cb) {
 
   // create the component
   const lazyEl = createElement(Lazy);
-  if (suspensionKey) {
+  if (suspending) {
     return lazyEl;
   } else {
     // wrap it in a Suspense

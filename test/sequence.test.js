@@ -193,7 +193,7 @@ describe('#sequence()', function() {
   })
   it('should allow creation of a suspending component', async function() {
     const el = sequence(async function*({ suspend }) {
-      suspend('unique-id');
+      suspend();
       yield 'Pig';
       await delay(30);
       yield 'Chicken';
