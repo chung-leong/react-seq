@@ -6,7 +6,9 @@ export async function preload(f) {
   try {
     await f();
   } catch (err) {
-    console.error(err);
+    if (!isFetchAbort(err)) {
+      console.error(err);
+    }
   }
 }
 
@@ -22,4 +24,8 @@ export function when(cond, el) {
     }
     return el;
   }
+}
+
+export function isFetchAbort(err) {
+  return err.constructor.name === 'DOMException' && (err.name === 'AbortError' || err.code === 20);
 }

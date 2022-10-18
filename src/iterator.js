@@ -1,35 +1,33 @@
 let delayMultiplier = 1;
-let delayAddend = 0;
+let delayLimit = Infinity;
 
-export function extendDelay(multiplier = 1, addend = 0) {
+export function extendDeferment(multiplier = 1) {
   delayMultiplier = multiplier;
-  delayAddend = addend;
+}
+
+export function limitDeferment(limit = 1) {
+  delayLimit = limit;
 }
 
 export class IntermittentIterator {
-  constructor(delay = 0) {
+  constructor() {
     this.generator = null;
     this.promise = null;
-    this.delay = delay;
+    this.delay = 0;
+    this.limit = delayLimit;
     this.interval = 0;
     this.started = false;
-    this.timeout = null;
+    this.tick = null;
+    this.period = this.limit;
+    this.pending = true;
     this.reject = null;
     this.returning = false;
   }
 
-  setDelay(delay) {
-    const actualDelay = (delay + delayAddend) * delayMultiplier;
-    if (this.delay !== actualDelay) {
-      this.delay = actualDelay;
-      if (this.started) {
-        this.stopTimer();
-        this.startTimer();
-        if (this.reject && this.delay === 0) {
-          this.reject(new Interruption());
-        }
-      }
-    }
+  setDelay(delay, limit = Infinity) {
+    this.delay = delay * delayMultiplier;
+    this.limit = Math.min(limit, delayLimit);
+    this.updateTimer();
   }
 
   start(generator) {
@@ -40,13 +38,13 @@ export class IntermittentIterator {
 
   next() {
     this.fetch();
-    if (this.delay > 0) {
-      return Promise.race([ this.promise, this.timeout ]);
+    if (this.interval) {
+      return Promise.race([ this.promise, this.tick ]);
     } else {
       // alternate behind the two
       this.returning = !this.returning;
       if (this.returning) {
-        return Promise.race([ this.promise, this.timeout ]);
+        return Promise.race([ this.promise, this.tick ]);
       } else {
         return Promise.reject(new Interruption());
       }
@@ -63,16 +61,44 @@ export class IntermittentIterator {
     const { generator } = this
     this.generator = null;
     this.promise = null;
-    this.timeout = null;
+    this.tick = null;
     this.reject = null;
     this.started = false;
+    this.pending = true;
     this.stopTimer();
     return generator.return();
   }
 
+  interrupt() {
+    // throw Timeout instead of Interruption when nothing has been obtained yet
+    if (this.pending) {
+      this.pending = false;
+      this.updateTimer();
+      this.throw(new Timeout());
+    } else {
+      this.throw(new Interruption());
+    }
+  }
+
+  updateTimer() {
+    // set timer to limit for the arrival of the initial item first, then
+    // trigger interruption based on the update delay
+    const period = (this.pending) ? this.limit : this.delay;
+    if (this.period !== period) {
+      this.period = period;
+      if (this.started) {
+        this.stopTimer();
+        this.startTimer();
+        if (this.period === 0) {
+          emitError.interrupt();
+        }
+      }
+    }
+  }
+
   startTimer() {
-    if (this.delay > 0) {
-      this.interval = setInterval(() => this.throw(new Interruption()), this.delay);
+    if (this.period > 0 && this.period !== Infinity) {
+      this.interval = setInterval(() => this.interrupt(), this.period);
     }
   }
 
@@ -88,14 +114,19 @@ export class IntermittentIterator {
       this.promise = this.generator.next()
       this.promise.then(() => {
         this.promise = null;
+        if (this.pending) {
+          // we got something, switch timer to fire at the update delay
+          this.pending = false;
+          this.updateTimer();
+        }
       });
     }
-    if (!this.timeout) {
-      this.timeout = new Promise((resolve, reject) => {
+    if (!this.tick) {
+      this.tick = new Promise((resolve, reject) => {
         this.reject = reject;
       });
-      this.timeout.catch(() => {
-        this.timeout = null;
+      this.tick.catch(() => {
+        this.tick = null;
         this.reject = null;
       });
     }
@@ -103,4 +134,5 @@ export class IntermittentIterator {
 }
 
 export class Interruption extends Error {}
+export class Timeout extends Error {}
 export class Abort extends Error {}

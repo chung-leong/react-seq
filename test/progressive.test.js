@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { createElement, Component } from 'react';
 import { create, act } from 'react-test-renderer';
-import { delay, Interruption } from '../index.js';
+import { delay } from '../index.js';
 
 import {
   generateNext,

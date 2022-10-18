@@ -9,7 +9,7 @@ import { delay } from '../index.js';
 import {
   sequence,
   useSequence,
-  extendDelay,
+  extendDeferment,
 } from '../index.js';
 
 describe('#sequence()', function() {
@@ -277,7 +277,7 @@ describe('#sequence()', function() {
     }
   })
   it('should use delay multiplier', async function() {
-    extendDelay(10);
+    extendDeferment(10);
     const el = sequence(async function*({ defer }) {
       defer(10);
       yield 'Pig';
@@ -286,30 +286,11 @@ describe('#sequence()', function() {
       await delay(20);
       yield 'Chicken';
     })
-    extendDelay(1);
+    extendDeferment(1);
     const testRenderer = create(el);
     expect(testRenderer.toJSON()).to.equal(null);
     await delay(30);
     expect(testRenderer.toJSON()).to.equal(null);
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Chicken');
-  })
-  it('should use delay addend', async function() {
-    extendDelay(1, 10);
-    const el = sequence(async function*({ defer }) {
-      yield 'Pig';
-      await delay(20);
-      yield 'Duck';
-      await delay(20);
-      yield 'Chicken';
-    })
-    extendDelay(1);
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal(null);
-    await delay(15);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(20);
-    expect(testRenderer.toJSON()).to.equal('Duck');
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Chicken');
   })
@@ -466,6 +447,8 @@ describe('#useSequence()', function() {
           yield 'Chicken';
           await delay(20);
           yield cat;
+          await delay(30);
+          yield 'Evil';
           cats.push(cat);
         } finally {
           finalizations.push(cat);
@@ -473,7 +456,7 @@ describe('#useSequence()', function() {
       });
     }
     const testRenderer = create(createElement(Test, { cat: 'Rocky' }));
-    await delay(30);
+    await delay(40);
     expect(testRenderer.toJSON()).to.equal('Pig');
     act(() => {
       testRenderer.update(createElement(Test, { cat: 'Barbie' }));
@@ -481,8 +464,9 @@ describe('#useSequence()', function() {
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Cow');
     stoppage.resolve();
-    await delay(30);
+    await delay(40);
     expect(testRenderer.toJSON()).to.equal('Barbie');
+    await delay(40);
     expect(cats).to.eql([ 'Barbie' ]);
     expect(finalizations).to.eql([ 'Rocky', 'Barbie' ]);
   })

@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
-import { IntermittentIterator, Interruption, Abort } from './iterator.js';
+import { IntermittentIterator, Timeout, Interruption, Abort } from './iterator.js';
 import { createEventManager } from './events.js';
+import { isFetchAbort } from './utils.js';
 
 export function useSequence(cb, deps) {
   return useMemo(() => sequence(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
@@ -12,15 +13,8 @@ export function sequence(cb) {
 
   // let callback set content update delay
   const iterator = new IntermittentIterator();
-  function defer(ms) {
-    iterator.setDelay(ms);
-  }
-
-  // normally we wait for the first item from the generator before
-  // resolving the lazy component; let callback override this
-  let emptyAllowed = false;
-  function allowEmpty() {
-    emptyAllowed = true;
+  function defer(delay, limit) {
+    iterator.setDelay(delay, limit);
   }
 
   // allow the creation of suspending component
@@ -58,6 +52,16 @@ export function sequence(cb) {
     placeholder = el;
   }
 
+  // let callback set backup element (or its creation function), to be used when
+  // we fail to retrieve the first item from the generator after time limit has been exceeded
+  let backupEl;
+  function backup(el) {
+    backupEl = el;
+  }
+
+  // container for fallback content, the use of which allows to detect
+  // unexpected unmounting of the fallback content (i.e. the parent
+  // got unmounted)
   let fallbackUnmountExpected = false;
   function Fallback({ children }) {
     useEffect(() => {
@@ -72,7 +76,7 @@ export function sequence(cb) {
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ defer, allowEmpty, manageEvents, fallback, suspend, signal });
+  const generator = cb({ defer, manageEvents, fallback, backup, suspend, signal });
   iterator.start(generator);
   iterator.fetch();
   sync = false;
@@ -96,18 +100,27 @@ export function sequence(cb) {
           stop = empty = true;
         }
       } catch (err) {
-        if (err instanceof Interruption) {
-          // we're done here if we have managed to obtain something
-          if (pendingContent !== undefined || allowEmpty) {
-            stop = true;
+        if (err instanceof Timeout) {
+          // time limit has been reached and we got nothing to show
+          // reach for the backup element
+          if (typeof(backupEl) === 'function') {
+            backupEl = await backupEl();
           }
+          pendingContent = (backupEl !== undefined) ? backupEl : null;
+          stop = true;
+        } if (err instanceof Interruption) {
+          // we're done here, as pendingContent must contain something
+          // since Timeout gets thrown first, breaking this loop
+          stop = true;
         } else if (err instanceof Abort) {
+          stop = true;
+        } else if (isFetchAbort(err)) {
+          // quietly ignore error
           stop = true;
         } else if (pendingContent !== undefined) {
           // we have retrieved some content--draw it first then throw the error inside <Sequence/>
           pendingError = err;
           stop = true;
-        } else if (err.name !== 'AbortError') {
           // throw the error now so "loading" of lazy component fails
           throw err;
         }
@@ -187,6 +200,9 @@ export function sequence(cb) {
           if (err instanceof Interruption) {
             updateContent(false);
           } else if (err instanceof Abort) {
+            stop = true;
+          } else if (isFetchAbort(err)) {
+            // quietly ignore error
             stop = true;
           } else {
             throwError(err);

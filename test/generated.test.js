@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { delay, Interruption } from '../index.js';
+import { delay } from '../index.js';
 
 import {
   generatedState,

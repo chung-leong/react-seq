@@ -13,8 +13,9 @@ export {
   generatedState,
 } from './src/generated.js';
 export {
-  extendDelay,
-  Interruption,
+  extendDeferment,
+  limitDeferment,
+  Abort,
 } from './src/iterator.js';
 export {
   delay,
