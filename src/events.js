@@ -5,8 +5,8 @@ export function createEventManager(options) {
   const cxt = {
     // whether to output a warning when no promises are fulfilled
     warning,
-    // functions for creating event handlers
-    builders: {},
+    // event handlers
+    handlers: {},
     // promises that get triggered by handlers
     promises: {},
     // resolve functions of promises
@@ -21,7 +21,7 @@ export function createEventManager(options) {
     eventual: null,
   };
   cxt.eventual = new Proxy(cxt, { get: getPromise, set: throwError });
-  cxt.on = new Proxy(cxt, { get: getTriggerBuilders, set: throwError });
+  cxt.on = new Proxy(cxt, { get: getHandler, set: throwError });
   return cxt;
 }
 
@@ -74,33 +74,64 @@ function mergePromises(promiseList, op) {
   return merge.call(Promise, promiseList);
 }
 
-function getTriggerBuilders(cxt, name) {
-  const { builders } = cxt;
-  let builder = builders[name];
-  if (!builder) {
-    builders[name] = builder = (...args) => {
-      if (args.length > 1) {
-        throw new TypeError(`Cannot create a handler accepting ${args.length} parameters`);
-      }
-      if (args.length === 1) {
-        // promise will fulfill with value given to the builder
-        const [ value ] = args;
-        if (process.env.NODE_ENV === 'development') {
-          // check if value is a React SyntheticEvent during development
-          // to warn developers when the handler builder is passed as the handler
-          // instead of it being called to create the handler (i.e. missing parantheses)
-          if (value instanceof Object && value.nativeEvent) {
-            console.warn(`${name}() received a React SyntheticEvent as fulfillment value. Perhaps you have neglected to invoke it?`);
-          }
-        }
-        return () => triggerFulfillment(cxt, name, value);
-      } else {
-        // promise will fulfill with value given to the handler
-        return (value) => triggerFulfillment(cxt, name, value);
-      }
+function getHandler(cxt, name) {
+  const { handlers } = cxt;
+  let handler = handlers[name];
+  if (!handler) {
+    const fn = (value) => triggerFulfillment(cxt, name, value);
+    const valueHandlers = { hash: null, map: null };
+    handlers[name] = handler = new Proxy(fn, {
+      get: (fn, key) => getHandlerProp(cxt, fn, name, valueHandlers, key),
+      set: throwError,
+    });
+    fn.bind = (...args) => {
+      const value = (args.length < 2) ? args[0] : args[1];
+      return getValueHandler(cxt, fn, name, valueHandlers, value);
     };
   }
-  return builder;
+  return handler;
+}
+
+function getHandlerProp(cxt, fn, name, handlers, key) {
+  let value = fn[key];
+  if (value !== undefined) {
+    // return properties of function
+    return value;
+  } else {
+    return getValueHandler(cxt, fn, name, handlers, key);
+  }
+}
+
+function getValueHandler(cxt, fn, name, handlers, value) {
+  let handler;
+  if (value instanceof Object) {
+    if (!handlers.map) {
+      handlers.map = new WeakMap();
+    }
+    handler = handlers.map.get(value);
+    if (!handler) {
+      handler = () => triggerFulfillment(cxt, name, value);
+      handlers.map.set(value, handler);
+    }
+  } else {
+    if (!handlers.hash) {
+      handlers.hash = {};
+    }
+    const key = JSON.stringify(value);
+    handler = handlers.hash[key];
+    if (!handler) {
+      // keep up to 128 handlers invariant
+      const keys = Object.keys(handlers.hash);
+      if (keys.length >= 128) {
+        for (const key of keys.slice(0, keys.length - 128 + 1)) {
+          delete handlers.hash[key];
+        }
+      }
+      handler = () => triggerFulfillment(cxt, name, value);
+      handlers.hash[key] = handler;
+    }
+  }
+  return handler;
 }
 
 function triggerFulfillment(cxt, name, value) {

@@ -114,7 +114,7 @@ describe('#sequence()', function() {
     let triggerClick;
     const el = sequence(async function*({ fallback, manageEvents }) {
       const [ on, eventual ] = manageEvents();
-      triggerClick = on.click();
+      triggerClick = on.click;
       fallback('Cow');
       yield 'Pig';
       await eventual.click;
@@ -479,8 +479,8 @@ describe('#useSequence()', function() {
         fallback('Cow');
         try {
           const [ on, eventual ] = manageEvents();
-          triggerClick = on.click();
-          triggerKeyPress = on.keypress();
+          triggerClick = on.click;
+          triggerKeyPress = on.keypress;
           yield 'Pig';
           await eventual.click.and.keypress;
           yield 'Chicken';

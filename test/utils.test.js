@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import {
   delay,
   preload,
-  when,
 } from '../index.js';
 
 describe('#delay()', function() {

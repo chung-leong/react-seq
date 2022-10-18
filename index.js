@@ -20,5 +20,4 @@ export {
 export {
   delay,
   preload,
-  when,
 } from './src/utils.js';
