@@ -20,10 +20,7 @@ export async function* fetchList(url, options) {
 
 export function* fetchMultiple(urls, options) {
   for (const url of urls) {
-    yield fetchOne(url, options).then((json) => {
-      console.log(`${url}`);
-      return json;
-    });
+    yield fetchOne(url, options);
   }
 }
 
