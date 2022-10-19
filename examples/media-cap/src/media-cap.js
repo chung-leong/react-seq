@@ -180,10 +180,10 @@ export function useMediaCapture(options = {}) {
           blob = new Blob(blobs, { type: blob.type });
         }
         if (videoDimensions) {
-          this.capturedVideo = { blob, duration, ...videoDimensions };
+          capturedVideo = { blob, duration, ...videoDimensions };
           videoDimensions = undefined;
         } else {
-          this.capturedAudio = { blob, duration };
+          capturedAudio = { blob, duration };
         }
         recorded = true;
       }
@@ -191,7 +191,7 @@ export function useMediaCapture(options = {}) {
       mediaData = undefined;
       mediaDataCallback = undefined;
       duration = undefined;
-      return mediaData.length > 0;
+      return recorded;
     }
 
     async function createSnapShot(mimeType, quality) {
@@ -286,6 +286,7 @@ export function useMediaCapture(options = {}) {
     }
     window.addEventListener('orientationchange', onOrientationChange);
     navigator.mediaDevices.addEventListener('devicechange', on.deviceChange);
+    navigator.permissions.addEventListener('change', on.permissionChange);
 
     try {
       for (;;) {
@@ -325,14 +326,14 @@ export function useMediaCapture(options = {}) {
             const evt = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
             if (evt.type === 'stop') {
               const recorded = await stopRecorder();
-              status = recorded ? 'recorded' : 'previewing';
+              status = (recorded) ? 'recorded' : 'previewing';
             } else if (evt.type === 'pause') {
               mediaRecorder.pause();
               status = 'paused';
             } else if (evt.type === 'streamend') {
               closeStream();
               const recorded = await stopRecorder();
-              status = recorded ? 'recorded' : 'acquiring';
+              status = (recorded) ? 'recorded' : 'acquiring';
             }
           } else if (status === 'paused') {
             const evt = await eventual.userRequest.or.streamChange.or.volumeChange;
@@ -342,6 +343,10 @@ export function useMediaCapture(options = {}) {
             } else if (evt.type === 'resume') {
               mediaRecorder.resume();
               status = 'recording';
+            } else if (evt.type === 'streamend') {
+              closeStream();
+              const recorded = await stopRecorder();
+              status = (recorded) ? 'recorded' : 'acquiring';
             }
           } else if (status === 'recorded') {
             unwatchAudioVolume();
@@ -353,18 +358,21 @@ export function useMediaCapture(options = {}) {
               status = (stream) ? 'previewing' : 'acquiring';
               if (stream) {
                 watchAudioVolume();
+                // refresh the list just in case something was plugged in
                 await getDevices();
               }
             } else if (evt.type === 'streamend') {
               closeStream();
             }
           } else if (status === 'denied') {
-            const evt = await eventual.deviceChange;
+            const evt = await eventual.deviceChange.or.permissionChange;
             if (evt.type === 'devicechange') {
               await getDevices();
               if (devices.length > 0) {
                 status = 'acquiring';
               }
+            } else if (evt.type === 'change') {
+              status = 'acquiring';
             }
           }
         } catch (err) {
@@ -374,7 +382,7 @@ export function useMediaCapture(options = {}) {
           }
         }
         yield currentState();
-      }
+      } // end of for loop
     } finally {
       if (mediaRecorder) {
         mediaRecorder.stop();
@@ -383,7 +391,8 @@ export function useMediaCapture(options = {}) {
         closeStream();
       }
       window.removeEventListener('orientationchange', onOrientationChange);
-      navigator.mediaDevices.removeEventListener('devicechange', onDeviceChange);
+      navigator.mediaDevices.removeEventListener('devicechange', on.deviceChange);
+      navigator.permissions.removeEventListener('change', on.permissionChange);
     }
   }, [ video, audio, preferredDevice, selectNewDevice, watchVolume ]);
   return state;
