@@ -34,5 +34,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "react-seq": "^0.1.7",
+    "source-map-explorer": "^2.5.3"
   }
 }

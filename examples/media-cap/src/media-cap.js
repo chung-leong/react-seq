@@ -1,7 +1,7 @@
 import { useGeneratedState } from 'react-seq';
 
 export function useMediaCapture(options = {}) {
-  const options = {
+  const {
     video = true,
     audio = true,
     preferredDevice = 'front',
@@ -9,7 +9,7 @@ export function useMediaCapture(options = {}) {
     watchVolume = false,
   } = options;
   const [ state ] = useGeneratedState(async function*({ initial, manageEvents }) {
-    const [ on, eventual ] = manageEvents();
+    const [ on, eventual ] = manageEvents({});
     let status = 'acquiring';
     let duration;
     let volume;
@@ -20,18 +20,18 @@ export function useMediaCapture(options = {}) {
     let capturedImage;
     let lastError;
     let devices = [];
-    let chosenDeviceId;
-
-    function record(options, segment = undefined, callback = null) {
-      on.userRequest({ type: 'record', options, segment, callback });
-    }
+    let selectedDeviceId;
 
     function snap(mimeType, quality) {
       on.userRequest({ type: 'snap', mimeType, quality });
     }
 
+    function record(options, segment = undefined, callback = null) {
+      on.userRequest({ type: 'record', options, segment, callback });
+    }
+
     function pause() {
-      on.userRequest({ type: 'pause '});
+      on.userRequest({ type: 'pause' });
     }
 
     function stop() {
@@ -62,8 +62,9 @@ export function useMediaCapture(options = {}) {
         capturedImage,
         lastError,
         devices,
-        chosenDeviceId,
+        selectedDeviceId,
 
+        snap,
         record,
         pause,
         stop,
@@ -90,7 +91,7 @@ export function useMediaCapture(options = {}) {
       const kind = (video) ? 'videoinput' : 'audioinput';
       devices = await enumerateDevices(kind);
       // we can't get the labels without obtaining permission first
-      if (devices.all(d => !d.label)) {
+      if (devices.every(d => !d.label)) {
         // trigger request for permission, then enumerate again
         const stream = await getMediaStream({ video, audio });
         stopMediaStream(stream);
@@ -100,9 +101,11 @@ export function useMediaCapture(options = {}) {
 
     let stream;
 
-    function openStream() {
+    async function openStream() {
+      // look for devices first
+      await getDevices();
       // use the one chosen by the user if it's still there
-      let device = devices.find(d => d.id === chosenDeviceId);
+      let device = devices.find(d => d.id === selectedDeviceId);
       if (!device) {
         // see if the label contains the right keyword
         device = devices.find(d => d.label.toLowerCase().includes(preferredDevice))
@@ -121,10 +124,11 @@ export function useMediaCapture(options = {}) {
         }
       }
       stream = await getMediaStream(constraints);
-      chosenDeviceId = (device) ? device.id : undefined;
+      selectedDeviceId = (device) ? device.id : undefined;
       if (video) {
         const el = await createVideoElement(stream);
         liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
+        releaseVideoElement(el);
       } else if (audio) {
         liveAudio = { stream };
       }
@@ -157,7 +161,6 @@ export function useMediaCapture(options = {}) {
       mediaRecorder.addEventListener('pause', stopTimer);
       mediaRecorder.addEventListener('resume', startTimer);
       mediaRecorder.addEventListener('stop', stopTimer);
-      mediaRecorder.start(segment);
       mediaData = [];
       mediaDataCallback = callback;
       duration = 0;
@@ -166,18 +169,24 @@ export function useMediaCapture(options = {}) {
         videoDimensions = { width: liveVideo.width, height: liveVideo.height };
       }
       mediaRecorder.addEventListener('start', on.mediaStart, { once: true });
-      await on.mediaStart;
+      mediaRecorder.addEventListener('error', on.mediaError, { once: true });
+      mediaRecorder.start(segment);
+      const evt = await eventual.mediaStart.or.mediaError;
+      if (evt.type === 'error') {
+        throw evt.error;
+      }
     }
 
     async function stopRecorder() {
       mediaRecorder.addEventListener('stop', on.mediaStop, { once: true });
+      mediaRecorder.addEventListener('error', on.mediaError, { once: true });
       mediaRecorder.stop();
-      await eventual.mediaStop;
+      await eventual.mediaStop.or.mediaError;
       let recorded = false;
-      if (metaData.length > 0) {
-        let blob = metaData[0];
-        if (blobs.length > 1) {
-          blob = new Blob(blobs, { type: blob.type });
+      if (mediaData.length > 0) {
+        let blob = mediaData[0];
+        if (mediaData.length > 1) {
+          blob = new Blob(mediaData, { type: blob.type });
         }
         if (videoDimensions) {
           capturedVideo = { blob, duration, ...videoDimensions };
@@ -197,7 +206,8 @@ export function useMediaCapture(options = {}) {
     async function createSnapShot(mimeType, quality) {
       const el = await createVideoElement(liveVideo.stream)
       const blob = await saveVideoSnapShot(el, mimeType, quality);
-      capturedImage = { blob, width, height };
+      releaseVideoElement(el);
+      capturedImage = { blob, width: el.videoWidth, height: el.videoHeight };
     }
 
     let interval;
@@ -266,7 +276,7 @@ export function useMediaCapture(options = {}) {
     }
 
     function onDataAvailable({ data }) {
-      mediaData.push(blob);
+      mediaData.push(data);
       if (mediaDataCallback) {
         mediaDataCallback(data);
       }
@@ -274,7 +284,7 @@ export function useMediaCapture(options = {}) {
 
     function onOrientationChange(evt) {
       // wait for resize event to occur
-      window.addEventListener('resize', () => {
+      window.addEventListener('resize', async () => {
         if (liveVideo) {
           const el = await createVideoElement(stream);
           if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
@@ -286,7 +296,15 @@ export function useMediaCapture(options = {}) {
     }
     window.addEventListener('orientationchange', onOrientationChange);
     navigator.mediaDevices.addEventListener('devicechange', on.deviceChange);
-    navigator.permissions.addEventListener('change', on.permissionChange);
+
+    const cameraStatus = await navigator.permissions.query({ name: 'camera' });
+    const microphoneStatus = await navigator.permissions.query({ name: 'microphone' });
+    if (cameraStatus) {
+      cameraStatus.onchange = on.permissionChange;
+    }
+    if (microphoneStatus) {
+      microphoneStatus.onchange = on.permissionChange;
+    }
 
     try {
       for (;;) {
@@ -305,7 +323,7 @@ export function useMediaCapture(options = {}) {
               status = 'recorded';
             } else if (evt.type === 'select') {
               closeStream();
-              chosenDeviceId = evt.deviceId;
+              selectedDeviceId = evt.deviceId;
               status = 'acquiring';
             } else if (evt.type === 'streamend') {
               closeStream();
@@ -317,7 +335,7 @@ export function useMediaCapture(options = {}) {
                 const newDevice = devices.find(d1 => !prev.find(d2 => d2.id === d1.id));
                 if (newDevice) {
                   closeStream();
-                  chosenDeviceId = newDevice.id;
+                  selectedDeviceId = newDevice.id;
                   status = 'acquiring';
                 }
               }
@@ -392,16 +410,15 @@ export function useMediaCapture(options = {}) {
       }
       window.removeEventListener('orientationchange', onOrientationChange);
       navigator.mediaDevices.removeEventListener('devicechange', on.deviceChange);
-      navigator.permissions.removeEventListener('change', on.permissionChange);
     }
   }, [ video, audio, preferredDevice, selectNewDevice, watchVolume ]);
   return state;
 }
 
-function enumerateDevices(kind) {
+async function enumerateDevices(kind) {
   try {
-    const devices = navigator.mediaDevices.enumerateDevices();
-    return devices.filter(d => d.kind === kind)..map(({ deviceId, label }) => {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter(d => d.kind === kind).map(({ deviceId, label }) => {
       return {
         id: deviceId,
         label: label || '',
@@ -426,11 +443,17 @@ function stopMediaStream(stream) {
 async function createVideoElement(stream) {
   return new Promise((resolve, reject) => {
     const video = document.createElement('VIDEO');
-    video.srcObject = liveVideo.stream;
+    video.srcObject = stream;
     video.muted = true;
     video.oncanplay = () => resolve(video);
     video.onerror = (evt) => reject(evt.error);
+    video.play();
   });
+}
+
+function releaseVideoElement(video) {
+  video.pause();
+  video.srcObject = null;
 }
 
 async function saveVideoSnapShot(video, mimeType, quality) {
@@ -439,7 +462,7 @@ async function saveVideoSnapShot(video, mimeType, quality) {
   canvas.width = videoWidth;
   canvas.height = videoHeight;
   const context = canvas.getContext('2d');
-  context.drawImage(el, 0, 0, videoWidth, videoHeight);
+  context.drawImage(video, 0, 0, videoWidth, videoHeight);
   if (typeof(canvas.toBlob) === 'function') {
     return new Promise(resolve => canvas.toBlob(resolve, mimeType, quality));
   } else {

@@ -288,6 +288,20 @@ function Widget({ id }) {
 ### Syntax
 
 ```js
+const DialogBox = React.lazy(() => import('./dialogbox.js'));
+
+function Widget({ id }) {
+  const form = useSequence(async function*({ suspend }) {
+    suspend();
+    /* ... */
+  }, [ id ]);
+  const elementB =
+  return (
+    <Suspense fallback={<Spinner/>}>
+      <DialogBox>{form}</DialogBox>
+    </Suspense>
+  );
+}
 ```
 
 ### Parameters
