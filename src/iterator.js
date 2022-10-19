@@ -90,7 +90,7 @@ export class IntermittentIterator {
         this.stopTimer();
         this.startTimer();
         if (this.period === 0) {
-          emitError.interrupt();
+          this.interrupt();
         }
       }
     }
