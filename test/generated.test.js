@@ -1,4 +1,6 @@
 import { expect } from 'chai';
+import { createElement, Suspense, Component } from 'react';
+import { create, act } from 'react-test-renderer';
 import { delay } from '../index.js';
 
 import {
@@ -113,6 +115,31 @@ describe('#generatedState()', function() {
     expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
     await delay(30);
     expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
+    expect(finalized).to.be.true;
+  })
+})
+describe('#useGeneratedState()', function() {
+  it('should invoke the finally section of a looping generator on unmount', async function() {
+    let finalized = false;
+    function Test() {
+      const [ state, on ] = useGeneratedState(async function*({ manageEvents, initial }) {
+        initial('Whiskey drink');
+        const [ on, eventual ] = manageEvents();
+        try {
+          for (;;) {
+            yield 'Vodka drink';
+            await eventual.knockDown;
+          }
+        } finally {
+          finalized = true;
+        }
+      }, []);
+      return state;
+    }
+    const testRenderer = create(createElement(Test));
+    expect(testRenderer.toJSON()).to.equal('Whiskey drink');
+    testRenderer.unmount();
+    await delay(10);
     expect(finalized).to.be.true;
   })
 })

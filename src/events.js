@@ -1,3 +1,5 @@
+import { Abort } from './iterator.js';
+
 export function createEventManager(options) {
   const {
     warning = false,
@@ -35,34 +37,43 @@ function getPromise(cxt, name) {
     });
     // allow multiple promises to be chained together
     // promise from an 'or' chain fulfills when the quickest one fulfills
-    promise.or = enablePromiseMerge(cxt, [ promise ], 'or');
+    promise.or = enablePromiseMerge(cxt, promise, [ promise ], 'or');
     // promise from an 'add' chain fulfills when all promises do
-    promise.and = enablePromiseMerge(cxt, [ promise ], 'and');
+    promise.and = enablePromiseMerge(cxt, promise, [ promise ], 'and');
   }
   return promise;
 }
 
-function enablePromiseMerge(parentCxt, promises, op) {
+function enablePromiseMerge(parentCxt, parentPromise, promises, op) {
   const { eventual } = parentCxt;
   // the context itself is callable
   const cxt = Object.assign((promise) => {
     const promiseList = [ ...promises, promise ];
     const mergedPromise = mergePromises(promiseList, op);
-    mergedPromise[op] = enablePromiseMerge(cxt, promiseList, op);
+    mergedPromise[op] = enablePromiseMerge(cxt, mergedPromise, promiseList, op);
+    // see comment below
+    if (!promiseList.includes(parentPromise)) {
+      parentPromise.catch(err => {});
+    }
     return mergedPromise;
-  }, { promises, op, eventual });
+  }, { promises, parentPromise, op, eventual });
   return new Proxy(cxt, { get: getMergedPromise, set: throwError })
 }
 
 function getMergedPromise(cxt, name) {
-  const { eventual, promises, op } = cxt;
+  const { eventual, parentPromise, promises, op } = cxt;
   // obtain the last promise in the chain
   const lastPromise = eventual[name];
   // merge it with the ones earlier in the chain
   const promiseList = [ ...promises, lastPromise ];
   const mergedPromise = mergePromises(promiseList, op);
   // allow further chaining (but only of the same operation)
-  mergedPromise[op] = enablePromiseMerge(cxt, promiseList, op);
+  mergedPromise[op] = enablePromiseMerge(cxt, mergedPromise, promiseList, op);
+  // if the parent promise will wind up outside the chain,
+  // put a catch on it so won't be regarded as orphaned
+  if (!promiseList.includes(parentPromise)) {
+    parentPromise.catch(err => {});
+  }
   return mergedPromise;
 }
 
@@ -161,4 +172,14 @@ function rejectAll(cxt, err) {
 
 function throwError() {
   throw new Error('Property is read-only');
+}
+
+if (global.window) {
+  // suppress error message about unhandle rejection when it's an Abort error
+  // shouldn't really happen
+  window.addEventListener('unhandledrejection', (evt) => {
+    if (evt.reason instanceof Abort) {
+      evt.preventDefault();
+    }
+  });
 }

@@ -31,7 +31,7 @@ export function sequence(cb) {
   // let callback manages events with help of promises
   function manageEvents(options = {}) {
     const { on, eventual, reject } = createEventManager(options);
-    signal.addEventListener('abort', () => reject(new Abort), { signal });
+    signal.addEventListener('abort', () => reject(new Abort()), { once: true });
     return [ on, eventual ];
   }
 
@@ -81,7 +81,7 @@ export function sequence(cb) {
   sync = false;
 
   // stop iterator when abort is signaled
-  signal.addEventListener('abort', () => iterator.throw(new Abort()), { signal });
+  signal.addEventListener('abort', () => iterator.throw(new Abort()), { once: true });
 
   // define lazy component Sequence
   const Lazy = createLazyComponent(suspensionKey, async () => {

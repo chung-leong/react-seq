@@ -3,6 +3,9 @@ import { IntermittentIterator, Interruption, Abort } from './iterator.js';
 import { createEventManager } from './events.js';
 
 export function useGeneratedState(cb, deps) {
+  if (!deps) {
+    throw new Error('No dependencies specified');
+  }
   const { initialState, abortController, on, eventual } = useMemo(() => {
     return generatedState(cb, (state) => dispatch({ state }), (error) => dispatch({ error }));
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
@@ -30,9 +33,9 @@ export function generatedState(cb, setState, setError) {
 
   // let callback manages events with help of promises
   let eventManager;
-  function manageEvents(options) {
+  function manageEvents(options = {}) {
     const { on, eventual, reject } = createEventManager(options);
-    signal.addEventListener('abort', () => reject(new Abort), { signal });
+    signal.addEventListener('abort', () => reject(new Abort()), { once: true });
     eventManager = { on, eventual };
     return [ on, eventual ];
   }
@@ -60,7 +63,7 @@ export function generatedState(cb, setState, setError) {
   let pendingState;
 
   // stop iterator when abort is signaled
-  signal.addEventListener('abort', () => iterator.throw(new Abort()), { signal });
+  signal.addEventListener('abort', () => iterator.throw(new Abort()), { once: true });
   retrieveRemaining();
 
   return {
