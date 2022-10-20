@@ -463,6 +463,33 @@ describe('#progressive', function() {
     await delay(30);
     expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
+  it('should accept a module with default as type', async function() {
+    async function* generate() {
+      yield 'Pig';
+      await delay(20);
+      yield 'Donkey';
+      await delay(20);
+      yield 'Chicken';
+    }
+
+    function Title({ animals = [] }) {
+      return createElement('h1', {}, animals.join(', '));
+    }
+
+    const el = progressive(({ fallback, type }) => {
+      fallback('None');
+      type({ default: Title });
+      return { animals: generate() };
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('None');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig' ] });
+    await delay(25);
+    expect(testRenderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey' ] });
+    await delay(30);
+    expect(testRenderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
+  })
   it('should accept an element-creating function in lieu of a type', async function() {
     async function* generate() {
       yield 'Pig';
@@ -486,7 +513,7 @@ describe('#progressive', function() {
     await delay(30);
     expect(testRenderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
   })
-  it('should progressively values from sync generator', async function() {
+  it('should progressively render values from sync generator', async function() {
     function Component({ animals = [] }) {
       return animals.join(', ');
     }

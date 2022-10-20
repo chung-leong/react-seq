@@ -12,7 +12,11 @@ export function progressive(cb) {
       if (elementFn) {
         throw new Error('type() cannot be used together with element()');
       }
-      elementType = type;
+      if (type instanceof Object && 'default' in type) {
+        elementType = type.default;
+      } else {
+        elementType = type;
+      }
     }
 
     let elementFn;
