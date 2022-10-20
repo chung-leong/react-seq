@@ -1,8 +1,8 @@
 import './css/PaymentPage.css';
-import { useSequence } from 'react-seq';
+import { useSequential } from 'react-seq';
 
 export function PaymentPage() {
-  return useSequence(async function*({ fallback, manageEvents }) {
+  return useSequential(async function*({ fallback, manageEvents }) {
     fallback(<PaymentLoading />);
 
     const [ on, eventual ] = manageEvents();

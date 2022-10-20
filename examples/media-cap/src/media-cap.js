@@ -1,4 +1,4 @@
-import { useGeneratedState } from 'react-seq';
+import { useSequentialState } from 'react-seq';
 
 export function useMediaCapture(options = {}) {
   const {
@@ -8,7 +8,7 @@ export function useMediaCapture(options = {}) {
     selectNewDevice = true,
     watchVolume = false,
   } = options;
-  const [ state ] = useGeneratedState(async function*({ initial, manageEvents }) {
+  const [ state ] = useSequentialState(async function*({ initial, manageEvents }) {
     const [ on, eventual ] = manageEvents({});
     let status = 'acquiring';
     let duration;
