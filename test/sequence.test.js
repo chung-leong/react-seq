@@ -464,7 +464,7 @@ describe('#useSequence()', function() {
     await delay(10);
     expect(testRenderer.toJSON()).to.equal('Cow');
     stoppage.resolve();
-    await delay(40);
+    await delay(50);
     expect(testRenderer.toJSON()).to.equal('Barbie');
     await delay(40);
     expect(cats).to.eql([ 'Barbie' ]);

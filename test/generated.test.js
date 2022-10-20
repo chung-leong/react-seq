@@ -119,6 +119,34 @@ describe('#generatedState()', function() {
   })
 })
 describe('#useGeneratedState()', function() {
+  it('should provide new state to component periodically', async function() {
+    const results = [];
+    let finalized = false;
+    function Test() {
+      const [ state, on ] = useGeneratedState(async function*({ initial }) {
+        initial('Pissing the night away');
+        try {
+          await delay(10);
+          yield 'Whiskey drink';
+          await delay(10);
+          yield 'Vodka drink';
+          await delay(10);
+          yield 'Lager drink';
+          await delay(10);
+          yield 'Cider drink';
+        } finally {
+          yield 'I get knocked down';
+          finalized = true;
+        }
+      }, []);
+      results.push(state);
+      return state;
+    }
+    const testRenderer = create(createElement(Test));
+    await delay(50);
+    expect(results).to.eql([ 'Pissing the night away', 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink', 'I get knocked down' ]);
+    expect(finalized).to.be.true;
+  })
   it('should invoke the finally section of a looping generator on unmount', async function() {
     let finalized = false;
     function Test() {

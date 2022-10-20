@@ -74,7 +74,7 @@ export function useMediaCapture(options = {}) {
       };
     }
 
-    if (!global.navigator || !navigator.mediaDevices) {
+    if (typeof(navigator) !== 'object' || !navigator.mediaDevices) {
       status = 'denied';
     }
 

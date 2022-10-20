@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
+import { useMemo, useEffect, useReducer, startTransition } from 'react';
 import { IntermittentIterator, Interruption, Abort } from './iterator.js';
 import { createEventManager } from './events.js';
 
@@ -26,7 +26,7 @@ export function generatedState(cb, setState, setError) {
   const { signal } = abortController;
 
   // let callback set content update delay
-  const iterator = new IntermittentIterator();
+  const iterator = new IntermittentIterator(signal);
   function defer(ms) {
     iterator.setDelay(ms);
   }
@@ -34,8 +34,7 @@ export function generatedState(cb, setState, setError) {
   // let callback manages events with help of promises
   let eventManager;
   function manageEvents(options = {}) {
-    const { on, eventual, reject } = createEventManager(options);
-    signal.addEventListener('abort', () => reject(new Abort()), { once: true });
+    const { on, eventual } = createEventManager(signal, options);
     eventManager = { on, eventual };
     return [ on, eventual ];
   }
@@ -62,8 +61,6 @@ export function generatedState(cb, setState, setError) {
 
   let pendingState;
 
-  // stop iterator when abort is signaled
-  signal.addEventListener('abort', () => iterator.throw(new Abort()), { once: true });
   retrieveRemaining();
 
   return {

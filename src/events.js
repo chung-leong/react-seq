@@ -1,6 +1,6 @@
 import { Abort } from './iterator.js';
 
-export function createEventManager(options) {
+export function createEventManager(signal, options) {
   const {
     warning = false,
   } = options;
@@ -15,8 +15,6 @@ export function createEventManager(options) {
     resolves: {},
     // reject functions of promises
     rejects: {},
-    // function for rejecting all promises
-    reject: (err) => rejectAll(cxt, err),
     // proxy yielding handler-creating functions
     on: null,
     // proxy yielding promises
@@ -24,6 +22,7 @@ export function createEventManager(options) {
   };
   cxt.eventual = new Proxy(cxt, { get: getPromise, set: throwError });
   cxt.on = new Proxy(cxt, { get: getHandler, set: throwError });
+  signal.addEventListener('abort', () => rejectAll(cxt, new Abort()), { once: true });
   return cxt;
 }
 
@@ -174,7 +173,7 @@ function throwError() {
   throw new Error('Property is read-only');
 }
 
-if (global.window) {
+if (typeof(window) === 'object') {
   // suppress error message about unhandle rejection when it's an Abort error
   // shouldn't really happen
   window.addEventListener('unhandledrejection', (evt) => {
