@@ -19,7 +19,7 @@ export class EventManager {
     this.on = new Proxy(this, { get: (mgr, name) => this.getHandler(name), set: throwError });
     // proxy yielding promises
     this.eventual = new Proxy(this, { get: (mgr, name) => this.getPromise(name), set: throwError });
-    signal.addEventListener('abort', () => this.rejectAll(new Abort()), { once: true });
+    signal.addEventListener('abort', () => this.rejectAll(new Abort('Abort')), { once: true });
   }
 
   getHandler(name) {
@@ -139,12 +139,8 @@ export class EventManager {
   }
 
   rejectAll(err) {
-    const { promises, resolves, rejects } = this;
-    for (const [ name, reject ] of Object.entries(rejects)) {
+    for (const reject of Object.values(this.rejects)) {
       reject(err);
-      delete promises[name];
-      delete resolves[name];
-      delete rejects[name];
     }
   }
 }

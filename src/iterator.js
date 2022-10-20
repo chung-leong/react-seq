@@ -39,16 +39,12 @@ export class IntermittentIterator {
 
   next() {
     this.fetch();
-    if (this.interval) {
+    // alternate behind returning and not returning when delay is zero
+    this.returning = (this.delay > 0) || !this.returning;
+    if (this.returning) {
       return Promise.race([ this.promise, this.tick ]);
     } else {
-      // alternate behind the two
-      this.returning = !this.returning;
-      if (this.returning) {
-        return Promise.race([ this.promise, this.tick ]);
-      } else {
-        return Promise.reject(new Interruption());
-      }
+      return Promise.reject(new Interruption('Interruption'));
     }
   }
 
@@ -58,15 +54,18 @@ export class IntermittentIterator {
     }
   }
 
-  return() {
-    const { generator } = this
+  async return() {
+    const { generator } = this;
+    this.stopTimer();
+    if (this.promise) {
+      this.promise.catch(err => {});
+    }
     this.generator = null;
     this.promise = null;
     this.tick = null;
     this.reject = null;
     this.started = false;
     this.pending = true;
-    this.stopTimer();
     return generator.return();
   }
 
@@ -120,7 +119,7 @@ export class IntermittentIterator {
           this.pending = false;
           this.updateTimer();
         }
-      });
+      }, err => {});
     }
     if (!this.tick) {
       this.tick = new Promise((resolve, reject) => {

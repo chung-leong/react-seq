@@ -156,7 +156,7 @@ export function sequential(cb) {
           // abort iteration through generator on unmount
           abortController.abort();
         };
-      }, [ pendingError ])
+      }, []);
       return currentContent;
     }
 

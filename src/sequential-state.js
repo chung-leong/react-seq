@@ -66,7 +66,7 @@ export function sequentialState(cb, setState, setError) {
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ defer, manageEvents, initial, signal });
+  const generator = cb({ defer, manageEvents, initial, timeout, signal });
   iterator.start(generator);
   iterator.fetch();
   sync = false;
@@ -100,7 +100,7 @@ export function sequentialState(cb, setState, setError) {
   }
 
   async function retrieveRemaining() {
-    let stop = false;
+    let stop = false, aborted = false;
     do {
       try {
         const { value, done } = await iterator.next();
@@ -116,19 +116,21 @@ export function sequentialState(cb, setState, setError) {
           if (typeof(timeoutState) === 'function') {
             timeoutState = await timeoutState();
           }
-          pendingContent = timeoutState;
+          pendingState = timeoutState;
           stop = true;
         } else if (err instanceof Interruption) {
           updateState(false);
         } else if (err instanceof Abort) {
-          stop = true;
+          stop = aborted = true;
         } else if (err.name !== 'AbortError') {
           throwError(err);
           stop = true;
         }
       }
     } while (!stop);
-    updateState(true);
+    if (!aborted) {
+      updateState(true);
+    }
     await iterator.return();
   }
 }
