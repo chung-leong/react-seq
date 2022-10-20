@@ -11,23 +11,18 @@ import {
 } from '../src/iterator.js';
 
 describe('#extendDeferment()', function() {
-  const abortController = new AbortController();
-  const { signal } = abortController;
   it('should set the delay multiplier', function() {
     extendDeferment(10);
-    const { signal } = abortController;
-    const iterator = new IntermittentIterator(signal);
+    const iterator = new IntermittentIterator({});
     iterator.setDelay(3);
     expect(iterator.delay).to.equal(3 * 10);
     extendDeferment();
   })
 })
 
-describe('#IntermittentIterator(signal)', function() {
-  const abortController = new AbortController();
-  const { signal } = abortController;
+describe('#IntermittentIterator()', function() {
   it('should alternate between returning value and interruption where delay is 0', async function() {
-    const iterator = new IntermittentIterator(signal);
+    const iterator = new IntermittentIterator({});
     const create = async function*() {
       await delay(30);
       yield 'Whiskey drink';
@@ -68,7 +63,7 @@ describe('#IntermittentIterator(signal)', function() {
     expect(results[7]).to.be.instanceOf(Interruption);
   })
   it('should throw interruption intermittently', async function() {
-    const iterator = new IntermittentIterator(signal);
+    const iterator = new IntermittentIterator({});
     iterator.setDelay(25);
     const create = async function*() {
       await delay(20);
@@ -107,7 +102,7 @@ describe('#IntermittentIterator(signal)', function() {
     expect(results[5]).to.equal('Cider drink');
   })
   it('should allow alteration of delay interval half way', async function() {
-    const iterator = new IntermittentIterator(signal);
+    const iterator = new IntermittentIterator({});
     iterator.setDelay(25);
     const create = async function*() {
       await delay(25);
@@ -159,7 +154,7 @@ describe('#IntermittentIterator(signal)', function() {
     expect(results[9]).to.equal('Cider drink');
   })
   it('should invoke finally section of generator', async function() {
-    const iterator = new IntermittentIterator(signal);
+    const iterator = new IntermittentIterator({});
     iterator.setDelay(25);
     let finalized = false;
     const create = async function*() {
@@ -192,7 +187,7 @@ describe('#IntermittentIterator(signal)', function() {
     expect(finalized).to.be.true;
   })
   it('should emit Timeout error when limit is exceeded', async function() {
-    const iterator = new IntermittentIterator(signal);
+    const iterator = new IntermittentIterator({});
     iterator.setDelay(30, 40);
     let finalized = false;
     const create = async function*() {
@@ -237,7 +232,9 @@ describe('#IntermittentIterator(signal)', function() {
     expect(finalized).to.be.true;
   })
   it('should stop iteration when abort controller signals', async function() {
-    const iterator = new IntermittentIterator(signal);
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const iterator = new IntermittentIterator({ signal });
     iterator.setDelay(25);
     let finalized = false;
     const create = async function*() {
@@ -278,7 +275,7 @@ describe('#IntermittentIterator(signal)', function() {
     expect(finalized).to.be.true;
   })
   it('should not swallow errors from generator', async function() {
-    const iterator = new IntermittentIterator(signal);
+    const iterator = new IntermittentIterator({});
     iterator.setDelay(25);
     let finalized = false;
     const create = async function*() {

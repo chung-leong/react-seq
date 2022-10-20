@@ -1,9 +1,10 @@
 import { Abort } from './iterator.js';
 
 export class EventManager {
-  constructor(signal, options) {
+  constructor(options) {
     const {
       warning = false,
+      signal,
     } = options;
     // whether to output a warning when no promises are fulfilled
     this.warning = warning;
@@ -15,11 +16,18 @@ export class EventManager {
     this.resolves = {};
     // reject functions of promises
     this.rejects = {};
+    // promise that external promises will race against
+    this.abortPromise = null;
+    // rejection function of promise above
+    this.abortReject = null;
     // proxy yielding handler-creating functions
-    this.on = new Proxy(this, { get: (mgr, name) => this.getHandler(name), set: throwError });
-    // proxy yielding promises
-    this.eventual = new Proxy(this, { get: (mgr, name) => this.getPromise(name), set: throwError });
-    signal.addEventListener('abort', () => this.rejectAll(new Abort('Abort')), { once: true });
+    this.on = new Proxy({}, { get: (_, name) => this.getHandler(name), set: throwError });
+    // proxy yielding promises, which is callable itself
+    const fn = (promise) => this.wrapExternalPromise(promise);
+    this.eventual = new Proxy(fn, { get: (_, name) => this.getPromise(name), set: throwError });
+    if (signal) {
+      signal.addEventListener('abort', () => this.abortAll(), { once: true });
+    }
   }
 
   getHandler(name) {
@@ -57,8 +65,19 @@ export class EventManager {
     return promise;
   }
 
+  wrapExternalPromise(promise) {
+    // create promise for aborting external promises
+    if (!this.abortPromise) {
+      this.abortPromise = new Promise((_, reject) => this.abortReject = reject);
+    }
+    const wrapped = Promise.race([ promise, this.abortPromise ]);
+    wrapped.or = this.enablePromiseMerge(wrapped, 'or');
+    wrapped.and = this.enablePromiseMerge(wrapped, 'and');
+    return wrapped;
+  }
+
   enablePromiseMerge(parent, op) {
-    // the context itself is callable
+    // the op word itself is callable
     const fn = (promise) => {
       const mergedPromise = mergePromises([ parent, promise ], op);
       mergedPromise[op] = this.enablePromiseMerge(mergedPromise, op);
@@ -138,9 +157,13 @@ export class EventManager {
     }
   }
 
-  rejectAll(err) {
+  abortAll() {
+    const err = new Abort('Abort');
     for (const reject of Object.values(this.rejects)) {
       reject(err);
+    }
+    if (this.abortReject) {
+      this.abortReject(err);
     }
   }
 }

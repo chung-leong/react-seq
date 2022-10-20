@@ -12,7 +12,7 @@ export function sequential(cb) {
   const { signal } = abortController;
 
   // let callback set content update delay
-  const iterator = new IntermittentIterator(signal);
+  const iterator = new IntermittentIterator({ signal });
   function defer(delay, limit) {
     iterator.setDelay(delay, limit);
   }
@@ -30,7 +30,7 @@ export function sequential(cb) {
 
   // let callback manages events with help of promises
   function manageEvents(options = {}) {
-    const { on, eventual } = new EventManager(signal, options);
+    const { on, eventual } = new EventManager({ ...options, signal });
     return [ on, eventual ];
   }
 

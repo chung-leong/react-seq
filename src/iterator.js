@@ -10,7 +10,10 @@ export function limitDeferment(limit = 1) {
 }
 
 export class IntermittentIterator {
-  constructor(signal) {
+  constructor(options) {
+    const {
+      signal
+    } = options;
     this.generator = null;
     this.promise = null;
     this.delay = 0;
@@ -22,7 +25,9 @@ export class IntermittentIterator {
     this.pending = true;
     this.reject = null;
     this.returning = false;
-    signal.addEventListener('abort', () => this.throw(new Abort()), { once: true });
+    if (signal) {
+      signal.addEventListener('abort', () => this.throw(new Abort()), { once: true });
+    }
   }
 
   setDelay(delay, limit = Infinity) {
