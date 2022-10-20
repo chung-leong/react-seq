@@ -1,13 +1,13 @@
 import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
 import { IntermittentIterator, Timeout, Interruption, Abort } from './iterator.js';
-import { createEventManager } from './events.js';
+import { EventManager } from './event-manager.js';
 import { isFetchAbort } from './utils.js';
 
-export function useSequence(cb, deps) {
-  return useMemo(() => sequence(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+export function useSequential(cb, deps) {
+  return useMemo(() => sequential(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
-export function sequence(cb) {
+export function sequential(cb) {
   const abortController = new AbortController();
   const { signal } = abortController;
 
@@ -30,7 +30,7 @@ export function sequence(cb) {
 
   // let callback manages events with help of promises
   function manageEvents(options = {}) {
-    const { on, eventual } = createEventManager(signal, options);
+    const { on, eventual } = new EventManager(signal, options);
     return [ on, eventual ];
   }
 
@@ -50,11 +50,11 @@ export function sequence(cb) {
     placeholder = el;
   }
 
-  // let callback set backup element (or its creation function), to be used when
+  // let callback set timeout element (or its creation function), to be used when
   // we fail to retrieve the first item from the generator after time limit has been exceeded
-  let backupEl;
-  function backup(el) {
-    backupEl = el;
+  let timeoutEl;
+  function timeout(el) {
+    timeoutEl = el;
   }
 
   // container for fallback content, the use of which allows to detect
@@ -74,7 +74,7 @@ export function sequence(cb) {
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ defer, manageEvents, fallback, backup, suspend, signal });
+  const generator = cb({ defer, manageEvents, fallback, timeout, suspend, signal });
   iterator.start(generator);
   iterator.fetch();
   sync = false;
@@ -100,11 +100,11 @@ export function sequence(cb) {
       } catch (err) {
         if (err instanceof Timeout) {
           // time limit has been reached and we got nothing to show
-          // reach for the backup element
-          if (typeof(backupEl) === 'function') {
-            backupEl = await backupEl();
+          // reach for the timeout element
+          if (typeof(timeoutEl) === 'function') {
+            timeoutEl = await timeoutEl();
           }
-          pendingContent = (backupEl !== undefined) ? backupEl : null;
+          pendingContent = (timeoutEl !== undefined) ? timeoutEl : null;
           stop = true;
         } if (err instanceof Interruption) {
           // we're done here, as pendingContent must contain something

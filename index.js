@@ -1,7 +1,7 @@
 export {
-  useSequence,
-  sequence,
-} from './src/sequence.js';
+  useSequential,
+  sequential,
+} from './src/sequential.js';
 export {
   useProgressive,
   progressive,
@@ -9,9 +9,13 @@ export {
   generateNext,
 } from './src/progressive.js';
 export {
-  useGeneratedState,
-  generatedState,
-} from './src/generated.js';
+  useSequentialState,
+  sequentialState,
+} from './src/sequential-state.js';
+export {
+  useProgressiveState,
+  progressiveState,
+} from './src/progressive-state.js';
 export {
   extendDeferment,
   limitDeferment,

@@ -1,14 +1,14 @@
 import { expect } from 'chai';
-import { createElement, Suspense, Component } from 'react';
-import { create, act } from 'react-test-renderer';
+import { createElement } from 'react';
+import { create } from 'react-test-renderer';
 import { delay } from '../index.js';
 
 import {
-  generatedState,
-  useGeneratedState,
+  sequentialState,
+  useSequentialState,
 } from '../index.js';
 
-describe('#generatedState()', function() {
+describe('#sequentialState()', function() {
   it('should invoke function with new state', async function() {
     const create = async function*() {
       await delay(10);
@@ -24,7 +24,7 @@ describe('#generatedState()', function() {
     const setState = value => results.push(value);
     let error;
     const setError = err => error = err;
-    const { initialState } = generatedState(create, setState, setError);
+    const { initialState } = sequentialState(create, setState, setError);
     await delay(25);
     expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
     await delay(50);
@@ -46,7 +46,7 @@ describe('#generatedState()', function() {
     const setState = value => results.push(value);
     let error;
     const setError = err => error = err;
-    const { initialState } = generatedState(create, setState, setError);
+    const { initialState } = sequentialState(create, setState, setError);
     await delay(50);
     expect(error).to.be.an('error');
   })
@@ -66,7 +66,7 @@ describe('#generatedState()', function() {
     const setState = value => results.push(value);
     let error;
     const setError = err => error = err;
-    const { initialState } = generatedState(create, setState, setError);
+    const { initialState } = sequentialState(create, setState, setError);
     expect(initialState).to.equal('Sober');
   })
   it('should allow the deferrment of state update', async function() {
@@ -85,7 +85,7 @@ describe('#generatedState()', function() {
     const setState = value => results.push(value);
     let error;
     const setError = err => error = err;
-    const { initialState } = generatedState(create, setState, setError);
+    const { initialState } = sequentialState(create, setState, setError);
     await delay(50);
     expect(results).to.eql([ 'Cider drink' ]);
   })
@@ -109,7 +109,7 @@ describe('#generatedState()', function() {
     const setState = value => results.push(value);
     let error;
     const setError = err => error = err;
-    const { abortController } = generatedState(create, setState, setError);
+    const { abortController } = sequentialState(create, setState, setError);
     await delay(30);
     abortController.abort();
     expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
@@ -118,12 +118,12 @@ describe('#generatedState()', function() {
     expect(finalized).to.be.true;
   })
 })
-describe('#useGeneratedState()', function() {
+describe('#useSequentialState()', function() {
   it('should provide new state to component periodically', async function() {
     const results = [];
     let finalized = false;
     function Test() {
-      const [ state, on ] = useGeneratedState(async function*({ initial }) {
+      const [ state, on ] = useSequentialState(async function*({ initial }) {
         initial('Pissing the night away');
         try {
           await delay(10);
@@ -150,7 +150,7 @@ describe('#useGeneratedState()', function() {
   it('should invoke the finally section of a looping generator on unmount', async function() {
     let finalized = false;
     function Test() {
-      const [ state, on ] = useGeneratedState(async function*({ manageEvents, initial }) {
+      const [ state, on ] = useSequentialState(async function*({ manageEvents, initial }) {
         initial('Whiskey drink');
         const [ on, eventual ] = manageEvents();
         try {

@@ -2,27 +2,28 @@
 
 ## Hooks
 
-* [useSequence](#useSequence)
+* [useSequential](#useSequential)
 * [useProgressive](#useProgressive)
-* [useGeneratedState](#useGeneratedState)
+* [useSequentialState](#useSequentialState)
+* [useProgressiveState](#useProgressiveState)
 
 ## Non-hook functions
 
 * [sequence](#sequence)
 * [progressive](#progressive)
-* [generatedState](#generatedState)
+* [sequentialState](#sequentialState)
 
 ## Configuration functions
 
-* [defer](#defer) <sup>`useSequence`, `useProgressive`, `useGeneratedState`</sup>
-* [fallback](#fallback) <sup>`useSequence`, `useProgressive`</sup>
-* [backup](#backup) <sup>`useSequence`, `useProgressive`</sup>
-* [suspend](#suspend) <sup>`useSequence`, `useProgressive`</sup>
-* [manageEvents](#manageEvents) <sup>`useSequence`, `useProgressive`, `useGeneratedState`</sup>
+* [defer](#defer) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
+* [fallback](#fallback) <sup>`useSequential`, `useProgressive`</sup>
+* [timeout](#timeout) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
+* [suspend](#suspend) <sup>`useSequential`, `useProgressive`</sup>
+* [manageEvents](#manageEvents) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [type](#type) <sup>`useProgressive`</sup>
 * [element](#element) <sup>`useProgressive`</sup>
-* [usable](#usable) <sup>`useProgressive`</sup>
-* [initial](#initial) <sup>`useGeneratedState`</sup>
+* [usable](#usable) <sup>`useProgressive`, `useProgressiveState`</sup>
+* [initial](#initial) <sup>`useSequentialState`, `useProgressiveState`</sup>
 
 ## Global configuration functions
 
@@ -39,13 +40,13 @@
 * [delay](#delay)
 * [preload](#preload)
 
-## useSequence(cb, deps)<a name="useSequence"></a>
+## useSequential(cb, deps)<a name="useSequential"></a>
 
 ### Syntax
 
 ```js
 function ProductPage({ productId }) {
-  return useSequence(async function*({ defer, fallback }) {
+  return useSequential(async function*({ defer, fallback }) {
     fallback(<Spinner/>);
     defer(100);
     const product = await fetchProduct(productId);
@@ -129,13 +130,13 @@ function ProductPage({ productId }) {
 }
 ```
 
-## useGeneratedState(cb, deps)
+## useSequentialState(cb, deps)
 
 ### Syntax
 
 ```js
 function ProductPage({ productId }) {
-  const [ state, on ] = useGeneratedState(async ({ defer, initial }) => {
+  const [ state, on ] = useSequentialState(async ({ defer, initial }) => {
     initial({});
     defer(100);
     const product = await fetchProduct(productId);
@@ -160,7 +161,7 @@ function ProductPage({ productId }) {
 ### Syntax
 
 ```js
-function useSequence(cb, deps) {
+function useSequential(cb, deps) {
   return useMemo(() => sequence(cb), deps);
 }
 ```
@@ -180,15 +181,15 @@ function useProgressive(cb, deps) {
 }
 ```
 
-## generatedState(cb, setState, setError)
+## sequentialState(cb, setState, setError)
 
 
 ### Syntax
 
 ```js
-function useGeneratedState(cb, deps) {
+function useSequentialState(cb, deps) {
   const { initialState, abortController, on, eventual } = useMemo(() => {
-    return generatedState(cb, state => setState(state), err => setError(err));
+    return sequentialState(cb, state => setState(state), err => setError(err));
   }, deps);
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
@@ -217,7 +218,7 @@ function useGeneratedState(cb, deps) {
 
 ```js
 function Widget({ id }) {
-  return useSequence(async function*({ defer }) {
+  return useSequential(async function*({ defer }) {
     defer(100, 1000);
     yield <span>Performing A...</span>
     await taskA();
@@ -241,7 +242,7 @@ function Widget({ id }) {
 
 ```js
 function Widget({ id }) {
-  return useSequence(async function*({ fallback }) {
+  return useSequential(async function*({ fallback }) {
     fallback(<span>Initializing...</span>);
     const { taskA, taskB, taskC } = await import('./task.js');
     yield <span>Performing A...</span>
@@ -259,15 +260,15 @@ function Widget({ id }) {
 
 * `element` - `<Element>` or `<Function>`
 
-## backup(element)<a name="backup"></a>
+## timeout(element)<a name="timeout"></a>
 
 ### Syntax
 
 ```js
 function Widget({ id }) {
-  return useSequence(async function*({ defer, backup }) {
+  return useSequential(async function*({ defer, timeout }) {
     defer(100, 1000);
-    backup(<span>Please be patient</span>);
+    timeout(<span>Please be patient</span>);
     yield <span>Performing A...</span>
     await taskA();
     yield <span>Performing B...</span>
@@ -291,7 +292,7 @@ function Widget({ id }) {
 const DialogBox = React.lazy(() => import('./dialogbox.js'));
 
 function Widget({ id }) {
-  const form = useSequence(async function*({ suspend }) {
+  const form = useSequential(async function*({ suspend }) {
     suspend();
     /* ... */
   }, [ id ]);

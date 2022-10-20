@@ -1,12 +1,12 @@
 import { useMemo, createElement } from 'react';
-import { sequence } from './sequence.js';
+import { sequential } from './sequential.js';
 
 export function useProgressive(cb, deps) {
   return useMemo(() => progressive(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
 }
 
 export function progressive(cb) {
-  return sequence(async function* (methods) {
+  return sequential(async function* (methods) {
     let elementType;
     function type(type) {
       if (elementFn) {

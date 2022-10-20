@@ -1,11 +1,12 @@
 {
   "name": "react-seq",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "Create React components that output contents from async generators",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha.js --require test/setup.js -- test/*.test.js",
+    "test:debug": "./node_modules/mocha/bin/mocha.js --inspect-brk --require test/setup.js -- test/*.test.js",
     "test:watch": "./node_modules/mocha/bin/mocha.js --require test/setup.js --parallel --watch -- test/*.test.js",
     "test:gc": "node --expose-gc ./node_modules/mocha/bin/mocha.js --require test/setup.js -- test/*.test.js"
   },

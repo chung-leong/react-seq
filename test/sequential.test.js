@@ -7,14 +7,14 @@ import { createWriteStream } from 'fs';
 import { delay } from '../index.js';
 
 import {
-  sequence,
-  useSequence,
+  sequential,
+  useSequential,
   extendDeferment,
 } from '../index.js';
 
-describe('#sequence()', function() {
+describe('#sequential()', function() {
   it('should return a Suspense element', function() {
-    const el = sequence(async function*({ fallback }) {
+    const el = sequential(async function*({ fallback }) {
       fallback('Cow');
       await delay(10);
       yield 'Pig';
@@ -23,10 +23,10 @@ describe('#sequence()', function() {
   })
   it('should return a component that uses the first item from the generator as its content', async function() {
     function Test() {
-      const seq = useSequence();
+      const seq = useSequential();
       return seq();
     }
-    const el = sequence(async function*({ fallback }) {
+    const el = sequential(async function*({ fallback }) {
       fallback('Cow');
       yield 'Pig';
     });
@@ -37,7 +37,7 @@ describe('#sequence()', function() {
   })
   it('should return a component that defers rendering', async function() {
     const stoppage = createStoppage();
-    const el = sequence(async function*({ fallback, defer }) {
+    const el = sequential(async function*({ fallback, defer }) {
       fallback('Cow');
       defer(50);
       yield 'Pig';
@@ -56,7 +56,7 @@ describe('#sequence()', function() {
   })
   it('should return a component that displays new contents intermittently', async function() {
     const stoppage = createStoppage();
-    const el = sequence(async function*({ defer }) {
+    const el = sequential(async function*({ defer }) {
       defer(50);
       yield 'Pig';
       await delay(70);
@@ -78,7 +78,7 @@ describe('#sequence()', function() {
   })
   it('should return a component that eventually shows the final item from the generator', async function() {
     const stoppage = createStoppage();
-    const el = sequence(async function*({ fallback, defer }) {
+    const el = sequential(async function*({ fallback, defer }) {
       fallback('Cow');
       defer(20);
       yield 'Pig';
@@ -95,7 +95,7 @@ describe('#sequence()', function() {
   })
   it('should return a component that uses fallback', async function() {
     const stoppage = createStoppage();
-    const el = sequence(async function*({ fallback, defer }) {
+    const el = sequential(async function*({ fallback, defer }) {
       fallback('Cow');
       defer(20);
       yield 'Pig';
@@ -112,7 +112,7 @@ describe('#sequence()', function() {
   })
   it('should allow management of events using promises', async function() {
     let triggerClick;
-    const el = sequence(async function*({ fallback, manageEvents }) {
+    const el = sequential(async function*({ fallback, manageEvents }) {
       const [ on, eventual ] = manageEvents();
       triggerClick = on.click;
       fallback('Cow');
@@ -136,7 +136,7 @@ describe('#sequence()', function() {
     const stoppage = createStoppage();
     const cats = [];
     const finalizations = [];
-    const el = sequence(async function*({ fallback }) {
+    const el = sequential(async function*({ fallback }) {
       fallback('Cow');
       try {
         await delay(10);
@@ -165,7 +165,7 @@ describe('#sequence()', function() {
   it('should cause all event promises to reject on unmount', async function() {
     const cats = [];
     const finalizations = [];
-    const el = sequence(async function*({ fallback, manageEvents }) {
+    const el = sequential(async function*({ fallback, manageEvents }) {
       fallback('Cow');
       try {
         const [ on, eventual ] = manageEvents();
@@ -192,7 +192,7 @@ describe('#sequence()', function() {
     expect(finalizations).to.eql([ 'Rocky' ]);
   })
   it('should allow creation of a suspending component', async function() {
-    const el = sequence(async function*({ suspend }) {
+    const el = sequential(async function*({ suspend }) {
       suspend();
       yield 'Pig';
       await delay(30);
@@ -223,7 +223,7 @@ describe('#sequence()', function() {
         return this.props.children;
       }
     }
-    const el = sequence(async function*({ fallback }) {
+    const el = sequential(async function*({ fallback }) {
       fallbak('Cow');
       await delay(10);
       yield createElement('div', {}, cat);
@@ -259,7 +259,7 @@ describe('#sequence()', function() {
         return this.props.children;
       }
     }
-    const el = sequence(async function*({ fallback }) {
+    const el = sequential(async function*({ fallback }) {
       fallback('Cow');
       await delay(10);
       yield createElement('div', {}, 'Pig');
@@ -278,7 +278,7 @@ describe('#sequence()', function() {
   })
   it('should use delay multiplier', async function() {
     extendDeferment(10);
-    const el = sequence(async function*({ defer }) {
+    const el = sequential(async function*({ defer }) {
       defer(10);
       yield 'Pig';
       await delay(20);
@@ -295,7 +295,7 @@ describe('#sequence()', function() {
     expect(testRenderer.toJSON()).to.equal('Chicken');
   })
   it('should render correctly to a stream', async function() {
-    const el = sequence(async function*({ fallback, defer }) {
+    const el = sequential(async function*({ fallback, defer }) {
       fallback(createElement('div', {}, 'Cow'));
       defer(100);
       await delay(10);
@@ -319,7 +319,7 @@ describe('#sequence()', function() {
   it('should not leak memory', async function() {
     this.timeout(5000);
     async function step() {
-      const el = sequence(async function*({ fallback }) {
+      const el = sequential(async function*({ fallback }) {
         fallback(createElement('div', {}, 'Cow'));
         await delay(0);
         yield createElement('div', {}, 'Pig');
@@ -361,11 +361,11 @@ describe('#sequence()', function() {
   })
 })
 
-describe('#useSequence()', function() {
+describe('#useSequential()', function() {
   it('should recreate element when dependencies change', async function() {
     const cats = [];
     function Test({ cat }) {
-      return useSequence(async function*({ fallback, defer }) {
+      return useSequential(async function*({ fallback, defer }) {
         fallback('Cow');
         defer(20);
         await delay(10);
@@ -389,7 +389,7 @@ describe('#useSequence()', function() {
   it('should recreate generator when dependencies are not specified', async function() {
     const cats = [];
     function Test({ cat }) {
-      return useSequence(async function*({ fallback, defer }) {
+      return useSequential(async function*({ fallback, defer }) {
         fallback('Cow');
         defer(20);
         await delay(10);
@@ -413,7 +413,7 @@ describe('#useSequence()', function() {
   it('should not recreate generator when dependencies has not changed', async function() {
     const cats = [];
     function Test({ cat, dog }) {
-      return useSequence(async function*({ fallback, defer }) {
+      return useSequential(async function*({ fallback, defer }) {
         fallback('Cow');
         defer(20);
         await delay(10);
@@ -437,7 +437,7 @@ describe('#useSequence()', function() {
     const cats = [];
     const finalizations = [];
     function Test({ cat }) {
-      return useSequence(async function*({ fallback, defer }) {
+      return useSequential(async function*({ fallback, defer }) {
         fallback('Cow');
         defer(20);
         try {
@@ -475,7 +475,7 @@ describe('#useSequence()', function() {
     const finalizations = [];
     let triggerClick, triggerKeyPress;
     function Test({ cat }) {
-      return useSequence(async function*({ fallback, manageEvents }) {
+      return useSequential(async function*({ fallback, manageEvents }) {
         fallback('Cow');
         try {
           const [ on, eventual ] = manageEvents();

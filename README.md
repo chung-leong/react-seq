@@ -1,8 +1,41 @@
 # React-seq
 
-React-seq is a library that lets you take advantage of async function and generators while developing React apps.
+React-seq is a light-weight library that helps you take full advantage of async functions and generators while
+developing React apps. It provides a set of hooks for managing processes that complete over time, such as loading
+of code and data. It's designed for React 18 and above.
+
+## Installation
+
+`
+npm install --save-dev react-seq
+`
 
 ## Basic Usage
+
+`useSequence()` is React-seq's most basic hook. It accepts an async generator function as a parameter and returns a
+component that will display the output from the async generator as content:
+
+```js
+import { useSequence, delay } from 'react-seq';
+
+function LovelyAnimals({ favorite = 'Chicken' }) {
+  return useSequence(async function*({ fallback }) {
+    fallback(<span>Cat</span>);
+    await delay(1000);
+    yield <span>Dog</span>;
+    await delay(1000);
+    yield <span>Octopus</span>;
+    await delay(1000);
+    yield <span>Hippopotamus</span>;
+    await delay(1000);
+    yield <span>Polar bear</span>;
+    await delay(1000);
+    yield <span>{favorite}</span>;
+  }, []);
+}
+```
+
+
 
 ## Advantages
 
