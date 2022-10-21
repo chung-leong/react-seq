@@ -1,4 +1,4 @@
-# preload(fn)<a name="preload"></a>
+# preload(fn) <sup>`async`</sup>
 
 ## Syntax
 

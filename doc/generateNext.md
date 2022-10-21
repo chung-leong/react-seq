@@ -1,4 +1,4 @@
-# generateNext(source)
+# generateNext(source) <sup>`async generator`</sup>
 
 ## Syntax
 

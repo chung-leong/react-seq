@@ -4,7 +4,7 @@
 
 ```js
 function ProductPage({ productId }) {
-  const [ state, on ] = useSequentialState(async function({ defer, initial }) => {
+  const [ state, on ] = useSequentialState(async function*({ defer, initial }) => {
     initial({});
     defer(100);
     const product = await fetchProduct(productId);

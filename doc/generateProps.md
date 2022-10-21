@@ -1,4 +1,4 @@
-# generateProps(asyncProps, usables)
+# generateProps(asyncProps, usables) <sup>`async generator`</sup>
 
 ## Syntax
 

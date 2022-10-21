@@ -12,6 +12,7 @@
 * [sequence](sequence.md)
 * [progressive](progressive.md)
 * [sequentialState](sequentialState.md)
+* [progressiveState](progressiveState.md)
 
 ## Configuration functions
 
@@ -20,6 +21,7 @@
 * [timeout](timeout.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [suspend](suspend.md) <sup>`useSequential`, `useProgressive`</sup>
 * [manageEvents](manageEvents.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
+* [signal](signal.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [type](type.md) <sup>`useProgressive`</sup>
 * [element](element.md) <sup>`useProgressive`</sup>
 * [usable](usable.md) <sup>`useProgressive`, `useProgressiveState`</sup>
