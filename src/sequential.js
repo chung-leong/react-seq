@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
 import { IntermittentIterator, Timeout, Interruption, Abort } from './iterator.js';
 import { EventManager } from './event-manager.js';
-import { isFetchAbort } from './utils.js';
+import { isAbortError } from './utils.js';
 
 export function useSequential(cb, deps) {
   return useMemo(() => sequential(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
@@ -112,7 +112,7 @@ export function sequential(cb) {
           stop = true;
         } else if (err instanceof Abort) {
           stop = aborted = true;
-        } else if (isFetchAbort(err)) {
+        } else if (isAbortError(err)) {
           // quietly ignore error
           stop = true;
         } else if (pendingContent !== undefined) {
@@ -201,7 +201,7 @@ export function sequential(cb) {
             updateContent(false);
           } else if (err instanceof Abort) {
             stop = true;
-          } else if (isFetchAbort(err)) {
+          } else if (isAbortError(err)) {
             // quietly ignore error
             stop = true;
           } else {

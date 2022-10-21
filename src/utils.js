@@ -6,12 +6,12 @@ export async function preload(fn) {
   try {
     await fn();
   } catch (err) {
-    if (!isFetchAbort(err)) {
+    if (!isAbortError(err)) {
       console.error(err);
     }
   }
 }
 
-export function isFetchAbort(err) {
-  return err.constructor.name === 'DOMException' && (err.name === 'AbortError' || err.code === 20);
+export function isAbortError(err) {
+  return err instanceof Error && (err.name === 'AbortError' || err.code === 20);
 }

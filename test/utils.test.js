@@ -4,6 +4,9 @@ import {
   delay,
   preload,
 } from '../index.js';
+import {
+  isAbortError,
+} from '../src/utils.js';
 
 describe('#delay()', function() {
   it('should return a promise that is fulfilled after a delay', async function() {
@@ -33,5 +36,20 @@ describe('#preload()', function() {
       console.error = errorFn;
     }
     expect(error).to.be.an('error').with.property('message', 'Rats live on no evil star');
+  })
+})
+
+describe('#isAbortError()', function() {
+  it('should return true if error object is caused by aborting a fetch operation', async function() {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    let error;
+    try {
+      setTimeout(() => abortController.abort(), 0);
+      const res = await fetch('http://google.com', { signal });
+    } catch (err) {
+      error = err;
+    }
+    expect(isAbortError(error)).to.be.true;
   })
 })
