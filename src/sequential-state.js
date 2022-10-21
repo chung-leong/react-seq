@@ -50,7 +50,7 @@ export function sequentialState(cb, setState, setError) {
   let sync = true;
   function initial(state) {
     if (!sync) {
-      throw new Error('Fallback component must be set prior to any yield or await statement');
+      throw new Error('Initial state must be set prior to any yield or await statement');
     }
     if (typeof(state) === 'function') {
       state = state();

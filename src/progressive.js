@@ -36,9 +36,7 @@ export function progressive(cb) {
     }
 
     const asyncProps = await cb({ ...methods, type, element, usable });
-    if (!(asyncProps instanceof Object)) {
-      throw new Error('Callback function did not return an object');
-    }
+    checkAsyncProps(asyncProps, usables);
     if (!elementType && !elementFn) {
       throw new Error('Callback function did not call type() to set the element type');
     }
@@ -48,17 +46,23 @@ export function progressive(cb) {
     if (!elementFn) {
       elementFn = (props) => createElement(elementType, props);
     }
-    if (process.env.NODE_ENV === 'development') {
-      for (const name of Object.keys(usables)) {
-        if (!(name in asyncProps)) {
-          console.warn(`The prop "${name}" is given a usability criteria but is absent from the object returned`);
-        }
-      }
-    }
     for await (const props of generateProps(asyncProps, usables)) {
       yield elementFn(props);
     }
   });
+}
+
+export function checkAsyncProps(asyncProps, usables) {
+  if (!(asyncProps instanceof Object)) {
+    throw new Error('Callback function did not return an object');
+  }
+  if (process.env.NODE_ENV === 'development') {
+    for (const name of Object.keys(usables)) {
+      if (!(name in asyncProps)) {
+        console.warn(`The prop "${name}" is given a usability criteria but is absent from the object returned`);
+      }
+    }
+  }
 }
 
 export function findUsableProps(fn) {
