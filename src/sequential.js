@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
-import { IntermittentIterator, Timeout, Interruption, Abort } from './iterator.js';
+import { IntermittentIterator, Timeout, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
-import { isAbortError } from './utils.js';
+import { Abort, isAbortError } from './utils.js';
 
 export function useSequential(cb, deps) {
   return useMemo(() => sequential(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps

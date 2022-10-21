@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useState, startTransition } from 'react';
-import { IntermittentIterator, Interruption, Timeout, Abort } from './iterator.js';
+import { IntermittentIterator, Interruption, Timeout } from './iterator.js';
 import { EventManager } from './event-manager.js';
+import { Abort } from './utils.js';
 
 export function useSequentialState(cb, deps) {
   return useFunctionState(sequentialState, cb, deps);

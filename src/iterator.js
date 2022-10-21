@@ -1,3 +1,5 @@
+import { Abort } from './utils.js';
+
 let delayMultiplier = 1;
 let delayLimit = Infinity;
 
@@ -143,4 +145,3 @@ export class IntermittentIterator {
 
 export class Interruption extends Error {}
 export class Timeout extends Error {}
-export class Abort extends Error {}

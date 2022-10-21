@@ -3,6 +3,7 @@ import { expect } from 'chai';
 import {
   delay,
   preload,
+  Abort,
 } from '../index.js';
 import {
   isAbortError,
@@ -13,6 +14,24 @@ describe('#delay()', function() {
     const promise = delay(20);
     expect(promise).to.be.a('promise');
     await promise;
+  })
+  it('should resolve to specified value after a delay', async function() {
+    const promise = delay(20, { value: 5 });
+    expect(promise).to.be.a('promise');
+    const value = await promise;
+    expect(value).to.equal(5);
+  })
+  it('should fail with Abort when abort controller fires', async function() {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    let error;
+    try {
+      setTimeout(() => abortController.abort(), 10);
+      await delay(5000, { signal });
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.instanceOf(Abort);
   })
 })
 

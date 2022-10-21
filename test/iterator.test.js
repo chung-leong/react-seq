@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { delay } from '../index.js';
+import { delay, Abort } from '../index.js';
 
 import {
   extendDeferment,
@@ -7,7 +7,6 @@ import {
   IntermittentIterator,
   Interruption,
   Timeout,
-  Abort,
 } from '../src/iterator.js';
 
 describe('#extendDeferment()', function() {

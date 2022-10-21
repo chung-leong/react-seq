@@ -1,4 +1,4 @@
-import { Abort } from './iterator.js';
+import { Abort } from './utils.js';
 
 export class EventManager {
   constructor(options) {

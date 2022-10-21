@@ -19,7 +19,6 @@ export {
 export {
   extendDeferment,
   limitDeferment,
-  Abort,
 } from './src/iterator.js';
 export {
   important,
@@ -27,6 +26,7 @@ export {
   throwing,
 } from './src/event-manager.js';
 export {
+  Abort,
   delay,
   preload,
 } from './src/utils.js';
