@@ -8,6 +8,7 @@ import {
 import {
   important,
   persistent,
+  throwing,
 } from '../index.js';
 
 describe('#EventManager', function() {
@@ -155,6 +156,39 @@ describe('#EventManager', function() {
     const value2 = await eventual.click.or(delay(10));
     expect(value2).to.equal('Turkey');
     const value3 = await eventual.click;
+  })
+  it('should throw value marked by throwing()', async function() {
+    const { on, eventual, reject } = new EventManager({});
+    const handler1 = on.click;
+    const handler2 = on.click.apply(throwing);
+    setTimeout(() => handler1(new Error), 10);
+    const value1 = await eventual.click;
+    expect(value1).to.be.instanceOf(Error);
+    handler2(new Error('Hello world'));
+    let error1;
+    try {
+      await eventual.click;
+    } catch (err) {
+      error1 = err;
+    }
+    expect(error1).to.be.instanceOf(Error);
+    handler2('Hello world!!!');
+    let error2;
+    try {
+      await eventual.click;
+    } catch (err) {
+      error2 = err;
+    }
+    expect(error2).to.be.instanceOf(Error);
+    expect(error2.message).to.equal('Hello world!!!');
+    handler2({ type: 'error', error: new Error('Hello')});
+    let error3;
+    try {
+      await eventual.click;
+    } catch (err) {
+      error3 = err;
+    }
+    expect(error3).to.be.instanceOf(Error);
   })
   it('should force creation of new promises when after a regular handler is called', async function() {
     const { on, eventual, reject } = new EventManager({});

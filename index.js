@@ -24,6 +24,7 @@ export {
 export {
   important,
   persistent,
+  throwing,
 } from './src/event-manager.js';
 export {
   delay,

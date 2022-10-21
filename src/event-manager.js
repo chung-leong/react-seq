@@ -172,29 +172,36 @@ export class EventManager {
 
   triggerFulfillment(name, value) {
     const { promises, resolves, rejects, types, warning } = this;
-    let type;
-    if (value instanceof ImportantValue) {
-      type = 'important';
-      value = value.value;
-    } else if (value instanceof PersistentValue) {
-      type = 'persistent';
-      value = value.value;
+    let important = false, persistent = false, rejecting = false;
+    for (;;) {
+      if (value instanceof ImportantValue) {
+        important = true;
+        value = value.value;
+      } else if (value instanceof PersistentValue) {
+        persistent = true;
+        value = value.value;
+      } else if (value instanceof ThrowableValue) {
+        rejecting = true;
+        important = true;
+        value = value.value;
+      } else {
+        break;
+      }
     }
-    const error = getError(value);
-    const fn = (error) ? rejects[name] : resolves[name];
+    const fn = (rejecting) ? rejects[name] : resolves[name];
     if (fn) {
       fn(value);
     }
     let handled = !!fn;
-    if (type === 'persistent' || (type === 'important' && !handled)) {
+    if (persistent || (important && !handled)) {
       if (!handled) {
         // allow the value to be picked up later
-        const promise = (error) ? Promise.reject(error) : Promise.resolve(value);
+        const promise = (rejecting) ? Promise.reject(value) : Promise.resolve(value);
         this.enablePromiseMerge(promise, 'or', 'and');
         promises[name] = promise;
         handled = true;
       }
-      types[name] = type;
+      types[name] = (persistent) ? 'persistent' : 'important';
     } else {
       // remove the promise once it is fulfilled or rejected so a new one will be created later
       delete promises[name];
@@ -231,22 +238,16 @@ function throwError() {
   throw new Error('Property is read-only');
 }
 
-function getError(obj) {
-  if (obj instanceof Object) {
-    if (obj instanceof Error) {
-      return obj;
-    } else if (obj.type === 'error' && obj.error instanceof Error) {
-      return obj.error;
-    }
-  }
-}
-
 export function important(value) {
   return new ImportantValue(value);
 }
 
 export function persistent(value) {
   return new PersistentValue(value);
+}
+
+export function throwing(value) {
+  return new ThrowableValue(value);
 }
 
 class ImportantValue {
@@ -258,5 +259,21 @@ class ImportantValue {
 class PersistentValue {
   constructor(value) {
     this.value = value;
+  }
+}
+
+class ThrowableValue {
+  constructor(value) {
+    if (value instanceof Object) {
+      if (value.type === 'error' && 'error' in value) {
+        value = value.error;
+      }
+      if (value instanceof Error) {
+        this.value = value;
+      }
+    }
+    if (!this.error) {
+      this.value = new Error(value);
+    }
   }
 }
