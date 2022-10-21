@@ -88,7 +88,7 @@ export function sequential(cb) {
     let pendingError;
 
     // retrieve initial contents
-    let stop = false, empty = false;
+    let stop = false, empty = false, aborted = false;
     do {
       try {
         const { value, done } = await iterator.next();
@@ -105,13 +105,13 @@ export function sequential(cb) {
             timeoutEl = await timeoutEl();
           }
           pendingContent = (timeoutEl !== undefined) ? timeoutEl : null;
-          stop = true;
-        } if (err instanceof Interruption) {
+          abortController.abort();
+        } else if (err instanceof Interruption) {
           // we're done here, as pendingContent must contain something
           // since Timeout gets thrown first, breaking this loop
           stop = true;
         } else if (err instanceof Abort) {
-          stop = true;
+          stop = aborted = true;
         } else if (isFetchAbort(err)) {
           // quietly ignore error
           stop = true;
@@ -128,13 +128,15 @@ export function sequential(cb) {
     let currentContent = pendingContent;
     let currentError;
     let redrawComponent;
+    debugger;
 
     // retrieve the remaining items from the generator unless an error was encountered
     // or it's empty already
-    if (!empty && !pendingError) {
+    if (!empty && !pendingError && !aborted) {
       retrieveRemaining();
     } else {
-      await iterator.return();
+      // don't wait for return()
+      iterator.return().catch(err => console.error(err));
     }
     fallbackUnmountExpected = true;
     return { default: Sequence };
@@ -209,7 +211,7 @@ export function sequential(cb) {
         }
       } while (!stop);
       updateContent(true);
-      await iterator.return();
+      await iterator.return().catch(err => console.error(err));
     }
   });
 

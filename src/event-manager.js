@@ -16,6 +16,8 @@ export class EventManager {
     this.resolves = {};
     // reject functions of promises
     this.rejects = {};
+    // controls handling of certain promises
+    this.types = {};
     // promise that external promises will race against
     this.abortPromise = null;
     // rejection function of promise above
@@ -44,12 +46,21 @@ export class EventManager {
         const value = (args.length < 2) ? args[0] : args[1];
         return this.getValueHandler(name, valueHandlers, value);
       };
+      const applyFn = fn.apply;
+      const filterHandlers = { map: null };
+      fn.apply = (...args) => {
+        if (args.length !== 1 || typeof(args[0]) !== 'function') {
+          return applyFn.call(fn, ...args);
+        } else {
+          return this.getApplyHandler(name, filterHandlers, args[0]);
+        }
+      };
     }
     return handler;
   }
 
   getPromise(name) {
-    const { promises, resolves, rejects } = this;
+    const { promises, resolves, rejects, types } = this;
     let promise = promises[name];
     if (!promise) {
       promises[name] = promise = new Promise((resolve, reject) => {
@@ -58,9 +69,14 @@ export class EventManager {
       });
       // allow multiple promises to be chained together
       // promise from an 'or' chain fulfills when the quickest one fulfills
-      promise.or = this.enablePromiseMerge(promise, 'or');
       // promise from an 'add' chain fulfills when all promises do
-      promise.and = this.enablePromiseMerge(promise, 'and');
+      this.enablePromiseMerge(promise, 'or', 'and');
+    } else {
+      // an important value has just been picked up
+      if (types[name] === 'important') {
+        delete promises[name];
+        delete types[name];
+      }
     }
     return promise;
   }
@@ -71,19 +87,20 @@ export class EventManager {
       this.abortPromise = new Promise((_, reject) => this.abortReject = reject);
     }
     const wrapped = Promise.race([ promise, this.abortPromise ]);
-    wrapped.or = this.enablePromiseMerge(wrapped, 'or');
-    wrapped.and = this.enablePromiseMerge(wrapped, 'and');
+    this.enablePromiseMerge(wrapped, 'or', 'and');
     return wrapped;
   }
 
-  enablePromiseMerge(parent, op) {
-    // the op word itself is callable
-    const fn = (promise) => {
-      const mergedPromise = mergePromises([ parent, promise ], op);
-      mergedPromise[op] = this.enablePromiseMerge(mergedPromise, op);
-      return mergedPromise;
-    };
-    return new Proxy(fn, { get: (fn, name) => this.getMergedPromise(parent, name, op), set: throwError });
+  enablePromiseMerge(parent, ...ops) {
+    ops.forEach(op => {
+      // the op word itself is callable
+      const fn = (promise) => {
+        const mergedPromise = mergePromises([ parent, promise ], op);
+        this.enablePromiseMerge(mergedPromise, op);
+        return mergedPromise;
+      };
+      parent[op] = new Proxy(fn, { get: (fn, name) => this.getMergedPromise(parent, name, op), set: throwError });
+    });
   }
 
   getMergedPromise(parent, name, op) {
@@ -93,7 +110,7 @@ export class EventManager {
     // merge it with the ones earlier in the chain
     const mergedPromise = mergePromises([ parent, promise ], op);
     // allow further chaining (but only of the same operation)
-    mergedPromise[op] = this.enablePromiseMerge(mergedPromise, op);
+    this.enablePromiseMerge(mergedPromise, op);
     return mergedPromise;
   }
 
@@ -141,18 +158,52 @@ export class EventManager {
     return handler;
   }
 
+  getApplyHandler(name, handlers, fn)  {
+    if (!handlers.map) {
+      handlers.map = new WeakMap();
+    }
+    let handler = handlers.map.get(fn);
+    if (!handler) {
+      handler = (value) => this.triggerFulfillment(name, fn(value));
+      handlers.map.set(fn, handler);
+    }
+    return handler;
+  }
+
   triggerFulfillment(name, value) {
-    const { promises, resolves, rejects, warning } = this;
+    const { promises, resolves, rejects, types, warning } = this;
+    let type;
+    if (value instanceof ImportantValue) {
+      type = 'important';
+      value = value.value;
+    } else if (value instanceof PersistentValue) {
+      type = 'persistent';
+      value = value.value;
+    }
     const error = getError(value);
     const fn = (error) ? rejects[name] : resolves[name];
     if (fn) {
       fn(value);
+    }
+    let handled = !!fn;
+    if (type === 'persistent' || (type === 'important' && !handled)) {
+      if (!handled) {
+        // allow the value to be picked up later
+        const promise = (error) ? Promise.reject(error) : Promise.resolve(value);
+        this.enablePromiseMerge(promise, 'or', 'and');
+        promises[name] = promise;
+        handled = true;
+      }
+      types[name] = type;
+    } else {
       // remove the promise once it is fulfilled or rejected so a new one will be created later
       delete promises[name];
-      delete resolves[name];
-      delete rejects[name];
+      delete types[name];
     }
-    if (!fn && warning) {
+    delete resolves[name];
+    delete rejects[name];
+
+    if (!handled && warning) {
       console.warn(`No promise was fulfilled by call to handler created by ${name}()`);
     }
   }
@@ -187,5 +238,25 @@ function getError(obj) {
     } else if (obj.type === 'error' && obj.error instanceof Error) {
       return obj.error;
     }
+  }
+}
+
+export function important(value) {
+  return new ImportantValue(value);
+}
+
+export function persistent(value) {
+  return new PersistentValue(value);
+}
+
+class ImportantValue {
+  constructor(value) {
+    this.value = value;
+  }
+}
+
+class PersistentValue {
+  constructor(value) {
+    this.value = value;
   }
 }

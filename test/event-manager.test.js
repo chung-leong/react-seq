@@ -5,6 +5,10 @@ import React from 'react';
 import {
   EventManager,
 } from '../src/event-manager.js';
+import {
+  important,
+  persistent,
+} from '../index.js';
 
 describe('#EventManager', function() {
   it('should return two proxies, one yielding functions, the other promises', function() {
@@ -115,6 +119,64 @@ describe('#EventManager', function() {
     const value4 = await Promise.race([ promise2, delay(20) ]);
     expect(value4).to.eql([ 8, undefined ]);
   })
+  it('should create filtering handler when apply() is used', async function() {
+    const { on, eventual, reject } = new EventManager({});
+    const filter = a => `[${a}]`;
+    const handler = on.click.apply(filter);
+    expect(handler).to.equal(on.click.apply(filter));
+    setTimeout(() => handler('hello'), 10);
+    const value = await eventual.click;
+    expect(value).to.equal('[hello]');
+  })
+  it('should allow value marked by important() to be retrieved later', async function() {
+    const { on, eventual, reject } = new EventManager({});
+    const handler = on.click.apply(important);
+    handler('Turkey');
+    const value1 = await eventual.click;
+    expect(value1).to.equal('Turkey');
+    const value2 = await eventual.click.or(delay(10));
+    expect(value2).to.equal(undefined);
+  })
+  it('should allow value marked by persistent() to be retrieved again and again', async function() {
+    const { on, eventual, reject } = new EventManager({});
+    const handler = on.click.apply(persistent);
+    handler('Turkey');
+    const value1 = await eventual.click;
+    expect(value1).to.equal('Turkey');
+    const value2 = await eventual.click.or(delay(10));
+    expect(value2).to.equal('Turkey');
+    const value3 = await eventual.click;
+  })
+  it('should force creation of new promises when after a regular handler is called', async function() {
+    const { on, eventual, reject } = new EventManager({});
+    const handler1 = on.click.apply(persistent);
+    const handler2 = on.click;
+    handler1('Turkey');
+    const value1 = await eventual.click;
+    expect(value1).to.equal('Turkey');
+    const value2 = await eventual.click.or(delay(10));
+    expect(value2).to.equal('Turkey');
+    const value3 = await eventual.click;
+    handler2('Weasel');
+    const value4 = await eventual.click.or(delay(10));
+    expect(value4).to.be.undefined;
+  })
+  it('should force creation of new promises when after an important handler is called', async function() {
+    const { on, eventual, reject } = new EventManager({});
+    const handler1 = on.click.apply(persistent);
+    const handler2 = on.click.apply(important);
+    handler1('Turkey');
+    const value1 = await eventual.click;
+    expect(value1).to.equal('Turkey');
+    const value2 = await eventual.click.or(delay(10));
+    expect(value2).to.equal('Turkey');
+    const value3 = await eventual.click;
+    handler2('Weasel');
+    const value4 = await eventual.click.or(delay(10));
+    expect(value4).to.equal('Weasel');
+    const value5 = await eventual.click.or(delay(10));
+    expect(value5).to.be.undefined;
+  })
   it('should abort successfully when external promise has been wrapped with eventual', async function() {
     const abortController = new AbortController();
     const { signal } = abortController;
@@ -133,7 +195,6 @@ describe('#EventManager', function() {
     const abortController = new AbortController();
     const { signal } = abortController;
     const { on, eventual, reject } = new EventManager({ signal });
-    debugger;
     setTimeout(() => abortController.abort(), 10);
     let error;
     try {

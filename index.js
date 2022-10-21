@@ -22,6 +22,10 @@ export {
   Abort,
 } from './src/iterator.js';
 export {
+  important,
+  persistent,
+} from './src/event-manager.js';
+export {
   delay,
   preload,
 } from './src/utils.js';

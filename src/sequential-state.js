@@ -117,7 +117,7 @@ export function sequentialState(cb, setState, setError) {
             timeoutState = await timeoutState();
           }
           pendingState = timeoutState;
-          stop = true;
+          abortController.abort();
         } else if (err instanceof Interruption) {
           updateState(false);
         } else if (err instanceof Abort) {
@@ -131,6 +131,6 @@ export function sequentialState(cb, setState, setError) {
     if (!aborted) {
       updateState(true);
     }
-    await iterator.return();
+    await iterator.return().catch(err => console.error(err));
   }
 }

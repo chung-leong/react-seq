@@ -191,6 +191,48 @@ describe('#sequential()', function() {
     expect(cats).to.eql([]);
     expect(finalizations).to.eql([ 'Rocky' ]);
   })
+  it('should render timeout content when time limit is breached', async function() {
+    const el = sequential(async function*({ defer, fallback, timeout }) {
+      defer(30, 30);
+      fallback('Cow');
+      timeout(async () => 'Tortoise');
+      await delay(70);
+      yield 'Pig';
+      await delay(30);
+      yield 'Rocky';
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('Cow');
+    await delay(50);
+    expect(testRenderer.toJSON()).to.equal('Tortoise');
+  })
+  it('should terminate iteration after reaching time limit', async function() {
+    const cats = [];
+    const finalizations = [];
+    const el = sequential(async function*({ defer, fallback, timeout }) {
+      defer(30, 30);
+      fallback('Cow');
+      timeout(async () => 'Tortoise');
+      try {
+        await delay(70);
+        yield 'Pig';
+        await delay(30);
+        yield 'Rocky';
+        cats.push('Rocky');
+      } finally {
+        finalizations.push('Rocky');
+      }
+    });
+    const testRenderer = create(el);
+    expect(testRenderer.toJSON()).to.equal('Cow');
+    await delay(50);
+    act(() => testRenderer.update(el))
+    expect(testRenderer.toJSON()).to.equal('Tortoise');
+    expect(cats).to.eql([]);
+    // need to wait for delay(70) to end, since that's not affected by abort 
+    await delay(40);
+    expect(finalizations).to.eql([ 'Rocky' ]);
+  })
   it('should allow creation of a suspending component', async function() {
     const el = sequential(async function*({ suspend }) {
       suspend();
