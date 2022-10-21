@@ -21,3 +21,10 @@ function Widget({ id }) {
 
 * `delay` - `<number>`
 * `limit` - `<number>`
+
+## Providers
+
+* [useSequential](useSequential.md)
+* [useProgressive](useProgressive.md)
+* [useSequentialState](useSequentialState.md)
+* [useProgressiveState](useProgressiveState.md)

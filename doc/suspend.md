@@ -10,7 +10,6 @@ function Widget({ id }) {
     suspend();
     /* ... */
   }, [ id ]);
-  const elementB =
   return (
     <Suspense fallback={<Spinner/>}>
       <DialogBox>{form}</DialogBox>
@@ -19,6 +18,25 @@ function Widget({ id }) {
 }
 ```
 
+```js
+import DialogBox from './dialogbox.js';
+
+function Widget({ id }) {
+  const form = useSequential(async function*({ suspend }) {
+    suspend(`widget-${id}`);
+    /* ... */
+  }, [ id ]);
+  return (
+    <DialogBox>{form}</DialogBox>
+  );
+}
+```
+
 ## Parameters
 
-* `key` - `<String>`
+* `key` - `<string>`
+
+## Providers
+
+* [useSequential](useSequential.md)
+* [useProgressive](useProgressive.md)

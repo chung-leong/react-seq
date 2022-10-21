@@ -8,3 +8,7 @@
 ## Parameters
 
 * `type` - `<Function>` or `<Class>` or `<Module>`
+
+## Providers
+
+* [useProgressive](useProgressive.md)

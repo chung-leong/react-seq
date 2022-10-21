@@ -8,3 +8,7 @@
 ## Parameters
 
 * `fn` - `<Function>`
+
+## Providers
+
+* [useProgressive](useProgressive.md)

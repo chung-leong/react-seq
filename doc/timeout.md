@@ -21,3 +21,10 @@ function Widget({ id }) {
 ## Parameters
 
 * `element` - `<Element>` or `<AsyncFunction>`
+
+## Providers
+
+* [useSequential](useSequential.md)
+* [useProgressive](useProgressive.md)
+* [useSequentialState](useSequentialState.md)
+* [useProgressiveState](useProgressiveState.md)
