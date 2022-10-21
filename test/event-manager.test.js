@@ -128,6 +128,15 @@ describe('#EventManager', function() {
     const value = await eventual.click;
     expect(value).to.equal('[hello]');
   })
+  it('should behave as expected apply() is called in the normal way', async function() {
+    const { on, eventual, reject } = new EventManager({});
+    setTimeout(() => on.click.apply(), 10);
+    const value1 = await eventual.click;
+    expect(value1).to.be.undefined;
+    setTimeout(() => on.click.apply(null, [ 'duck' ]), 10);
+    const value2 = await eventual.click;
+    expect(value2).to.be.equal('duck');
+  })
   it('should allow value marked by important() to be retrieved later', async function() {
     const { on, eventual, reject } = new EventManager({});
     const handler = on.click.apply(important);
