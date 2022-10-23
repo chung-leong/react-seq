@@ -6,7 +6,7 @@ import List from './List.js';
 export default function FilmList() {
   return useProgressive(async ({ type, defer, usable, suspend }) => {
     type(FilmListUI);
-    defer(100);
+    defer(200);
     usable({ films: 20 });
     suspend(`film-list`);
     return { films: fetchList('films/') };

@@ -3,11 +3,11 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Character({ id }) {
-  return useProgressive(async ({ type, defer, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(CharacterUI);
-    defer(100);
+    defer(200);
+    usable({ person: 0, homeworld: 0, films: 0, species: 0, vehicles: 0, starships: 0 });
     suspend(`character-${id}`);
-
     const person = await fetchOne(`people/${id}`, { signal });
     return {
       person,
@@ -20,7 +20,7 @@ export default function Character({ id }) {
   }, [ id ]);
 }
 
-function CharacterUI({ person, homeworld = null, films = [], species = [], vehicles = [], starships = [] }) {
+function CharacterUI({ person, homeworld, films, species, vehicles, starships }) {
   return (
     <div>
       <h1>{person.name}</h1>

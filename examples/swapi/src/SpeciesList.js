@@ -6,7 +6,7 @@ import List from './List.js';
 export default function SpeciesList() {
   return useProgressive(async ({ type, defer, usable, suspend }) => {
     type(SpeciesListUI);
-    defer(100);
+    defer(200);
     usable({ species: 20 });
     suspend(`species-list`);
     return { species: fetchList('species/') };

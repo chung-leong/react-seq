@@ -6,7 +6,7 @@ import List from './List.js';
 export default function VehicleList() {
   return useProgressive(async ({ type, defer, usable, suspend }) => {
     type(VehicleListUI);
-    defer(100);
+    defer(200);
     usable({ vehicles: 30 });
     suspend(`vehicle-list`);
     return { vehicles: fetchList('vehicles/') };

@@ -6,7 +6,7 @@ import List from './List.js';
 export default function StarshipList() {
   return useProgressive(async ({ type, defer, usable, suspend }) => {
     type(StarshipListUI);
-    defer(100);
+    defer(200);
     usable({ films: 20 });
     suspend(`starship-list`);
     return { films: fetchList('starships/') };

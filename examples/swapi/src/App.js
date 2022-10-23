@@ -1,42 +1,61 @@
 import './css/App.css';
 import { Suspense, lazy } from 'react';
-import { useRoutes } from '@patched/hookrouter';
 import NavBar from './NavBar.js';
 import Loading from './Loading.js';
-import ErrorBoundary from './ErrorBoundary.js';
 import Welcome from './Welcome.js';
+import { useRouter, RouteError } from './shift-router.js';
 
-const routes = {
-    '/': () => [ Welcome ],
-    '/test/': () => [ lazy(() => import('./Test.js')) ],
-    '/people/?': () => [ lazy(() => import('./CharacterList.js')) ],
-    '/people/:id/?': (props) => [ lazy(() => import('./Character.js')), props ],
-    '/films/?': () => [ lazy(() => import('./FilmList.js')) ],
-    '/films/:id/?': (props) => [ lazy(() => import('./Film.js')), props ],
-    '/planets/?': () => [ lazy(() => import('./PlanetList.js')) ],
-    '/planets/:id/?': (props) => [ lazy(() => import('./Planet.js')), props ],
-    '/species/?': () => [ lazy(() => import('./SpeciesList.js')) ],
-    '/species/:id/?': (props) => [ lazy(() => import('./Species.js')), props ],
-    '/starships/?': () => [ lazy(() => import('./StarshipList.js')) ],
-    '/starships/:id/?': (props) => [ lazy(() => import('./Starship.js')), props ],
-    '/vehicles/?': () => [ lazy(() => import('./VehicleList.js')) ],
-    '/vehicles/:id/?': (props) => [ lazy(() => import('./Vehicle.js')), props ],
-    '/*': () => [ lazy(() => import('./NotFound.js')) ],
-};
+const Character = lazy(() => import('./Character.js'));
+const CharacterList = lazy(() => import('./CharacterList.js'));
+const Film = lazy(() => import('./Film.js'));
+const FilmList = lazy(() => import('./FilmList.js'));
+const Planet = lazy(() => import('./Planet.js'));
+const PlanetList = lazy(() => import('./PlanetList.js'));
+const Species = lazy(() => import('./Species.js'));
+const SpeciesList = lazy(() => import('./SpeciesList.js'));
+const Starship = lazy(() => import('./Starship.js'));
+const StarshipList = lazy(() => import('./StarshipList.js'));
+const Vehicle = lazy(() => import('./Vehicle.js'));
+const VehicleList = lazy(() => import('./VehicleList.js'));
+const ErrorDisplay = lazy(() => import('./ErrorDisplay'));
 
 export default function App() {
-  const [ Component, props ] = useRoutes(routes);
+  const { shift, Router, url } = useRouter()
   return (
     <div className="App">
       <div>
-        <NavBar/>
-        <ErrorBoundary>
-          <div className="contents">
-            <Suspense fallback={<Loading/>}>
-              <Component {...props}/>
+        <NavBar />
+        <div className="contents">
+          <Router>
+            <Suspense fallback={<Loading />}>
+            {(() => {
+              try {
+                const section = shift(), id = shift(Number, { empty: true });
+                switch (section) {
+                  case '':
+                    return <Welcome />;
+                  case 'people':
+                    return (id !== undefined) ? <Character id={id} /> : <CharacterList />
+                  case 'films':
+                    return (id !== undefined) ? <Film id={id} /> : <FilmList />
+                  case 'planets':
+                    return (id !== undefined) ? <Planet id={id} /> : <PlanetList />
+                  case 'species':
+                    return (id !== undefined) ? <Species id={id} /> : <SpeciesList />
+                  case 'starships':
+                    return (id !== undefined) ? <Starship id={id} /> : <StarshipList />
+                  case 'vehicles':
+                    return (id !== undefined) ? <Vehicle id={id} /> : <VehicleList />
+                  default:
+                    throw new RouteError(url);
+                }
+              } catch (err) {
+                return <ErrorDisplay error={err} />
+              }
+            })()}
             </Suspense>
-          </div>
-        </ErrorBoundary>
+          </Router>
+        </div>
       </div>
     </div>
   );

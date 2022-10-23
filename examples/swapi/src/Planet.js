@@ -3,9 +3,10 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Planet({ id }) {
-  return useProgressive(async ({ type, defer, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(PlanetUI);
-    defer(100);
+    defer(200);
+    usable({ films: 0, films: 0, residents: 0 });
     suspend(`planet-${id}`);
     const planet = await fetchOne(`planets/${id}`, { signal });
     return {
@@ -16,7 +17,7 @@ export default function Planet({ id }) {
   }, [ id ]);
 }
 
-function PlanetUI({ planet, films = [], residents = [] }) {
+function PlanetUI({ planet, films, residents }) {
   return (
     <div>
       <h1>{planet.name}</h1>

@@ -3,9 +3,10 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Film({ id }) {
-  return useProgressive(async ({ type, defer, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(FilmUI);
-    defer(100);
+    defer(200);
+    usable({ characters: 0, species: 0, planets: 0, vehicles: 0, starships: 0 });
     suspend(`film-${id}`);
     const film = await fetchOne(`films/${id}`, { signal });
     return {
@@ -19,7 +20,7 @@ export default function Film({ id }) {
   }, [ id ]);
 }
 
-function FilmUI({ film, characters = [], species = [], planets = [], vehicles = [], starships = [] }) {
+function FilmUI({ film, characters, species, planets, vehicles, starships }) {
   return (
     <div>
       <h1>{film.title}</h1>

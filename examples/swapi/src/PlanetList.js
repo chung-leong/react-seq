@@ -6,7 +6,7 @@ import List from './List.js';
 export default function PlanetList() {
   return useProgressive(async ({ type, defer, usable, suspend }) => {
     type(PlanetListUI);
-    defer(100);
+    defer(200);
     usable({ planets: 20 });
     suspend(`planet-list`);
     return { planets: fetchList('planets/') };
