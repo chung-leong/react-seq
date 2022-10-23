@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useState, startTransition } from 'react';
 import { IntermittentIterator, Interruption, Timeout } from './iterator.js';
 import { EventManager } from './event-manager.js';
-import { Abort } from './utils.js';
+import { Abort, isAbortError } from './utils.js';
 
 export function useSequentialState(cb, deps) {
   return useFunctionState(sequentialState, cb, deps);
@@ -123,7 +123,10 @@ export function sequentialState(cb, setState, setError) {
           updateState(false);
         } else if (err instanceof Abort) {
           stop = aborted = true;
-        } else if (err.name !== 'AbortError') {
+        } else if (isAbortError(err)) {
+          // quietly ignore error
+          stop = true;
+        } else {
           throwError(err);
           stop = true;
         }

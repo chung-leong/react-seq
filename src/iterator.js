@@ -56,12 +56,9 @@ export class IntermittentIterator {
   }
 
   throw(err) {
-    if (!this.reject) {
-      this.tick = new Promise((_, reject) => {
-        this.reject = reject;
-      });
+    if (this.reject) {
+      this.reject(err);
     }
-    this.reject(err);
   }
 
   async return() {

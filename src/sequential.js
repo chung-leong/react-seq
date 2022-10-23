@@ -115,12 +115,10 @@ export function sequential(cb) {
         } else if (isAbortError(err)) {
           // quietly ignore error
           stop = true;
-        } else if (pendingContent !== undefined) {
-          // we have retrieved some content--draw it first then throw the error inside <Sequence/>
+        } else {
+          // resolve the promise and throw the error from inside the component
           pendingError = err;
           stop = true;
-          // throw the error now so "loading" of lazy component fails
-          throw err;
         }
       }
     } while (!stop);
@@ -128,7 +126,6 @@ export function sequential(cb) {
     let currentContent = pendingContent;
     let currentError;
     let redrawComponent;
-    debugger;
 
     // retrieve the remaining items from the generator unless an error was encountered
     // or it's empty already
