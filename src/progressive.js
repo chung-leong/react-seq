@@ -219,7 +219,7 @@ export async function* generateProps(asyncProps, usables) {
 
 export async function* generateNext(source, current = undefined, sent = false) {
   function add(next) {
-    if (current) {
+    if (current instanceof Array) {
       if (sent) {
         // create a new array as the current one has been sent
         // to the caller already and we don't want to change it
