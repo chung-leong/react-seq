@@ -9,9 +9,6 @@ import {
   progressive,
   useProgressive,
 } from '../index.js';
-import {
-  findUsableProps,
-} from '../src/progressive.js';
 
 function p(value) {
   return Promise.resolve(value);
@@ -368,41 +365,6 @@ describe('#generateProps()', function() {
 
 })
 
-describe('#findUsableProps()', function() {
-  it('should find props with default values', function() {
-    function TestComponent({ a = null, b = [], c, d, e  = {} }) {
-    }
-    const props = findUsableProps(TestComponent);
-    expect(props).to.eql({ a: true, b: true, e: true });
-  });
-  it('should handle arrow function', function() {
-    const TestComponent = ({ a = null, b = [], c, d, e  = {} }) => {};
-    const props = findUsableProps(TestComponent);
-    expect(props).to.eql({ a: true, b: true, e: true });
-  });
-  it('should return empty object when deconstruction is not employed', function() {
-    function TestComponent(props) {
-      let a = null, b = [], c, d, e  = {};
-    }
-    const props = findUsableProps(TestComponent);
-    expect(props).to.eql({});
-  });
-
-  it('should extract be able to extract props from transpiled function', function() {
-    function TestComponent(_ref3) {
-      let {
-        a = null,
-        b = [],
-        c,
-        d,
-        e = {}
-      } = _ref3;
-    }
-    const props = findUsableProps(TestComponent);
-    expect(props).to.eql({ a: true, b: true, e: true });
-  })
-});
-
 describe('#progressive', function() {
   it('should return a component that renders progressively', async function () {
     function TestComponent({ animals }) {
@@ -490,33 +452,6 @@ describe('#progressive', function() {
     await delay(20);
     expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
-  it('should infer usability from defaults', async function () {
-    function TestComponent({ animals = [] }) {
-      return animals.join(', ');
-    }
-
-    async function* generate() {
-      yield 'Pig';
-      await delay(20);
-      yield 'Donkey';
-      await delay(20);
-      yield 'Chicken';
-    }
-
-    const el = progressive(({ fallback, type }) => {
-      fallback('None');
-      type(TestComponent);
-      return { animals: generate() };
-    });
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(25);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
-  })
   it('should trigger error boundary when a generator throws', async function () {
     function TestComponent({ animals = [] }) {
       return animals.join(', ');
@@ -553,9 +488,10 @@ describe('#progressive', function() {
     const errorFn = console.error;
     try {
       console.error = () => {};
-      const el = progressive(({ fallback, type }) => {
+      const el = progressive(({ fallback, usable, type }) => {
         fallback('None');
         type(TestComponent);
+        usable({ animals: true });
         return { animals: generate() };
       });
       const testRenderer = create(createElement(ErrorBoundary, {}, el));
@@ -583,9 +519,10 @@ describe('#progressive', function() {
       return createElement('h1', {}, animals.join(', '));
     }
 
-    const el = progressive(({ fallback, type }) => {
+    const el = progressive(({ fallback, usable, type }) => {
       fallback('None');
       type({ default: Title });
+      usable({ animals: true });
       return { animals: generate() };
     });
     const testRenderer = create(el);
@@ -606,8 +543,9 @@ describe('#progressive', function() {
       yield 'Chicken';
     }
 
-    const el = progressive(({ fallback, element }) => {
+    const el = progressive(({ fallback, usable, element }) => {
       fallback('None');
+      usable({ animals: true });
       element(({ animals = [] }) => createElement('span', {}, animals.join(', ')));
       return { animals: generate() };
     });
@@ -631,9 +569,10 @@ describe('#progressive', function() {
       yield delay(40).then(() => 'Chicken');
     }
 
-    const el = progressive(({ fallback, type }) => {
+    const el = progressive(({ fallback, usable, type }) => {
       fallback('None');
       type(TestComponent);
+      usable({ animals: true });
       return { animals: generate() };
     });
     const testRenderer = create(el);

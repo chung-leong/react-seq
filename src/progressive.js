@@ -27,7 +27,7 @@ export function progressive(cb) {
       elementFn = fn;
     }
 
-    let usables;
+    let usables = {};
     function usable(obj) {
       if (!(obj instanceof Object)) {
         throw new Error('usable() expects an object');
@@ -39,9 +39,6 @@ export function progressive(cb) {
     checkAsyncProps(asyncProps, usables);
     if (!elementType && !elementFn) {
       throw new Error('Callback function did not call type() to set the element type');
-    }
-    if (!usables) {
-      usables = findUsableProps(elementFn || elementType);
     }
     if (!elementFn) {
       elementFn = (props) => createElement(elementType, props);
@@ -63,44 +60,6 @@ export function checkAsyncProps(asyncProps, usables) {
       }
     }
   }
-}
-
-export function findUsableProps(fn) {
-  const props = {};
-  if (fn instanceof Function) {
-    // look for parameters
-    const s = fn.toString();
-    let p = s.substring(s.indexOf('(') + 1, s.indexOf(')'));
-    // remove comments
-    p = p.replace(/\/\*[\s\S]*?\*\//g, '');
-    p = p.replace(/\/\/(.)*/g, '');
-    // remove whitespaces
-    p = p.replace(/\s+/g, '');
-    let d;
-    if (p.charAt(0) === '{' && p.charAt(p.length - 1) === '}') {
-      // destructuring props
-      d = p.substr(1, p.length - 2);
-    } else if (/^\w+$/.test(p)) {
-      // maybe the argument destructuring got transpiled into code in the function body
-      // get the first line of code see if it matches known pattern
-      let l = s.substring(s.indexOf('{') + 1, s.indexOf(';'));
-      // remove whitespaces
-      l = l.replace(/\s+/g, '');
-      if (l.startsWith('let{') && l.endsWith('}=' + p)) {
-        d = l.substr(4, l.length - 4 - 2 - p.length);
-      }
-    }
-    if (d) {
-      for (const param of d.split(',')) {
-        const eq = param.indexOf('=');
-        if (eq !== -1) {
-          const name = param.substr(0, eq);
-          props[name] = true;
-        }
-      }
-    }
-  }
-  return props;
 }
 
 export async function* generateProps(asyncProps, usables) {

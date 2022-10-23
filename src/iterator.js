@@ -56,6 +56,9 @@ export class IntermittentIterator {
   }
 
   throw(err) {
+    if (!this.reject && this.generator) {
+      this.fetch();
+    }
     if (this.reject) {
       this.reject(err);
     }
@@ -128,7 +131,7 @@ export class IntermittentIterator {
         }
       }, err => {});
     }
-    if (!this.tick) {
+    if (!this.tick && this.generator) {
       this.tick = new Promise((_, reject) => {
         this.reject = reject;
       });
