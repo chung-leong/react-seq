@@ -1,9 +1,9 @@
 import './css/App.css';
-import { Suspense, lazy } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
 import NavBar from './NavBar.js';
 import Loading from './Loading.js';
 import Welcome from './Welcome.js';
-import { useRouter, RouteError } from './shift-router.js';
+import ErrorBoundary from './ErrorBoundary.js';
 
 const Character = lazy(() => import('./Character.js'));
 const CharacterList = lazy(() => import('./CharacterList.js'));
@@ -17,44 +17,69 @@ const Starship = lazy(() => import('./Starship.js'));
 const StarshipList = lazy(() => import('./StarshipList.js'));
 const Vehicle = lazy(() => import('./Vehicle.js'));
 const VehicleList = lazy(() => import('./VehicleList.js'));
-const ErrorDisplay = lazy(() => import('./ErrorDisplay'));
+const NotFound = lazy(() => import('./NotFound.js'));
 
 export default function App() {
-  const { shift, Router, url } = useRouter()
+  const [ url, setURL ] = useState(() => new URL(window.location));
+  const parts = useMemo(() => url.pathname.substr(1).split('/'), [ url ]);
+
+  useEffect(() => {
+    const onLinkClick = (evt) => {
+      const { target, button, defaultPrevented } = evt;
+      if (button === 0 && !defaultPrevented) {
+        const link = target.closest('A');
+        if (link && link.tagName === 'A' && link.origin === window.location.origin) {
+          if (!link.target && !link.download) {
+            setURL(new URL(link));
+            evt.preventDefault();
+            evt.stopPropagation();
+          }
+        }
+      }
+    };
+    const onPopState = (evt) => {
+      setURL(new URL(window.location));
+      evt.preventDefault();
+      evt.stopPropagation();
+    };
+    window.addEventListener('click', onLinkClick);
+    window.addEventListener('popstate', onPopState);
+    return () => {
+      window.removeEventListener('click', onLinkClick);
+      window.removeEventListener('popstate', onPopState);
+    };
+  });
+
   return (
     <div className="App">
       <div>
         <NavBar />
         <div className="contents">
-          <Router>
+          <ErrorBoundary>
             <Suspense fallback={<Loading />}>
-            {(() => {
-              try {
-                const section = shift(), id = shift(Number, { empty: true });
+              {(() => {
+                const [ section, id ] = parts;
                 switch (section) {
                   case '':
                     return <Welcome />;
                   case 'people':
-                    return (id !== undefined) ? <Character id={id} /> : <CharacterList />
+                    return (id) ? <Character id={id} /> : <CharacterList />;
                   case 'films':
-                    return (id !== undefined) ? <Film id={id} /> : <FilmList />
+                    return (id) ? <Film id={id} /> : <FilmList />;
                   case 'planets':
-                    return (id !== undefined) ? <Planet id={id} /> : <PlanetList />
+                    return (id) ? <Planet id={id} /> : <PlanetList />;
                   case 'species':
-                    return (id !== undefined) ? <Species id={id} /> : <SpeciesList />
+                    return (id) ? <Species id={id} /> : <SpeciesList />;
                   case 'starships':
-                    return (id !== undefined) ? <Starship id={id} /> : <StarshipList />
+                    return (id) ? <Starship id={id} /> : <StarshipList />;
                   case 'vehicles':
-                    return (id !== undefined) ? <Vehicle id={id} /> : <VehicleList />
+                    return (id) ? <Vehicle id={id} /> : <VehicleList />;
                   default:
-                    throw new RouteError(url);
+                    return <NotFound />;
                 }
-              } catch (err) {
-                return <ErrorDisplay error={err} />
-              }
-            })()}
+              })()}
             </Suspense>
-          </Router>
+          </ErrorBoundary>
         </div>
       </div>
     </div>
