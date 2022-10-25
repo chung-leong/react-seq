@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { createElement, Component } from 'react';
 import { create, act } from 'react-test-renderer';
 import { delay } from '../index.js';
@@ -485,9 +486,8 @@ describe('#progressive', function() {
         return this.props.children;
       }
     }
-    const errorFn = console.error;
+    const stub = sinon.stub(console, 'error');
     try {
-      console.error = () => {};
       const el = progressive(({ fallback, usable, type }) => {
         fallback('None');
         type(TestComponent);
@@ -503,7 +503,7 @@ describe('#progressive', function() {
       expect(testRenderer.toJSON()).to.equal('Error');
       expect(error).to.be.an('error');
     } finally {
-      console.error = errorFn;
+      stub.restore();
     }
   })
   it('should accept a module with default as type', async function() {
@@ -603,9 +603,8 @@ describe('#progressive', function() {
         return this.props.children;
       }
     }
-    const errorFn = console.error;
+    const stub = sinon.stub(console, 'error');
     try {
-      console.error = () => {};
       const el = progressive(() => {
         return {};
       });
@@ -613,7 +612,7 @@ describe('#progressive', function() {
       await delay(50);
       expect(error).to.be.an('error');
     } finally {
-      console.error = errorFn;
+      stub.restore();
     }
   })
   it('should throw if usable is given a non-object', async function() {
@@ -635,9 +634,8 @@ describe('#progressive', function() {
         return this.props.children;
       }
     }
-    const errorFn = console.error;
+    const stub = sinon.stub(console, 'error');
     try {
-      console.error = () => {};
       const el = progressive(({ usable }) => {
         usable('cow', 1);
         return {};
@@ -646,7 +644,7 @@ describe('#progressive', function() {
       await delay(50);
       expect(error).to.be.an('error');
     } finally {
-      console.error = errorFn;
+      stub.restore();
     }
   })
   it('should throw if function returns a non-object', async function() {
@@ -668,9 +666,8 @@ describe('#progressive', function() {
         return this.props.children;
       }
     }
-    const errorFn = console.error;
+    const stub = sinon.stub(console, 'error');
     try {
-      console.error = () => {};
       const el = progressive(({ element }) => {
         element((props) => 'Hello');
         return 123;
@@ -679,7 +676,7 @@ describe('#progressive', function() {
       await delay(50);
       expect(error).to.be.an('error');
     } finally {
-      console.error = errorFn;
+      stub.restore();
     }
   })
 })

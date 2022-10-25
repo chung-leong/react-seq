@@ -9,6 +9,7 @@ import {
   important,
   persistent,
   throwing,
+  Abort,
 } from '../index.js';
 
 describe('#EventManager', function() {
@@ -220,19 +221,19 @@ describe('#EventManager', function() {
     const value5 = await eventual.click.or(delay(10));
     expect(value5).to.be.undefined;
   })
-  it('should abort successfully when external promise has been wrapped with eventual', async function() {
+  it('should abort successfully when external promise has been wrapped with eventual()', async function() {
     const abortController = new AbortController();
     const { signal } = abortController;
     const { on, eventual, reject } = new EventManager({ signal });
-    const dead = new Promise(() => {});
+    const dead = Promise.race([]);
     setTimeout(() => abortController.abort(), 10);
     let error;
     try {
-      await eventual(slow);
+      await eventual(dead);
     } catch (err) {
       error = err;
     }
-    expect(error).to.be.an('error');
+    expect(error).to.be.an('error').that.is.instanceOf(Abort);
   })
   it('should cause all to reject when abort controller signals', async function() {
     const abortController = new AbortController();

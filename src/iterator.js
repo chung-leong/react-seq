@@ -7,7 +7,7 @@ export function extendDeferment(multiplier = 1) {
   delayMultiplier = multiplier;
 }
 
-export function limitDeferment(limit = 1) {
+export function limitDeferment(limit = Infinity) {
   delayLimit = limit;
 }
 

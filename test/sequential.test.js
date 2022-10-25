@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { createElement, Suspense, Component } from 'react';
 import { create, act } from 'react-test-renderer';
 import { renderToPipeableStream } from 'react-dom/server';
@@ -229,7 +230,7 @@ describe('#sequential()', function() {
     act(() => testRenderer.update(el))
     expect(testRenderer.toJSON()).to.equal('Tortoise');
     expect(cats).to.eql([]);
-    // need to wait for delay(70) to end, since that's not affected by abort 
+    // need to wait for delay(70) to end, since that's not affected by abort
     await delay(40);
     expect(finalizations).to.eql([ 'Rocky' ]);
   })
@@ -270,14 +271,13 @@ describe('#sequential()', function() {
       await delay(10);
       yield createElement('div', {}, cat);
     });
-    const errorFn = console.error;
+    const stub = sinon.stub(console, 'error');
     try {
-      console.error = () => {};
       const testRenderer = create(createElement(ErrorBoundary, {}, el));
       await delay(10);
       expect(error).to.be.an('error');
     } finally {
-      console.error = errorFn;
+      stub.restore();
     }
   })
   it('should trigger error boundary after a yield', async function() {
@@ -308,14 +308,13 @@ describe('#sequential()', function() {
       await dely(10);
       yield createElement('div', {}, cat);
     });
-    const errorFn = console.error;
+    const stub = sinon.stub(console, 'error');
     try {
-      console.error = () => {};
       const testRenderer = create(createElement(ErrorBoundary, {}, el));
       await delay(30);
       expect(error).to.be.an('error');
     } finally {
-      console.error = errorFn;
+      stub.restore();
     }
   })
   it('should use delay multiplier', async function() {

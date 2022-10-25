@@ -12,8 +12,10 @@ export async function delay(ms, options = {}) {
       }
     }, ms);
     if (signal) {
-      clearTimeout(timeout);
-      callback = () => reject(new Abort('Abort'));
+      callback = () => {
+        reject(new Abort('Abort'))
+        clearTimeout(timeout);
+      };
       signal.addEventListener('abort', callback, { once: true });
     }
   });

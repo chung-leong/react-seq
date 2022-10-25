@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 
 import {
   delay,
@@ -33,6 +34,19 @@ describe('#delay()', function() {
     }
     expect(error).to.be.instanceOf(Abort);
   })
+  it('should remove listener on signal timeout fires', async function() {
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    const spy = sinon.spy(signal, 'removeEventListener');
+    let error;
+    try {
+      await delay(20, { signal });
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.undefined;
+    expect(spy.called).to.be.true;
+  })
 })
 
 describe('#preload()', function() {
@@ -44,17 +58,16 @@ describe('#preload()', function() {
     expect(ran).to.be.true;
   })
   it('should output errors to console', async function() {
-    const errorFn = console.error;
     let error;
-    console.error = (err) => error = err;
+    const stub = sinon.stub(console, 'error').callsFake(err => error = err);
     try {
       await preload(async () => {
         throw new Error('Rats live on no evil star');
       });
+      expect(error).to.be.an('error').with.property('message', 'Rats live on no evil star');
     } finally {
-      console.error = errorFn;
+      stub.restore();
     }
-    expect(error).to.be.an('error').with.property('message', 'Rats live on no evil star');
   })
 })
 

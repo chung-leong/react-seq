@@ -16,6 +16,20 @@ describe('#extendDeferment()', function() {
     iterator.setDelay(3);
     expect(iterator.delay).to.equal(3 * 10);
     extendDeferment();
+    iterator.setDelay(3);
+    expect(iterator.delay).to.equal(3);
+  })
+})
+
+describe('#limitDeferment()', function() {
+  it('should limit the time limit for the first item', function() {
+    limitDeferment(999);
+    const iterator = new IntermittentIterator({});
+    iterator.setDelay(3);
+    expect(iterator.limit).to.equal(999);
+    limitDeferment();
+    iterator.setDelay(0, 100000);
+    expect(iterator.limit).to.equal(100000);
   })
 })
 
