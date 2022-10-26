@@ -7,4 +7,6 @@ import 'mocha-skip-if';
 global.AbortController = AbortController;
 global.fetch = fetch;
 
+process.env.NODE_ENV = 'development';
+
 Chai.use(ChaiAsPromised);

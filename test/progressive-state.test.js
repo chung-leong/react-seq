@@ -7,3 +7,9 @@ import {
   progressiveState,
   useProgressiveState,
 } from '../index.js';
+
+describe('#progressiveState', function() {
+  it('should obtain the state progressively', function() {
+
+  })
+})

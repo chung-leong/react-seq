@@ -1,5 +1,6 @@
 import { useMemo, createElement } from 'react';
 import { sequential } from './sequential.js';
+import { isPromise, isGenerator, isAsync } from './utils.js';
 
 export function useProgressive(cb, deps) {
   return useMemo(() => progressive(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
@@ -12,9 +13,18 @@ export function progressive(cb) {
       if (elementFn) {
         throw new Error('type() cannot be used together with element()');
       }
-      if (type instanceof Object && 'default' in type) {
+      if (typeof(type) === 'object' && 'default' in type) {
         elementType = type.default;
+      } else if (typeof(type) === 'object' && type.constructor === null) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('You seem to have passed a module without a default export');
+        }
       } else {
+        if (process.env.NODE_ENV === 'development') {
+          if (isPromise(type)) {
+            console.warn('You passed a promise, probably having forgotten to use await on import()');
+          }
+        }
         elementType = type;
       }
     }
@@ -27,16 +37,28 @@ export function progressive(cb) {
       elementFn = fn;
     }
 
+    let usableDefault = false;
     let usables = {};
-    function usable(obj) {
-      if (!(obj instanceof Object)) {
-        throw new Error('usable() expects an object');
+    function usable(arg) {
+      const t = typeof(arg);
+      if (arg instanceof Object) {
+        Object.assign(usables, arg);
+      } else if ([ 'number', 'boolean', 'function' ].includes(typeof(arg))) {
+        usableDefault = arg;
+      } else {
+        throw new Error('usable() expects an object, boolean, number, or a function');
       }
-      usables = obj;
     }
 
     const asyncProps = await cb({ ...methods, type, element, usable });
     checkAsyncProps(asyncProps, usables);
+    if (usableDefault !== false) {
+      for (const name of Object.keys(asyncProps)) {
+        if (!(name in usables)) {
+          usables[name] = usableDefault;
+        }
+      }
+    }
     if (!elementType && !elementFn) {
       throw new Error('Callback function did not call type() to set the element type');
     }
@@ -258,16 +280,4 @@ export async function* generateNext(source, current = undefined, sent = false) {
       yield result();
     }
   }
-}
-
-function isAsync(obj) {
-  return isPromise(obj) || isGenerator(obj);
-}
-
-function isPromise(obj) {
-  return (obj instanceof Object && typeof(obj.then) === 'function');
-}
-
-function isGenerator(obj) {
-  return (obj instanceof Object && typeof(obj.next) === 'function');
 }

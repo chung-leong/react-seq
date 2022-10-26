@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { createElement, Component } from 'react';
 import { create, act } from 'react-test-renderer';
+import { createSteps } from './step.js';
 import { delay } from '../index.js';
 
 import {
@@ -615,6 +616,48 @@ describe('#progressive', function() {
       stub.restore();
     }
   })
+  it('should throw if both type() and element() are used', async function() {
+    let error;
+    class ErrorBoundary extends Component {
+      constructor(props) {
+        super(props);
+        this.state = { error: null };
+      }
+      static getDerivedStateFromError(err) {
+        error = err;
+        return { error: err };
+      }
+      render() {
+        const { error } = this.state;
+        if (error) {
+          return createElement('h1', {}, error.message);
+        }
+        return this.props.children;
+      }
+    }
+    const stub = sinon.stub(console, 'error');
+    try {
+      const el1 = progressive(({ element, type }) => {
+        type('div');
+        element('Hello');
+        return {};
+      });
+      const testRenderer1 = create(createElement(ErrorBoundary, {}, el1));
+      await delay(50);
+      expect(error).to.be.an('error');
+
+      const el2 = progressive(({ element, type }) => {
+        element('Hello');
+        type('div');
+        return {};
+      });
+      const testRenderer2 = create(createElement(ErrorBoundary, {}, el2));
+      await delay(50);
+      expect(error).to.be.an('error');
+    } finally {
+      stub.restore();
+    }
+  })
   it('should throw if usable is given a non-object', async function() {
     let error;
     class ErrorBoundary extends Component {
@@ -678,6 +721,210 @@ describe('#progressive', function() {
     } finally {
       stub.restore();
     }
+  })
+  it('should mark all props as usable when a boolean is given', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    async function* create1() {
+      await assertions[0];
+      yield 'Pig';              // 1
+      steps[1].done();
+      await assertions[2];
+      yield 'Cow';              // 3
+      steps[3].done();
+      await assertions[4];
+      yield 'Chicken';
+    }
+    async function* create2() {
+      await assertions[1];
+      yield 'Cuban';            // 2
+      steps[2].done();
+      await assertions[3];
+      yield 'Hamburger';        // 4
+      steps[4].done();
+      await assertions[5];
+      yield 'Chicken sandwich';
+    }
+
+    const el = progressive(({ element, usable, fallback }) => {
+      usable(true);
+      fallback('None');
+      element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
+      return { animals: create1(), sandwiches: create2() };
+    });
+    let renderer = create(el);
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig ()');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig (Cuban)');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban)');
+    assertions[3].done()
+    await steps[4];
+    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
+    assertions[4].done()
+  })
+  it('should let usable override the default for one prop', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    async function* create1() {
+      await assertions[0];
+      yield 'Pig';              // 1
+      steps[1].done();
+      await assertions[2];
+      yield 'Cow';              // 3
+      steps[3].done();
+      await assertions[4];
+      yield 'Chicken';
+    }
+    async function* create2() {
+      await assertions[1];
+      yield 'Cuban';            // 2
+      steps[2].done();
+      await assertions[3];
+      yield 'Hamburger';        // 4
+      steps[4].done();
+      await assertions[5];
+      yield 'Chicken sandwich';
+    }
+
+    const el = progressive(({ element, usable, fallback }) => {
+      fallback('None');
+      usable(true);
+      usable({ sandwiches: 1 })
+      element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
+      return { animals: create1(), sandwiches: create2() };
+    });
+    let renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig (Cuban)');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban)');
+    assertions[3].done()
+    await steps[4];
+    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
+    assertions[4].done()
+  })
+  it('should accept number as usablility default', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    async function* create1() {
+      await assertions[0];
+      yield 'Pig';              // 1
+      steps[1].done();
+      await assertions[2];
+      yield 'Cow';              // 3
+      steps[3].done();
+      await assertions[4];
+      yield 'Chicken';
+    }
+    async function* create2() {
+      await assertions[1];
+      yield 'Cuban';            // 2
+      steps[2].done();
+      await assertions[3];
+      yield 'Hamburger';        // 4
+      steps[4].done();
+      await assertions[5];
+      yield 'Chicken sandwich';
+    }
+
+    const el = progressive(({ element, usable, fallback }) => {
+      fallback('None');
+      usable(2);
+      element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
+      return { animals: create1(), sandwiches: create2() };
+    });
+    let renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[3].done()
+    await steps[4];
+    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
+    assertions[4].done()
+  })
+})
+
+describe('#useProgressive()', function() {
+  it('should return a component that renders progressively', async function () {
+    function ContainerComponent() {
+      return useProgressive(async ({ fallback, type, usable }) => {
+        fallback('None');
+        type(TestComponent);
+        usable({
+          animals: 1
+        });
+        return { animals: generate() };
+      }, []);
+    }
+
+    function TestComponent({ animals }) {
+      return animals.join(', ');
+    }
+
+    async function* generate() {
+      yield 'Pig';
+      await delay(10);
+      yield 'Donkey';
+      await delay(10);
+      yield 'Chicken';
+    }
+
+    const el = createElement(ContainerComponent);
+    const testRenderer = create(el);
+    await delay(5);
+    expect(testRenderer.toJSON()).to.equal('Pig');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
+    await delay(10);
+    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+  })
+  it('should use a dynamically loaded module', async function () {
+    function ContainerComponent() {
+      return useProgressive(async ({ fallback, type, usable }) => {
+        fallback('None');
+        type(await import('./components/JSONDump.js'));
+        usable({
+          animals: 1
+        });
+        return { animals: generate() };
+      }, []);
+    }
+
+    function TestComponent({ animals }) {
+      return animals.join(', ');
+    }
+
+    async function* generate() {
+      yield 'Pig';
+      await delay(10);
+      yield 'Donkey';
+      await delay(10);
+      yield 'Chicken';
+    }
+
+    const el = createElement(ContainerComponent);
+    const testRenderer = create(el);
+    await delay(5);
+    expect(JSON.parse(testRenderer.toJSON())).to.eql({ animals: [ 'Pig' ] });
+    await delay(10);
+    expect(JSON.parse(testRenderer.toJSON())).to.eql({ animals: [ 'Pig', 'Donkey' ] });
+    await delay(10);
+    expect(JSON.parse(testRenderer.toJSON())).to.eql({ animals: [ 'Pig', 'Donkey', 'Chicken' ] });
   })
 })
 

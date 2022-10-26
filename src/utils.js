@@ -35,4 +35,16 @@ export function isAbortError(err) {
   return err instanceof Error && (err.name === 'AbortError' || err.code === 20);
 }
 
+export function isAsync(obj) {
+  return isPromise(obj) || isGenerator(obj);
+}
+
+export function isPromise(obj) {
+  return (obj instanceof Object && typeof(obj.then) === 'function');
+}
+
+export function isGenerator(obj) {
+  return (obj instanceof Object && typeof(obj.next) === 'function');
+}
+
 export class Abort extends Error {}

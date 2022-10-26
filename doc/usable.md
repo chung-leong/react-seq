@@ -1,4 +1,9 @@
-# usable(obj)
+# usable(arg)
+
+## Providers
+
+* [useProgressive](useProgressive.md)
+* [useProgressiveState](useProgressiveState.md)
 
 ## Syntax
 
@@ -7,9 +12,4 @@
 
 ## Parameters
 
-* `obj` - `<Object>`
-
-## Providers
-
-* [useProgressive](useProgressive.md)
-* [useProgressiveState](useProgressiveState.md)
+* `arg` - `<number>` or `<boolean>` or `<function>` or `<Object>`
