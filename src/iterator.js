@@ -21,38 +21,46 @@ export class IntermittentIterator {
     this.delay = 0;
     this.limit = delayLimit;
     this.interval = 0;
+    this.timeout = 0;
+    this.expired = false;
     this.started = false;
     this.tick = null;
-    this.period = this.limit;
-    this.pending = true;
     this.reject = null;
-    this.returning = false;
     if (signal) {
       signal.addEventListener('abort', () => this.throw(new Abort()), { once: true });
     }
   }
 
   setDelay(delay, limit = Infinity) {
-    this.delay = delay * delayMultiplier;
-    this.limit = Math.min(limit, delayLimit);
-    this.updateTimer();
+    const actualDelay = delay * delayMultiplier;
+    const actualLimit = Math.min(limit, delayLimit);
+    let changed = false;
+    if (actualDelay !== this.delay) {
+      this.delay = actualDelay;
+      this.stopInterval();
+      this.startInterval();
+      if (this.delay === 0) {
+        // timer disabled
+        this.interrupt();
+      }
+    }
+    if (actualLimit !== this.limit) {
+      this.limit = actualLimit;
+      changed = true;
+      this.stopTimeout();
+      this.startTimeout();
+    }
   }
 
   start(generator) {
     this.generator = generator;
     this.started = true;
-    this.startTimer();
+    this.startInterval();
   }
 
   next() {
     this.fetch();
-    // alternate behind returning and not returning when delay is zero
-    this.returning = (this.delay > 0) || !this.returning;
-    if (this.returning) {
-      return Promise.race([ this.promise, this.tick ]);
-    } else {
-      return Promise.reject(new Interruption('Interruption'));
-    }
+    return Promise.race([ this.promise, this.tick ]);
   }
 
   throw(err) {
@@ -64,10 +72,16 @@ export class IntermittentIterator {
     }
   }
 
+  interrupt() {
+    this.throw(new Interruption());
+  }
+
   async return() {
     const { generator } = this;
-    this.stopTimer();
+    this.stopInterval();
+    this.stopTimeout();
     if (this.promise) {
+      // just in case we're returning prior to next() getting called
       this.promise.catch(err => {});
     }
     this.generator = null;
@@ -75,47 +89,37 @@ export class IntermittentIterator {
     this.tick = null;
     this.reject = null;
     this.started = false;
-    this.pending = true;
+    this.expired = false;
     return generator.return();
   }
 
-  interrupt() {
-    // throw Timeout instead of Interruption when nothing has been obtained yet
-    if (this.pending) {
-      this.pending = false;
-      this.updateTimer();
-      this.throw(new Timeout());
-    } else {
-      this.throw(new Interruption());
+  startInterval() {
+    if (this.delay > 0 && this.delay !== Infinity) {
+      this.interval = setInterval(() => this.interrupt(), this.delay);
     }
   }
 
-  updateTimer() {
-    // set timer to limit for the arrival of the initial item first, then
-    // trigger interruption based on the update delay
-    const period = (this.pending) ? this.limit : this.delay;
-    if (this.period !== period) {
-      this.period = period;
-      if (this.started) {
-        this.stopTimer();
-        this.startTimer();
-        if (this.period === 0) {
-          this.interrupt();
-        }
-      }
+  startTimeout() {
+    if (this.limit > 0 && this.limit !== Infinity && !this.expired) {
+      this.timeout = setTimeout(() => {
+        this.throw(new Timeout());
+        this.timeout = 0;
+        this.expired = true;
+      }, this.limit);
     }
   }
 
-  startTimer() {
-    if (this.period > 0 && this.period !== Infinity) {
-      this.interval = setInterval(() => this.interrupt(), this.period);
-    }
-  }
-
-  stopTimer() {
+  stopInterval() {
     if (this.interval) {
       clearInterval(this.interval);
       this.interval = 0;
+    }
+  }
+
+  stopTimeout() {
+    if (this.timeout) {
+      clearTimeout(this.timeout);
+      this.timeout = 0;
     }
   }
 
@@ -124,10 +128,18 @@ export class IntermittentIterator {
       this.promise = this.generator.next()
       this.promise.then(() => {
         this.promise = null;
-        if (this.pending) {
-          // we got something, switch timer to fire at the update delay
-          this.pending = false;
-          this.updateTimer();
+        if (this.timeout) {
+          // we got something, turn off the timeout
+          clearTimeout(this.timeout);
+          this.timeout = 0;
+          this.expired = true;
+        }
+      }).then(() => {
+        // in the next tick, after the promise has been given to the caller...
+        if (this.delay === 0) {
+          // since there's no timer triggering interruption
+          // we do it immediately upon receiving a value
+          this.interrupt();
         }
       }, err => {});
     }

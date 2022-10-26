@@ -1,7 +1,6 @@
 import { expect } from 'chai';
-import sinon from 'sinon';
-import { createElement, Component } from 'react';
-import { create, act } from 'react-test-renderer';
+import { create } from 'react-test-renderer';
+import { createElement } from 'react';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';

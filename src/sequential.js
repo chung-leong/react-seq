@@ -99,17 +99,21 @@ export function sequential(cb) {
         }
       } catch (err) {
         if (err instanceof Timeout) {
-          // time limit has been reached and we got nothing to show
-          // reach for the timeout element
-          if (typeof(timeoutEl) === 'function') {
-            timeoutEl = await timeoutEl();
+          // time limit has been reached--need to resolve the promise now
+          if (pendingContent === undefined) {
+            // we got nothing to show--reach for the timeout element
+            if (typeof(timeoutEl) === 'function') {
+              timeoutEl = await timeoutEl();
+            }
+            pendingContent = (timeoutEl !== undefined) ? timeoutEl : null;
           }
-          pendingContent = (timeoutEl !== undefined) ? timeoutEl : null;
-          abortController.abort();
-        } else if (err instanceof Interruption) {
-          // we're done here, as pendingContent must contain something
-          // since Timeout gets thrown first, breaking this loop
           stop = true;
+        } else if (err instanceof Interruption) {
+          if (pendingContent !== undefined) {
+            // got something to show--time to resolve the promise and
+            // get the component to unsuspend
+            stop = true;
+          }
         } else if (err instanceof Abort) {
           stop = aborted = true;
         } else if (isAbortError(err)) {
