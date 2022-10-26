@@ -9,11 +9,20 @@ export function createSteps(delay = 0) {
         if (!promise) {
           let resolve, reject;
           promise = arr[num] = new Promise((r1, r2) => { resolve = r1; reject = r2; });
-          promise.done = () => setTimeout(() => resolve(), delay);
+          promise.done = (value) => setTimeout(() => resolve(value), delay);
           promise.fail = (err) => setTimeout(() => reject(err), delay);
         }
         return promise;
       }
     }
   });
+}
+
+export async function loopThrough(steps, delay, fn) {
+  let i = 0, interval = setInterval(() => steps[i++].done(), delay);
+  try {
+    await fn();
+  } finally {
+    clearInterval(interval);
+  }
 }

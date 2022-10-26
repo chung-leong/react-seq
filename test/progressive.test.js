@@ -2,7 +2,8 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import { createElement, Component } from 'react';
 import { create, act } from 'react-test-renderer';
-import { createSteps } from './step.js';
+import { createSteps, loopThrough } from './step.js';
+import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
 
 import {
@@ -182,7 +183,7 @@ describe('#generateProps()', function() {
   it('should resolve props that are promises', async function() {
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: delay(5).then(() => 'World'),
     };
     const generator = generateProps(props, {});
     const list = await getList(generator);
@@ -192,7 +193,7 @@ describe('#generateProps()', function() {
   it('should ignore props that are regular values', async function() {
     const props = {
       hello: 'Hello',
-      world: delay(20).then(() => 'World'),
+      world: delay(5).then(() => 'World'),
       cats: 5,
     };
     const generator = generateProps(props, {});
@@ -201,23 +202,26 @@ describe('#generateProps()', function() {
     expect(list[0]).to.eql({ hello: 'Hello', world: 'World', cats: 5 });
   })
   it('should retrieve items from async generator', async function() {
+    const steps = createSteps();
     const create = async function*() {
-      await delay(10);
+      await steps[0];
       yield 'Cow';
-      await delay(10);
+      await steps[2];
       yield 'Pig';
-      await delay(10);
+      await steps[3];
       yield 'Chicken';
     };
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: steps[1].then(() => 'World'),
       animals: create(),
     };
-    const generator = generateProps(props, {});
-    const list = await getList(generator);
-    expect(list).to.have.lengthOf(1);
-    expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    await loopThrough(steps, 5, async () => {
+      const generator = generateProps(props, {});
+      const list = await getList(generator);
+      expect(list).to.have.lengthOf(1);
+      expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    });
   })
   it('should retrieve items from sync generator', async function() {
     const create = function*() {
@@ -227,7 +231,7 @@ describe('#generateProps()', function() {
     };
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: delay(5).then(() => 'World'),
       animals: create(),
     };
     const generator = generateProps(props, {});
@@ -238,7 +242,7 @@ describe('#generateProps()', function() {
   it('should permit props marked as usable', async function() {
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: delay(5).then(() => 'World'),
     };
     const generator = generateProps(props, { world: true });
     const list = await getList(generator);
@@ -247,140 +251,157 @@ describe('#generateProps()', function() {
     expect(list[1]).to.eql({ hello: 'Hello', world: 'World' });
   })
   it('should deem array of certain length as usable', async function() {
+    const steps = createSteps();
     const create = async function*() {
-      await delay(10);
+      await steps[0];
       yield 'Cow';
-      await delay(10);
+      await steps[2];
       yield 'Pig';
-      await delay(10);
+      await steps[3];
       yield 'Chicken';
     };
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: steps[1].then(() => 'World'),
       animals: create(),
     };
-    const generator = generateProps(props, { animals: 2 });
-    const list = await getList(generator);
-    expect(list).to.have.lengthOf(2);
-    expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig' ] });
-    expect(list[1]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    await loopThrough(steps, 5, async () => {
+      const generator = generateProps(props, { animals: 2 });
+      const list = await getList(generator);
+      expect(list).to.have.lengthOf(2);
+      expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig' ] });
+      expect(list[1]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    });
   })
-  it('should return an array when usability criteria cannot be met', async function() {
+  it('should return an array even when usability criteria cannot be met', async function() {
+    const steps = createSteps(), assertions = createSteps();
     const create = async function*() {
-      await delay(10);
+      await steps[0];
       yield 'Cow';
-      await delay(10);
+      await steps[2];
       yield 'Pig';
-      await delay(10);
+      await steps[3];
       yield 'Chicken';
     };
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: steps[1].then(() => 'World'),
       animals: create(),
     };
-    const generator = generateProps(props, { animals: Infinity });
-    const list = await getList(generator);
-    expect(list).to.have.lengthOf(1);
-    expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    await loopThrough(steps, 5, async() => {
+      const generator = generateProps(props, { animals: Infinity });
+      const list = await getList(generator);
+      expect(list).to.have.lengthOf(1);
+      expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    });
   })
   it('should retrieve items from multiple generators', async function() {
+    const steps = createSteps(), assertions = createSteps();
     const create = async function*() {
-      await delay(10);
+      await steps[0];
       yield 'Cow';
-      await delay(10);
+      await steps[2];
       yield 'Pig';
-      await delay(10);
+      await steps[3];
       yield 'Chicken';
     };
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: steps[1].then(() => 'World'),
       animals: create(),
       names: create(),
     };
-    const generator = generateProps(props, { animals: 2 });
-    const list = await getList(generator);
-    expect(list).to.have.lengthOf(1);
-    expect(list[0]).to.eql({
-      hello: 'Hello',
-      world: 'World',
-      animals: [ 'Cow', 'Pig', 'Chicken' ],
-      names: [ 'Cow', 'Pig', 'Chicken' ]
+    await loopThrough(steps, 5, async() => {
+      const generator = generateProps(props, { animals: 2 });
+      const list = await getList(generator);
+      expect(list).to.have.lengthOf(1);
+      expect(list[0]).to.eql({
+        hello: 'Hello',
+        world: 'World',
+        animals: [ 'Cow', 'Pig', 'Chicken' ],
+        names: [ 'Cow', 'Pig', 'Chicken' ]
+      });
     });
   })
   it('should merge items from multiple generators into single list', async function() {
+    const steps = createSteps(), assertions = createSteps();
     const create = async function*() {
-      await delay(10);
+      await steps[1];
       yield [ 1, 2, 3 ].values();
-      await delay(10);
+      await steps[2];
       yield [ 4, 5, 6 ].values();
-      await delay(10);
+      await steps[3];
       yield [ 7, 8, 9 ].values();
     };
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: steps[0].then(() => 'World'),
       animals: create(),
     };
-    const generator = generateProps(props, {});
-    const list = await getList(generator);
-    expect(list).to.have.lengthOf(1);
-    expect(list[0]).to.eql({
-      hello: 'Hello',
-      world: 'World',
-      animals: [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ],
+    await loopThrough(steps, 5, async () => {
+      const generator = generateProps(props, {});
+      const list = await getList(generator);
+      expect(list).to.have.lengthOf(1);
+      expect(list[0]).to.eql({
+        hello: 'Hello',
+        world: 'World',
+        animals: [ 1, 2, 3, 4, 5, 6, 7, 8, 9 ],
+      });
     });
   })
   it ('should throw an error when a prop\'s generator encounters one', async function() {
+    const steps = createSteps(), assertions = createSteps();
     const create = async function*() {
-      await delay(10);
+      await steps[0];
       yield [ 1, 2, 3 ].values();
-      await delay(30);
+      await steps[2];
       yield [ 4, 5, Promise.reject(new Error) ].values();
-      await delay(10);
+      await steps[3];
       yield [ 7, 8, 9 ].values();
     };
     const props = {
       hello: Promise.resolve('Hello'),
-      world: delay(20).then(() => 'World'),
+      world: steps[1].then(() => 'World'),
       animals: create(),
     };
-    const generator = generateProps(props, { world: true, animals: true });
-    const list = [];
-    let error;
-    try {
-      for await (const state of generator) {
-        list.push(state);
+    await loopThrough(steps, 5, async () => {
+      const generator = generateProps(props, { world: true, animals: true });
+      const list = [];
+      let error;
+      try {
+        for await (const state of generator) {
+          list.push(state);
+        }
+      } catch (err) {
+        error = err;
       }
-    } catch (err) {
-      error = err;
-    }
-    expect(list).to.eql([
-      { hello: 'Hello', world: undefined, animals: [] },
-      { hello: 'Hello', world: undefined, animals: [ 1, 2, 3 ] },
-      { hello: 'Hello', world: 'World', animals: [ 1, 2, 3 ] },
-    ]);
-    expect(error).to.be.an('error');
+      expect(list).to.eql([
+        { hello: 'Hello', world: undefined, animals: [] },
+        { hello: 'Hello', world: undefined, animals: [ 1, 2, 3 ] },
+        { hello: 'Hello', world: 'World', animals: [ 1, 2, 3 ] },
+      ]);
+      expect(error).to.be.an('error');
+    });
   })
-
 })
 
 describe('#progressive', function() {
   it('should return a component that renders progressively', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    async function* generate() {
+      await assertions[0];
+      yield 'Pig';
+      steps[1].done();
+      await assertions[1];
+      yield 'Donkey';
+      steps[2].done();
+      await assertions[2];
+      yield 'Chicken';
+      steps[3].done();
+    }
     function TestComponent({ animals }) {
       return animals.join(', ');
     }
-
-    async function* generate() {
-      yield 'Pig';
-      await delay(10);
-      yield 'Donkey';
-      await delay(10);
-      yield 'Chicken';
-    }
-
     const el = progressive(({ fallback, type, usable }) => {
       fallback('None');
       type(TestComponent);
@@ -389,55 +410,67 @@ describe('#progressive', function() {
       });
       return { animals: generate() };
     });
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(5);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
   it('should defer rendering until all items is fetched from generator', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    async function* generate() {
+      await assertions[0];
+      yield 'Pig';
+      steps[1].done();
+      await assertions[1];
+      yield 'Donkey';
+      steps[2].done();
+      await assertions[2];
+      yield 'Chicken';
+      steps[3].done();
+    }
     function TestComponent({ animals }) {
       return animals.join(', ');
     }
-
-    async function* generate() {
-      yield 'Pig';
-      await delay(10);
-      yield 'Donkey';
-      await delay(10);
-      yield 'Chicken';
-    }
-
     const el = progressive(({ fallback, type }) => {
       fallback('None');
       type(TestComponent);
       return { animals: generate() };
     });
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(5);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
   it('should rendering with available data when deferrment delay is reached', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    async function* generate() {
+      await assertions[0];
+      yield 'Pig';
+      steps[1].done();
+      await assertions[1];
+      yield 'Donkey';
+      steps[2].done();
+      await assertions[2];
+      yield 'Chicken';
+      steps[3].done();
+    }
     function TestComponent({ animals }) {
       return animals.join(', ');
     }
-
-    async function* generate() {
-      yield 'Pig';
-      await delay(20);
-      yield 'Donkey';
-      await delay(20);
-      yield 'Chicken';
-    }
-
     const el = progressive(({ fallback, type, defer, usable }) => {
       type(TestComponent);
       fallback('None');
@@ -445,282 +478,211 @@ describe('#progressive', function() {
       usable({ animals: 1 })
       return { animals: generate() };
     });
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('None');
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[1].done();
+    await steps[2];
     await delay(25);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
-    await delay(20);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+    expect(renderer.toJSON()).to.equal('Pig, Donkey');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
   it('should trigger error boundary when a generator throws', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    async function* generate() {
+      await assertions[0];
+      yield 'Pig';
+      steps[1].done();
+      await assertions[1];
+      setTimeout(() => steps[2].done(), 0);
+      throw new Error();
+    }
     function TestComponent({ animals = [] }) {
       return animals.join(', ');
     }
-
-    async function* generate() {
-      await delay(20);
-      yield 'Pig';
-      await delay(30);
-      throw new Error('Error');
-      yield 'Donkey';
-      await delay(20);
-      yield 'Chicken';
-    }
-
-    let error;
-    class ErrorBoundary extends Component {
-      constructor(props) {
-        super(props);
-        this.state = { error: null };
-      }
-      static getDerivedStateFromError(err) {
-        error = err;
-        return { error: err };
-      }
-      render() {
-        const { error } = this.state;
-        if (error) {
-          return error.message;
-        }
-        return this.props.children;
-      }
-    }
-    const stub = sinon.stub(console, 'error');
-    try {
+    await noConsole(async () => {
       const el = progressive(({ fallback, usable, type }) => {
         fallback('None');
         type(TestComponent);
         usable({ animals: true });
         return { animals: generate() };
       });
-      const testRenderer = create(createElement(ErrorBoundary, {}, el));
-      await delay(10);
-      expect(testRenderer.toJSON()).to.equal('None');
-      await delay(20);
-      expect(testRenderer.toJSON()).to.equal('Pig');
-      await delay(25);
-      expect(testRenderer.toJSON()).to.equal('Error');
-      expect(error).to.be.an('error');
-    } finally {
-      stub.restore();
-    }
+      const boundary = createErrorBoundary(el);
+      const renderer = create(boundary);
+      expect(renderer.toJSON()).to.equal('None');
+      assertions[0].done();
+      await steps[1];
+      expect(renderer.toJSON()).to.equal('Pig');
+      assertions[1].done();
+      await steps[2];
+      expect(renderer.toJSON()).to.equal('ERROR');
+      expect(caughtAt(boundary)).to.be.an('error');
+    });
   })
   it('should accept a module with default as type', async function() {
+    const steps = createSteps(), assertions = createSteps();
     async function* generate() {
+      await assertions[0];
       yield 'Pig';
-      await delay(20);
+      steps[1].done();
+      await assertions[1];
       yield 'Donkey';
-      await delay(20);
+      steps[2].done();
+      await assertions[2];
       yield 'Chicken';
+      steps[3].done();
     }
-
     function Title({ animals = [] }) {
       return createElement('h1', {}, animals.join(', '));
     }
-
     const el = progressive(({ fallback, usable, type }) => {
       fallback('None');
       type({ default: Title });
       usable({ animals: true });
       return { animals: generate() };
     });
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig' ] });
-    await delay(25);
-    expect(testRenderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey' ] });
-    await delay(30);
-    expect(testRenderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig' ] });
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey' ] });
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
   })
   it('should accept an element-creating function in lieu of a type', async function() {
+    const steps = createSteps(), assertions = createSteps();
     async function* generate() {
+      await assertions[0];
       yield 'Pig';
-      await delay(20);
+      steps[1].done();
+      await assertions[1];
       yield 'Donkey';
-      await delay(20);
+      steps[2].done();
+      await assertions[2];
       yield 'Chicken';
+      steps[3].done();
     }
-
     const el = progressive(({ fallback, usable, element }) => {
       fallback('None');
       usable({ animals: true });
       element(({ animals = [] }) => createElement('span', {}, animals.join(', ')));
       return { animals: generate() };
     });
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig' ] });
-    await delay(25);
-    expect(testRenderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey' ] });
-    await delay(30);
-    expect(testRenderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig' ] });
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey' ] });
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
   })
   it('should progressively render values from sync generator', async function() {
+    const steps = createSteps(0), assertions = createSteps();
+    function* generate() {
+      yield assertions[0].then(() => {
+        steps[1].done();
+        return 'Pig';
+      });
+      yield assertions[1].then(() => {
+        steps[2].done();
+        return 'Donkey';
+      });
+      yield assertions[2].then(() => {
+        steps[3].done();
+        return 'Chicken';
+      });
+    }
     function TestComponent({ animals = [] }) {
       return animals.join(', ');
     }
-
-    function* generate() {
-      yield Promise.resolve('Pig');
-      yield delay(20).then(() => 'Donkey');
-      yield delay(40).then(() => 'Chicken');
-    }
-
     const el = progressive(({ fallback, usable, type }) => {
       fallback('None');
       type(TestComponent);
       usable({ animals: true });
       return { animals: generate() };
     });
-    const testRenderer = create(el);
-    expect(testRenderer.toJSON()).to.equal('None');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(25);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
-    await delay(30);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
   it('should throw if an element type is not given', async function() {
-    let error;
-    class ErrorBoundary extends Component {
-      constructor(props) {
-        super(props);
-        this.state = { error: null };
-      }
-      static getDerivedStateFromError(err) {
-        error = err;
-        return { error: err };
-      }
-      render() {
-        const { error } = this.state;
-        if (error) {
-          return createElement('h1', {}, error.message);
-        }
-        return this.props.children;
-      }
-    }
-    const stub = sinon.stub(console, 'error');
-    try {
+    const steps = createSteps(), assertions = createSteps();
+    await noConsole(async () => {
       const el = progressive(() => {
         return {};
       });
-      const testRenderer = create(createElement(ErrorBoundary, {}, el));
-      await delay(50);
-      expect(error).to.be.an('error');
-    } finally {
-      stub.restore();
-    }
+      const boundary = createErrorBoundary(el);
+      const renderer = create(boundary);
+      await delay(1);
+      expect(caughtAt(boundary)).to.be.an('error');
+    });
   })
   it('should throw if both type() and element() are used', async function() {
-    let error;
-    class ErrorBoundary extends Component {
-      constructor(props) {
-        super(props);
-        this.state = { error: null };
-      }
-      static getDerivedStateFromError(err) {
-        error = err;
-        return { error: err };
-      }
-      render() {
-        const { error } = this.state;
-        if (error) {
-          return createElement('h1', {}, error.message);
-        }
-        return this.props.children;
-      }
-    }
-    const stub = sinon.stub(console, 'error');
-    try {
+    await noConsole(async () => {
       const el1 = progressive(({ element, type }) => {
         type('div');
         element('Hello');
         return {};
       });
-      const testRenderer1 = create(createElement(ErrorBoundary, {}, el1));
-      await delay(50);
-      expect(error).to.be.an('error');
+      const boundary1 = createErrorBoundary(el1);
+      const renderer1 = create(boundary1);
+      await delay(1);
+      expect(caughtAt(boundary1)).to.be.an('error');
 
       const el2 = progressive(({ element, type }) => {
         element('Hello');
         type('div');
         return {};
       });
-      const testRenderer2 = create(createElement(ErrorBoundary, {}, el2));
-      await delay(50);
-      expect(error).to.be.an('error');
-    } finally {
-      stub.restore();
-    }
+      const boundary2 = createErrorBoundary(el2);
+      const renderer2 = create(boundary2);
+      await delay(1);
+      expect(caughtAt(boundary2)).to.be.an('error');
+    });
   })
   it('should throw if usable is given a non-object', async function() {
-    let error;
-    class ErrorBoundary extends Component {
-      constructor(props) {
-        super(props);
-        this.state = { error: null };
-      }
-      static getDerivedStateFromError(err) {
-        error = err;
-        return { error: err };
-      }
-      render() {
-        const { error } = this.state;
-        if (error) {
-          return createElement('h1', {}, error.message);
-        }
-        return this.props.children;
-      }
-    }
-    const stub = sinon.stub(console, 'error');
-    try {
+    await noConsole(async () => {
       const el = progressive(({ usable }) => {
         usable('cow', 1);
         return {};
       });
-      const testRenderer = create(createElement(ErrorBoundary, {}, el));
-      await delay(50);
-      expect(error).to.be.an('error');
-    } finally {
-      stub.restore();
-    }
+      const boundary = createErrorBoundary(el);
+      const renderer = create(boundary);
+      await delay(1);
+      expect(caughtAt(boundary)).to.be.an('error');
+    })
   })
   it('should throw if function returns a non-object', async function() {
-    let error;
-    class ErrorBoundary extends Component {
-      constructor(props) {
-        super(props);
-        this.state = { error: null };
-      }
-      static getDerivedStateFromError(err) {
-        error = err;
-        return { error: err };
-      }
-      render() {
-        const { error } = this.state;
-        if (error) {
-          return createElement('h1', {}, error.message);
-        }
-        return this.props.children;
-      }
-    }
-    const stub = sinon.stub(console, 'error');
-    try {
+    await noConsole(async () => {
       const el = progressive(({ element }) => {
         element((props) => 'Hello');
         return 123;
       });
-      const testRenderer = create(createElement(ErrorBoundary, {}, el));
-      await delay(50);
-      expect(error).to.be.an('error');
-    } finally {
-      stub.restore();
-    }
+      const boundary = createErrorBoundary(el);
+      const renderer = create(boundary);
+      await delay(1);
+      expect(caughtAt(boundary)).to.be.an('error');
+    })
   })
   it('should mark all props as usable when a boolean is given', async function() {
     const steps = createSteps(), assertions = createSteps();
@@ -861,6 +823,18 @@ describe('#progressive', function() {
 
 describe('#useProgressive()', function() {
   it('should return a component that renders progressively', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    async function* generate() {
+      await assertions[0];
+      yield 'Pig';
+      steps[1].done();
+      await assertions[1];
+      yield 'Donkey';
+      steps[2].done();
+      await assertions[2];
+      yield 'Chicken';
+      steps[3].done();
+    }
     function ContainerComponent() {
       return useProgressive(async ({ fallback, type, usable }) => {
         fallback('None');
@@ -871,29 +845,38 @@ describe('#useProgressive()', function() {
         return { animals: generate() };
       }, []);
     }
-
     function TestComponent({ animals }) {
       return animals.join(', ');
     }
-
-    async function* generate() {
-      yield 'Pig';
-      await delay(10);
-      yield 'Donkey';
-      await delay(10);
-      yield 'Chicken';
-    }
-
     const el = createElement(ContainerComponent);
-    const testRenderer = create(el);
-    await delay(5);
-    expect(testRenderer.toJSON()).to.equal('Pig');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey');
-    await delay(10);
-    expect(testRenderer.toJSON()).to.equal('Pig, Donkey, Chicken');
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Donkey, Chicken');
   })
   it('should use a dynamically loaded module', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    async function* generate() {
+      await assertions[0];
+      yield 'Pig';
+      steps[1].done();
+      await assertions[1];
+      yield 'Donkey';
+      steps[2].done();
+      await assertions[2];
+      yield 'Chicken';
+      steps[3].done();
+    }
+    function TestComponent({ animals }) {
+      return animals.join(', ');
+    }
     function ContainerComponent() {
       return useProgressive(async ({ fallback, type, usable }) => {
         fallback('None');
@@ -904,27 +887,18 @@ describe('#useProgressive()', function() {
         return { animals: generate() };
       }, []);
     }
-
-    function TestComponent({ animals }) {
-      return animals.join(', ');
-    }
-
-    async function* generate() {
-      yield 'Pig';
-      await delay(10);
-      yield 'Donkey';
-      await delay(10);
-      yield 'Chicken';
-    }
-
     const el = createElement(ContainerComponent);
-    const testRenderer = create(el);
-    await delay(5);
-    expect(JSON.parse(testRenderer.toJSON())).to.eql({ animals: [ 'Pig' ] });
-    await delay(10);
-    expect(JSON.parse(testRenderer.toJSON())).to.eql({ animals: [ 'Pig', 'Donkey' ] });
-    await delay(10);
-    expect(JSON.parse(testRenderer.toJSON())).to.eql({ animals: [ 'Pig', 'Donkey', 'Chicken' ] });
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(JSON.parse(renderer.toJSON())).to.eql({ animals: [ 'Pig' ] });
+    assertions[1].done();
+    await steps[2];
+    expect(JSON.parse(renderer.toJSON())).to.eql({ animals: [ 'Pig', 'Donkey' ] });
+    assertions[2].done();
+    await steps[3];
+    expect(JSON.parse(renderer.toJSON())).to.eql({ animals: [ 'Pig', 'Donkey', 'Chicken' ] });
   })
 })
 
