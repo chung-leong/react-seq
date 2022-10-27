@@ -42,7 +42,6 @@ export function progressive(cb) {
     let usableDefault = false;
     let usables = {};
     function usable(arg) {
-      const t = typeof(arg);
       if (arg instanceof Object) {
         Object.assign(usables, arg);
       } else if ([ 'number', 'boolean', 'function' ].includes(typeof(arg))) {
@@ -53,14 +52,7 @@ export function progressive(cb) {
     }
 
     const asyncProps = await cb({ ...methods, type, element, usable });
-    checkAsyncProps(asyncProps, usables);
-    if (usableDefault !== false) {
-      for (const name of Object.keys(asyncProps)) {
-        if (!(name in usables)) {
-          usables[name] = usableDefault;
-        }
-      }
-    }
+    checkAsyncProps(asyncProps, usables, usableDefault);
     if (!elementType && !elementFn) {
       throw new Error('Callback function did not call type() to set the element type');
     }
@@ -73,7 +65,7 @@ export function progressive(cb) {
   });
 }
 
-export function checkAsyncProps(asyncProps, usables) {
+export function checkAsyncProps(asyncProps, usables, usableDefault) {
   if (!(asyncProps instanceof Object)) {
     throw new Error('Callback function did not return an object');
   }
@@ -81,6 +73,13 @@ export function checkAsyncProps(asyncProps, usables) {
     for (const name of Object.keys(usables)) {
       if (!(name in asyncProps)) {
         console.warn(`The prop "${name}" is given a usability criteria but is absent from the object returned`);
+      }
+    }
+  }
+  if (usableDefault !== false) {
+    for (const name of Object.keys(asyncProps)) {
+      if (!(name in usables)) {
+        usables[name] = usableDefault;
       }
     }
   }

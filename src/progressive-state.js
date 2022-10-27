@@ -8,16 +8,20 @@ export function useProgressiveState(cb, deps) {
 
 export function progressiveState(cb, setState, setError) {
   return sequentialState(async function* (methods) {
+    let usableDefault = false;
     let usables = {};
-    function usable(obj) {
-      if (!(obj instanceof Object)) {
-        throw new Error('usable() expects an object');
+    function usable(arg) {
+      if (arg instanceof Object) {
+        Object.assign(usables, arg);
+      } else if ([ 'number', 'boolean', 'function' ].includes(typeof(arg))) {
+        usableDefault = arg;
+      } else {
+        throw new Error('usable() expects an object, boolean, number, or a function');
       }
-      usables = obj;
     }
 
     const asyncProps = await cb({ ...methods, usable });
-    checkAsyncProps(asyncProps, usables);
+    checkAsyncProps(asyncProps, usables, usableDefault);
     for await (const props of generateProps(asyncProps, usables)) {
       yield props;
     }
