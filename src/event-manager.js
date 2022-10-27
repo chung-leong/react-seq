@@ -71,6 +71,15 @@ export class EventManager {
       // promise from an 'or' chain fulfills when the quickest one fulfills
       // promise from an 'add' chain fulfills when all promises do
       this.enablePromiseMerge(promise, 'or', 'and');
+      if (this.warning && process.env.NODE_ENV === 'development') {
+        promise.then = (thenFn, catchFn) => {
+          if (!(name in this.handlers)) {
+            console.warn(`Awaiting eventual.${name} without prior use of on.${name}`);
+          }
+          delete promise.then;
+          promise.then(thenFn, catchFn);
+        };
+      }
     } else {
       // an important value has just been picked up
       if (types[name] === 'important') {
@@ -210,8 +219,8 @@ export class EventManager {
     delete resolves[name];
     delete rejects[name];
 
-    if (!handled && warning) {
-      console.warn(`No promise was fulfilled by call to handler created by ${name}()`);
+    if (!handled && warning && process.env.NODE_ENV === 'development') {
+      console.warn(`No promise was fulfilled by call to on.${name}()`);
     }
   }
 
