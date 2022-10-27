@@ -4,6 +4,7 @@ import { createElement } from 'react';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
+import { isAbortError } from '../src/utils.js';
 
 import {
   sequentialState,
@@ -248,5 +249,147 @@ describe('#useSequentialState()', function() {
     renderer.unmount();
     await steps[1];
     expect(renderer.toJSON()).to.equal(null);
+  })
+  it('should allow generation of initial state using a function', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    function Test({ }) {
+      const [ state, on ] = useSequentialState(async function*({ initial }) {
+        initial(() => 'Whiskey drink');
+        await assertions[0];
+        yield 'Vodka drink';
+        steps[1].done();
+      }, []);
+      return state;
+    }
+    const el = createElement(Test);
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('Whiskey drink');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Vodka drink');
+  })
+  it('should set the state to the timeout state when time limit is reached', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    function Test({ }) {
+      const [ state, on ] = useSequentialState(async function*({ initial, timeout, defer }) {
+        defer(5, 25);
+        initial(() => 'Whiskey drink');
+        timeout(async () => 'I got knocked down!')
+        await assertions[0];
+        yield 'Vodka drink';
+        steps[1].done();
+      }, []);
+      return state;
+    }
+    const el = createElement(Test);
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('Whiskey drink');
+    await delay(35);
+    expect(renderer.toJSON()).to.equal('I got knocked down!');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Vodka drink');
+  })
+  it('should immediately throw when dependencies are not given', async function() {
+    function Test() {
+      const [ state, on ] = useSequentialState(async function*({}) {
+      });
+    }
+    await noConsole(async () => {
+      const el = createElement(Test);
+      expect(() => create(el)).to.throw();
+    });
+  })
+  it('should throw any error encountered so it can be caught by error boundary', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    function Test() {
+      const [ state, on ] = useSequentialState(async function*({ initial }) {
+        initial('Sober');
+        await assertions[0];
+        yield 'Vodka drink';
+        steps[1].done();
+        await assertions[1];
+        steps[2].throw(new Error('I get knocked down'))
+      }, []);
+      return state;
+    }
+    await noConsole(async () => {
+      const el = createElement(Test);
+      const boundary = createErrorBoundary(el);
+      const renderer = create(boundary);
+      expect(renderer.toJSON()).to.equal('Sober');
+      assertions[0].done();
+      await steps[1];
+      expect(renderer.toJSON()).to.equal('Vodka drink');
+      assertions[1].done();
+      await delay(5);
+      expect(renderer.toJSON()).to.equal('ERROR');
+      expect(caughtAt(boundary)).to.be.an('error');
+    })
+  })
+  it('should throw when inital is called after an await statement', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    function Test() {
+      const [ state, on ] = useSequentialState(async function*({ initial }) {
+        await assertions[0];
+        initial('Sober');
+      }, []);
+      return state;
+    }
+    await noConsole(async () => {
+      const el = createElement(Test);
+      const boundary = createErrorBoundary(el);
+      const renderer = create(boundary);
+      expect(renderer.toJSON()).to.equal(null);
+      assertions[0].done();
+      await delay(5);
+      expect(renderer.toJSON()).to.equal('ERROR');
+      expect(caughtAt(boundary)).to.be.an('error');
+    })
+  })
+  it('should silently ignore any fetch abort error', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    function Test() {
+      const [ state, on ] = useSequentialState(async function*({ initial }) {
+        initial('Sober');
+        await assertions[0];
+        const abortController = new AbortController();
+        const { signal } = abortController;
+        abortController.abort();
+        try {
+          await fetch('https://asddsd.asdasd.sd', { signal });
+        } catch (err) {
+          expect(isAbortError(err)).to.be.true;
+          steps[1].throw(err);
+        }
+      }, []);
+      return state;
+    }
+    const el = createElement(Test);
+    const boundary = createErrorBoundary(el);
+    const renderer = create(boundary);
+    expect(renderer.toJSON()).to.equal('Sober');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Sober');
+    expect(caughtAt(boundary)).to.be.undefined;
+  })
+  it('should give null when value from generator is undefined', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    function Test() {
+      const [ state, on ] = useSequentialState(async function*({ initial }) {
+        initial('Sober');
+        await assertions[0];
+        yield undefined;
+        steps[1].done();
+      }, []);
+      return typeof(state);
+    }
+    const el = createElement(Test);
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('string');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('object');
   })
 })

@@ -33,8 +33,8 @@ export function sequentialState(cb, setState, setError) {
 
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
-  function defer(ms) {
-    iterator.setDelay(ms);
+  function defer(delay, limit) {
+    iterator.setDelay(delay, limit);
   }
 
   // let callback manages events with help of promises
@@ -73,7 +73,6 @@ export function sequentialState(cb, setState, setError) {
   sync = false;
 
   let pendingState;
-
   retrieveRemaining();
 
   return {
@@ -118,7 +117,7 @@ export function sequentialState(cb, setState, setError) {
             timeoutState = await timeoutState();
           }
           pendingState = timeoutState;
-          abortController.abort();
+          updateState(true);
         } else if (err instanceof Interruption) {
           updateState(false);
         } else if (err instanceof Abort) {
@@ -135,6 +134,6 @@ export function sequentialState(cb, setState, setError) {
     if (!aborted) {
       updateState(true);
     }
-    await iterator.return().catch(err => console.error(err));
+    await iterator.return();
   }
 }
