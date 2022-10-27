@@ -11,6 +11,10 @@ export function createSteps(delay = 0) {
           promise = arr[num] = new Promise((r1, r2) => { resolve = r1; reject = r2; });
           promise.done = (value) => setTimeout(() => resolve(value), delay);
           promise.fail = (err) => setTimeout(() => reject(err), delay);
+          promise.throw = (err, value) => {
+            setTimeout(() => resolve(value), delay);
+            throw err;
+          };
         }
         return promise;
       }

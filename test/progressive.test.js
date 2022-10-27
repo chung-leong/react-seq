@@ -497,8 +497,7 @@ describe('#progressive', function() {
       yield 'Pig';
       steps[1].done();
       await assertions[1];
-      setTimeout(() => steps[2].done(), 0);
-      throw new Error();
+      steps[2].throw(new Error('Error'));
     }
     function TestComponent({ animals = [] }) {
       return animals.join(', ');
