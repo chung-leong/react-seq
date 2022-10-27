@@ -1,11 +1,20 @@
 # timeout(element)
 
+Specify the timeout content, used when 
+
+## Providers
+
+* [useSequential](useSequential.md)
+* [useProgressive](useProgressive.md)
+* [useSequentialState](useSequentialState.md)
+* [useProgressiveState](useProgressiveState.md)
+
 ## Syntax
 
 ```js
 function Widget({ id }) {
-  return useSequential(async function*({ defer, timeout }) {
-    defer(100, 1000);
+  return useSequential(async function*({ defer, fallback, timeout }) {
+    defer(200, 1000);
     timeout(<span>Please be patient</span>);
     yield <span>Performing A...</span>
     await taskA();
@@ -22,9 +31,4 @@ function Widget({ id }) {
 
 * `element` - `<Element>` or `<AsyncFunction>`
 
-## Providers
-
-* [useSequential](useSequential.md)
-* [useProgressive](useProgressive.md)
-* [useSequentialState](useSequentialState.md)
-* [useProgressiveState](useProgressiveState.md)
+## Notes
