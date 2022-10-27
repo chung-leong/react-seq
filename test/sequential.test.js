@@ -4,7 +4,7 @@ import { createWriteStream } from 'fs';
 import MemoryStream from 'memorystream';
 import { create } from 'react-test-renderer';
 import { createElement, Suspense, Component } from 'react';
-import { createSteps, loopThrough } from './step.js';
+import { createSteps } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay, Abort } from '../index.js';
 

@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import { createSteps, loopThrough } from './step.js';
 import { delay, Abort } from '../index.js';
 
 import {
@@ -65,7 +66,7 @@ describe('#IntermittentIterator()', function() {
       }
     }
     await iterator.return();
-    expect(results).to.have.lengthOf(8);
+    expect(results).to.have.lengthOf(7);
     expect(results[0]).to.equal('Whiskey drink');
     expect(results[1]).to.be.instanceOf(Interruption);
     expect(results[2]).to.equal('Vodka drink');
@@ -73,7 +74,6 @@ describe('#IntermittentIterator()', function() {
     expect(results[4]).to.equal('Lager drink');
     expect(results[5]).to.be.instanceOf(Interruption);
     expect(results[6]).to.equal('Cider drink');
-    expect(results[7]).to.be.instanceOf(Interruption);
   })
   it('should throw interruption intermittently', async function() {
     const iterator = new IntermittentIterator({});
@@ -81,9 +81,9 @@ describe('#IntermittentIterator()', function() {
     const create = async function*() {
       await delay(20);
       yield 'Whiskey drink';    // 20ms
-      await delay(10);
+      await delay(10);          // 25ms interruption
       yield 'Vodka drink';      // 30ms
-      await delay(30);          // 45ms interruption (20 + 25)
+      await delay(30);          // 50ms interruption
       yield 'Lager drink';      // 60ms
       await delay(30);          // 70ms interruption
       yield 'Cider drink';      // 80ms
@@ -100,6 +100,7 @@ describe('#IntermittentIterator()', function() {
         }
       } catch (err) {
         if (err instanceof Interruption) {
+          debugger;
           results.push(err);
         } else {
           throw err;
@@ -108,24 +109,25 @@ describe('#IntermittentIterator()', function() {
     }
     await iterator.return();
     expect(results[0]).to.equal('Whiskey drink');
-    expect(results[1]).to.equal('Vodka drink');
-    expect(results[2]).to.be.instanceOf(Interruption);
-    expect(results[3]).to.equal('Lager drink');
-    expect(results[4]).to.be.instanceOf(Interruption);
-    expect(results[5]).to.equal('Cider drink');
+    expect(results[1]).to.be.instanceOf(Interruption);
+    expect(results[2]).to.equal('Vodka drink');
+    expect(results[3]).to.be.instanceOf(Interruption);
+    expect(results[4]).to.equal('Lager drink');
+    expect(results[5]).to.be.instanceOf(Interruption);
+    expect(results[6]).to.equal('Cider drink');
   })
   it('should allow alteration of delay interval half way', async function() {
     const iterator = new IntermittentIterator({});
     iterator.setDelay(25);
     const create = async function*() {
-      await delay(25);
-      yield 'Whiskey drink';    // 25ms
-      await delay(10);
+      await delay(15);
+      yield 'Whiskey drink';    // 15ms
+      await delay(20);          // 25ms interruption
       yield 'Vodka drink';      // 35ms
-      await delay(20);          // 50ms interruption
-      yield 'Lager drink';      // 55ms
-      await delay(10);
-      yield 'Cider drink';      // 65ms
+      await delay(30);          // 50ms interruption
+      yield 'Lager drink';      // 65ms
+      await delay(20);          // 75ms interruption
+      yield 'Cider drink';      // 85ms
       iterator.setDelay(40);
       await delay(10);
       yield 'Whiskey drink';    // 10ms
@@ -156,15 +158,17 @@ describe('#IntermittentIterator()', function() {
     }
     await iterator.return();
     expect(results[0]).to.equal('Whiskey drink');
-    expect(results[1]).to.equal('Vodka drink');
-    expect(results[2]).to.be.instanceOf(Interruption);
-    expect(results[3]).to.equal('Lager drink');
-    expect(results[4]).to.equal('Cider drink');
-    expect(results[5]).to.equal('Whiskey drink');
-    expect(results[6]).to.equal('Vodka drink');
-    expect(results[7]).to.equal('Lager drink');
-    expect(results[8]).to.be.instanceOf(Interruption);
-    expect(results[9]).to.equal('Cider drink');
+    expect(results[1]).to.be.instanceOf(Interruption);
+    expect(results[2]).to.equal('Vodka drink');
+    expect(results[3]).to.be.instanceOf(Interruption);
+    expect(results[4]).to.equal('Lager drink');
+    expect(results[5]).to.be.instanceOf(Interruption);
+    expect(results[6]).to.equal('Cider drink');
+    expect(results[7]).to.equal('Whiskey drink');
+    expect(results[8]).to.equal('Vodka drink');
+    expect(results[9]).to.equal('Lager drink');
+    expect(results[10]).to.be.instanceOf(Interruption);
+    expect(results[11]).to.equal('Cider drink');
   })
   it('should invoke finally section of generator', async function() {
     const iterator = new IntermittentIterator({});
@@ -205,14 +209,15 @@ describe('#IntermittentIterator()', function() {
     let finalized = false;
     const create = async function*() {
       try {
-        await delay(50);          // 40ms timeout
+        await delay(50);          // 30ms timeout
+                                  // 40ms interruption
         yield 'Whiskey drink';    // 50ms
+        await delay(20);          // 60ms interruption
+        yield 'Vodka drink';      // 70ms
+        await delay(35);          // 90ms interruption
+        yield 'Lager drink';      // 95ms
         await delay(10);
-        yield 'Vodka drink';      // 60ms
-        await delay(20);          // 70ms interruption
-        yield 'Lager drink';      // 80ms
-        await delay(10);
-        yield 'Cider drink';      // 70ms
+        yield 'Cider drink';      // 105ms
       } finally {
         finalized = true;
       }
@@ -236,12 +241,14 @@ describe('#IntermittentIterator()', function() {
       }
     }
     await iterator.return();
-    expect(results[0]).to.be.instanceOf(Timeout);
-    expect(results[1]).to.equal('Whiskey drink');
-    expect(results[2]).to.equal('Vodka drink');
+    expect(results[0]).to.be.instanceOf(Interruption);
+    expect(results[1]).to.be.instanceOf(Timeout);
+    expect(results[2]).to.equal('Whiskey drink');
     expect(results[3]).to.be.instanceOf(Interruption);
-    expect(results[4]).to.equal('Lager drink');
-    expect(results[5]).to.equal('Cider drink');
+    expect(results[4]).to.equal('Vodka drink');
+    expect(results[5]).to.be.instanceOf(Interruption);
+    expect(results[6]).to.equal('Lager drink');
+    expect(results[7]).to.equal('Cider drink');
     expect(finalized).to.be.true;
   })
   it('should stop iteration when abort controller signals', async function() {

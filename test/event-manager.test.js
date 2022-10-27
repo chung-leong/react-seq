@@ -37,7 +37,7 @@ describe('#EventManager', function() {
     setTimeout(() => handler(5), 10);
     const value1 = await promise1;
     expect(value1).to.equal(6);
-    const value2 = await Promise.race([ promise2, delay(10) ]);
+    const value2 = await Promise.race([ promise2, delay(5) ]);
     expect(value2).to.be.undefined;
   })
   it('should use the second argument as the fulfillment value as well', async function() {
@@ -56,7 +56,7 @@ describe('#EventManager', function() {
     setTimeout(() => handler(5), 10);
     const value1 = await promise1;
     expect(value1).to.equal('ok');
-    const value2 = await Promise.race([ promise2, delay(10) ]);
+    const value2 = await Promise.race([ promise2, delay(5) ]);
     expect(value2).to.be.undefined;
   })
   it('should create handlers that are invariant', function() {
@@ -84,7 +84,7 @@ describe('#EventManager', function() {
     const value1 = await promise1;
     const promise2 = eventual.click;
     expect(promise2).to.not.equal(promise1);
-    const value2 = await Promise.race([ promise2, delay(10) ]);
+    const value2 = await Promise.race([ promise2, delay(5) ]);
     expect(value2).to.be.undefined;
   })
   it('should create promises that can be chained', async function() {
@@ -97,10 +97,10 @@ describe('#EventManager', function() {
     handler1(8);
     const value1 = await promise1;
     expect(value1).to.equal(8);
-    const value2 = await Promise.race([ promise2, delay(10) ]);
+    const value2 = await Promise.race([ promise2, delay(5) ]);
     expect(value2).to.be.undefined;
     handler2(17);
-    const value3 = await Promise.race([ promise2, delay(10) ]);
+    const value3 = await Promise.race([ promise2, delay(5) ]);
     expect(value3).to.eql([ 8, 17 ]);
   })
   it('should create promises that can be chained with other promises', async function() {

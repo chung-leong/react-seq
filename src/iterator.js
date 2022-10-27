@@ -34,21 +34,23 @@ export class IntermittentIterator {
   setDelay(delay, limit = Infinity) {
     const actualDelay = delay * delayMultiplier;
     const actualLimit = Math.min(limit, delayLimit);
-    let changed = false;
     if (actualDelay !== this.delay) {
       this.delay = actualDelay;
-      this.stopInterval();
-      this.startInterval();
-      if (this.delay === 0) {
-        // timer disabled
-        this.interrupt();
+      if (this.started) {
+        this.stopInterval();
+        this.startInterval();
+        if (this.delay === 0) {
+          // timer disabled
+          this.interrupt();
+        }
       }
     }
     if (actualLimit !== this.limit) {
       this.limit = actualLimit;
-      changed = true;
-      this.stopTimeout();
-      this.startTimeout();
+      if (this.started) {
+        this.stopTimeout();
+        this.startTimeout();
+      }
     }
   }
 
@@ -56,6 +58,7 @@ export class IntermittentIterator {
     this.generator = generator;
     this.started = true;
     this.startInterval();
+    this.startTimeout();
   }
 
   next() {
