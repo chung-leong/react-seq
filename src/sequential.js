@@ -118,7 +118,7 @@ export function sequential(cb) {
           stop = aborted = true;
         } else if (isAbortError(err)) {
           // quietly ignore error
-          stop = true;
+          stop = aborted = true;
         } else {
           // resolve the promise and throw the error from inside the component
           pendingError = err;

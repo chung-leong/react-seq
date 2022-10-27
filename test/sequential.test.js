@@ -7,6 +7,7 @@ import { createElement, Suspense, Component } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay, Abort } from '../index.js';
+import { isAbortError } from '../src/utils.js';
 
 import {
   sequential,
@@ -161,6 +162,44 @@ describe('#sequential()', function() {
     await steps[2];
     expect(renderer.toJSON()).to.equal('Chicken');
   })
+  it('should allow fallback to be created by a callback function', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    const el = sequential(async function*({ fallback, defer }) {
+      fallback(() => 'Cow');
+      await assertions[0];
+      yield 'Pig';
+      steps[1].done();
+      await assertions[1];
+      yield 'Chicken';
+      steps[2].done();
+    });
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('Cow');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Chicken');
+  })
+  it('should throw when fallback is called after an await statement', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    const el = sequential(async function*({ fallback, defer }) {
+      await assertions[0];
+      fallback('Cow');
+      yield 'Pig';
+      steps[1].done();
+    });
+    await noConsole(async () => {
+      const boundary = createErrorBoundary(el);
+      const renderer = create(boundary);
+      expect(renderer.toJSON()).to.equal(null);
+      assertions[0].done();
+      await delay(5);
+      expect(renderer.toJSON()).to.equal('ERROR');
+      expect(caughtAt(boundary)).to.be.an('error');
+    });
+  })
   it('should allow management of events using promises', async function() {
     const steps = createSteps(), assertions = createSteps();
     let triggerClick;
@@ -237,6 +276,25 @@ describe('#sequential()', function() {
     const result = await Promise.race([ steps[4], steps[5] ]);
     expect(result).to.equal('finally');
   })
+  it('should terminate generator correctly if unmount occurs while fallback is being display', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    const el = sequential(async function*({ defer }) {
+      // omitting fallback on purpose
+      try {
+        await assertions[0];
+        yield 'Pig';
+        steps[1].done('end');
+      } finally {
+        steps[2].done('finally');
+      }
+    });
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal(null);
+    renderer.unmount();
+    assertions[0].done();
+    const result = await Promise.race([ steps[1], steps[2] ]);
+    expect(result).to.equal('finally');
+  })
   it('should cause all event promises to reject on unmount', async function() {
     const steps = createSteps(), assertions = createSteps();
     const el = sequential(async function*({ fallback, manageEvents }) {
@@ -308,31 +366,30 @@ describe('#sequential()', function() {
     await steps[2];
     expect(renderer.toJSON()).to.equal('Chicken');
   })
-  it('should allow a container component to return a suspending component', async function() {
-    // NOTE: test renderer does not accurately simulate this scenario
-    const steps = createSteps(5), assertions = createSteps();
-    function Creator() {
-      return sequential(async function*({ suspend }) {
-        suspend('#112');
-        await assertions[0];
-        yield 'Pig';
-        steps[1].done();
-        await assertions[1];
-        yield 'Chicken';
-        steps[2].done();
-      });
-    }
-    const el = createElement(Creator);
-    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
-    const renderer = create(suspense);
-    expect(renderer.toJSON()).to.equal('Cow');
-    assertions[0].done();
-    await steps[1];
-    await delay(100);
-    expect(renderer.toJSON()).to.equal('Pig');
-    assertions[1].done();
-    await steps[2];
-    expect(renderer.toJSON()).to.equal('Chicken');
+  it('should throw when suspend and fallback are used at the same time', async function() {
+    const el1 = sequential(async function*({ suspend, fallback }) {
+      fallback('Cow')
+      suspend();
+      yield 'Chicken';
+    });
+    const el2 = sequential(async function*({ suspend, fallback }) {
+      suspend();
+      fallback('Cow')
+      yield 'Chicken';
+    });
+    await noConsole(async () => {
+      const boundary1 = createErrorBoundary(el1);
+      const renderer1 = create(boundary1);
+      await delay(5)
+      expect(renderer1.toJSON()).to.equal('ERROR');
+      expect(caughtAt(boundary1)).to.be.an('error');
+
+      const boundary2 = createErrorBoundary(el2);
+      const renderer2 = create(boundary2);
+      await delay(5)
+      expect(renderer2.toJSON()).to.equal('ERROR');
+      expect(caughtAt(boundary2)).to.be.an('error');
+    });
   })
   it('should trigger error boundary', async function() {
     await noConsole(async () => {
@@ -667,6 +724,202 @@ describe('#useSequential()', function() {
     expect(cats).to.eql([ 'Barbie' ]);
     expect(errors[0]).to.be.an.instanceOf(Abort);
     expect(finalized).to.eql([ 'Rocky', 'Barbie' ]);
+  })
+  it('should quietly shut down generator when an AbortError is encountered', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    let error;
+    function Test() {
+      return useSequential(async function*({ fallback }) {
+        fallback('Cow');
+        try {
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+          await assertions[1];
+          const res = await fetch('https://asddsd.asdasd.sd', { signal });
+          steps[2].done('end');
+        } catch (err) {
+          error = err;
+          throw err;
+        } finally {
+          steps[3].done('finally')
+        }
+      }, []);
+    }
+    const el = createElement(Test);
+    const boundary = createErrorBoundary(el);
+    const renderer = create(boundary);
+    expect(renderer.toJSON()).to.equal('Cow');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig');
+    abortController.abort();
+    assertions[1].done();
+    const result = await Promise.race([ steps[2], steps[3] ]);
+    expect(result).to.equal('finally');
+    expect(renderer.toJSON()).to.equal('Pig');
+    expect(caughtAt(boundary)).to.be.undefined;
+    expect(isAbortError(error)).to.be.true;
+  })
+  it('should quietly shut down generator when an AbortError is encountered while fallback is still being displayed', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    let error;
+    function Test() {
+      return useSequential(async function*({ fallback }) {
+        fallback('Cow');
+        try {
+          await assertions[0];
+          const res = await fetch('https://asddsd.asdasd.sd', { signal });
+          steps[1].done('end');
+        } catch (err) {
+          error = err;
+          throw err;
+        } finally {
+          steps[2].done('finally')
+        }
+      }, []);
+    }
+    const el = createElement(Test);
+    const boundary = createErrorBoundary(el);
+    const renderer = create(boundary);
+    expect(renderer.toJSON()).to.equal('Cow');
+    abortController.abort();
+    assertions[0].done();
+    const result = await Promise.race([ steps[1], steps[2] ]);
+    expect(result).to.equal('finally');
+    expect(renderer.toJSON()).to.equal(null);
+    expect(caughtAt(boundary)).to.be.undefined;
+    expect(isAbortError(error)).to.be.true;
+  })
+  it('should allow a container component to return a suspending component', async function() {
+    // NOTE: test renderer does not accurately simulate this scenario
+    // since it doesn't recreate the state of the container element
+    // upon unsuspension
+    const steps = createSteps(5), assertions = createSteps();
+    function Creator() {
+      return useSequential(async function*({ suspend }) {
+        suspend('#112');
+        await assertions[0];
+        yield 'Pig';
+        steps[1].done();
+        await assertions[1];
+        yield 'Chicken';
+        steps[2].done();
+      }, []);
+    }
+    const el = createElement(Creator);
+    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
+    const renderer = create(suspense);
+    expect(renderer.toJSON()).to.equal('Cow');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Chicken');
+    // simulate the recreation of the container element for the sake
+    // of code coverage
+    renderer.update(null);
+    renderer.update(suspense);
+    // should immediately get the previously created component
+    expect(renderer.toJSON()).to.equal('Chicken');
+  })
+  it('should correctly deal with undefined', async function() {
+    const steps = createSteps(5), assertions = createSteps();
+    function Creator() {
+      return useSequential(async function*() {
+        await assertions[0];
+        yield 'Pig';
+        steps[1].done();
+        await assertions[1];
+        yield undefined;
+        steps[2].done();
+        await assertions[2];
+        yield 'Chicken';
+        steps[3].done();
+      }, []);
+    }
+    const el = createElement(Creator);
+    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
+    const renderer = create(suspense);
+    expect(renderer.toJSON()).to.equal(null);
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal(null);
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Chicken');
+  })
+  it('should correctly deal with undefined as the initial non-fallback content', async function() {
+    const steps = createSteps(5), assertions = createSteps();
+    function Creator() {
+      return useSequential(async function*({ fallback }) {
+        fallback('Cow');
+        await assertions[0];
+        yield undefined;
+        steps[1].done();
+        await assertions[1];
+        yield 'Pig';
+        steps[2].done();
+        await assertions[2];
+        yield 'Chicken';
+        steps[3].done();
+      }, []);
+    }
+    const el = createElement(Creator);
+    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
+    const renderer = create(suspense);
+    expect(renderer.toJSON()).to.equal('Cow');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal(null);
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Chicken');
+  })
+  it('should correctly deal with undefined as the timeout content', async function() {
+    const steps = createSteps(5), assertions = createSteps();
+    function Creator() {
+      return useSequential(async function*({ fallback, defer, timeout }) {
+        defer(0, 20);
+        fallback('Cow');
+        timeout(() => undefined);
+        await assertions[0];
+        yield 'Monkey';
+        steps[1].done();
+        await assertions[1];
+        yield 'Pig';
+        steps[2].done();
+        await assertions[2];
+        yield 'Chicken';
+        steps[3].done();
+      }, []);
+    }
+    const el = createElement(Creator);
+    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
+    const renderer = create(suspense);
+    expect(renderer.toJSON()).to.equal('Cow');
+    await delay(30);
+    expect(renderer.toJSON()).to.equal(null);
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Monkey');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Chicken');
   })
 })
 

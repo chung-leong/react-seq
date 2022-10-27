@@ -327,7 +327,7 @@ describe('#useSequentialState()', function() {
       expect(caughtAt(boundary)).to.be.an('error');
     })
   })
-  it('should throw when inital is called after an await statement', async function() {
+  it('should throw when initial is called after an await statement', async function() {
     const steps = createSteps(), assertions = createSteps();
     function Test() {
       const [ state, on ] = useSequentialState(async function*({ initial }) {
