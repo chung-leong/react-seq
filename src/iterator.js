@@ -133,8 +133,7 @@ export class IntermittentIterator {
         this.promise = null;
         if (this.timeout) {
           // we got something, turn off the timeout
-          clearTimeout(this.timeout);
-          this.timeout = 0;
+          this.stopTimeout();
           this.expired = true;
         }
       }).then(() => {

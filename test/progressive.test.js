@@ -60,6 +60,7 @@ describe('#generateNext()', function() {
     ]);
   })
   it('should return values from promise of promise of an async generator', async function() {
+    debugger;
     const source = p(p(a(1, 2, 3)));
     const generator = generateNext(source);
     const list = await getList(generator);
@@ -272,6 +273,59 @@ describe('#generateProps()', function() {
       expect(list[1]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
     });
   })
+  it('should call a function to determine usability', async function() {
+    const steps = createSteps();
+    const create = async function*() {
+      await steps[0];
+      yield 'Cow';
+      await steps[2];
+      yield 'Pig';
+      await steps[3];
+      yield 'Chicken';
+    };
+    const props = {
+      hello: Promise.resolve('Hello'),
+      world: steps[1].then(() => 'World'),
+      animals: create(),
+    };
+    function checkArray(arr, props) {
+      expect(props).to.have.property('hello');
+      expect(props).to.have.property('world');
+      expect(props).to.have.property('animals');
+      return arr.length >= 2;
+    }
+    await loopThrough(steps, 5, async () => {
+      const generator = generateProps(props, { animals: checkArray });
+      const list = await getList(generator);
+      expect(list).to.have.lengthOf(2);
+      expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig' ] });
+      expect(list[1]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    });
+  })
+  it('should accept number as usability for non-array', async function() {
+    const steps = createSteps();
+    const create = async function*() {
+      await steps[0];
+      yield 'Cow';
+      await steps[2];
+      yield 'Pig';
+      await steps[3];
+      yield 'Chicken';
+    };
+    const props = {
+      hello: Promise.resolve('Hello'),
+      world: steps[1].then(() => 'World'),
+      animals: create(),
+    };
+    await loopThrough(steps, 5, async () => {
+      const generator = generateProps(props, { world: 1, animals: 0 });
+      const list = await getList(generator);
+      expect(list).to.have.lengthOf(3);
+      expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow' ] });
+      expect(list[1]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig' ] });
+      expect(list[2]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    });
+  })
   it('should return an array even when usability criteria cannot be met', async function() {
     const steps = createSteps(), assertions = createSteps();
     const create = async function*() {
@@ -348,7 +402,7 @@ describe('#generateProps()', function() {
       });
     });
   })
-  it ('should throw an error when a prop\'s generator encounters one', async function() {
+  it('should throw an error when a prop\'s generator encounters one', async function() {
     const steps = createSteps(), assertions = createSteps();
     const create = async function*() {
       await steps[0];
@@ -380,6 +434,44 @@ describe('#generateProps()', function() {
         { hello: 'Hello', world: 'World', animals: [ 1, 2, 3 ] },
       ]);
       expect(error).to.be.an('error');
+    });
+  })
+  it('should send error that happens in finally section of generator to console', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    const create = async function*() {
+      try {
+        await steps[0];
+        yield [ 1, 2, 3 ].values();
+        await steps[2];
+        yield [ 4, 5, 5 ].values();
+        await steps[3];
+        yield [ 7, 8, 9 ].values();
+      } finally {
+        throw new Error('What the...?');
+      }
+    };
+    const props = {
+      hello: Promise.resolve('Hello'),
+      world: steps[1].then(() => 'World'),
+      animals: create(),
+    };
+    await loopThrough(steps, 5, async () => {
+      const results = await noConsole(async () => {
+        const generator = generateProps(props, { world: true, animals: true });
+        const list = [];
+        let error;
+        try {
+          for await (const state of generator) {
+            list.push(state);
+            generator.return(); // terminate after grabbing the first one
+          }
+        } catch (err) {
+          error = err;
+        }
+        expect(error).to.be.undefined;
+      });
+      expect(results.error).to.be.an('error');
+      expect(results.error.message).to.contain('What the...');
     });
   })
 })
@@ -666,7 +758,7 @@ describe('#progressive', function() {
       });
       const boundary = createErrorBoundary(el);
       const renderer = create(boundary);
-      await delay(1);
+      await delay(5);
       expect(caughtAt(boundary)).to.be.an('error');
     })
   })
@@ -678,7 +770,7 @@ describe('#progressive', function() {
       });
       const boundary = createErrorBoundary(el);
       const renderer = create(boundary);
-      await delay(1);
+      await delay(5);
       expect(caughtAt(boundary)).to.be.an('error');
     })
   })
@@ -872,9 +964,6 @@ describe('#useProgressive()', function() {
       yield 'Chicken';
       steps[3].done();
     }
-    function TestComponent({ animals }) {
-      return animals.join(', ');
-    }
     function ContainerComponent() {
       return useProgressive(async ({ fallback, type, usable }) => {
         fallback('None');
@@ -898,6 +987,65 @@ describe('#useProgressive()', function() {
     await steps[3];
     expect(JSON.parse(renderer.toJSON())).to.eql({ animals: [ 'Pig', 'Donkey', 'Chicken' ] });
   })
+  it('should warn when loaded module does not have a default export', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    function ContainerComponent() {
+      return useProgressive(async ({ type }) => {
+        await assertions[0];
+        type(await import('./components/Empty.js'));
+        steps[1].done();
+        return {};
+      }, []);
+    }
+    const el = createElement(ContainerComponent);
+    const result = await noConsole(async () => {
+      const renderer = create(el);
+      expect(JSON.parse(renderer.toJSON())).to.eql(null);
+      assertions[0].done();
+      await steps[1];
+    });
+    expect(result.warn).to.contain('default');
+  })
+  it('should warn when type is given a promise', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    function ContainerComponent() {
+      return useProgressive(async ({ type }) => {
+        await assertions[0];
+        type(import('./components/Empty.js'));
+        steps[1].done();
+        return {};
+      }, []);
+    }
+    const el = createElement(ContainerComponent);
+    const result = await noConsole(async () => {
+      const renderer = create(el);
+      expect(JSON.parse(renderer.toJSON())).to.eql(null);
+      assertions[0].done();
+      await steps[1];
+    });
+    expect(result.warn).to.contain('await');
+  })
+  it('should warn when usability is specified for a prop that does not appear in the return object', async function () {
+    const steps = createSteps(), assertions = createSteps();
+    function ContainerComponent() {
+      return useProgressive(async ({ type, usable }) => {
+        usable({ b: 1, c: 2 });
+        await assertions[0];
+        type(await import('./components/JSONDump.js'));
+        steps[1].done();
+        return { a: 1 };
+      }, []);
+    }
+    const el = createElement(ContainerComponent);
+    const result = await noConsole(async () => {
+      const renderer = create(el);
+      expect(JSON.parse(renderer.toJSON())).to.eql(null);
+      assertions[0].done();
+      await steps[1];
+    });
+    expect(result.warn).to.contain('prop');
+  })
+
 })
 
 async function getList(generator) {

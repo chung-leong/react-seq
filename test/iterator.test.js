@@ -170,9 +170,38 @@ describe('#IntermittentIterator()', function() {
     expect(results[10]).to.be.instanceOf(Interruption);
     expect(results[11]).to.equal('Cider drink');
   })
+  it('should allow alteration of limit half way', async function() {
+    const iterator = new IntermittentIterator({});
+    iterator.setDelay(35, 100);
+    const create = async function*() {
+      await delay(100);
+    };
+    setTimeout(() => iterator.setDelay(80, 20), 10);
+    const results = [];
+    iterator.start(create());
+    for (;;) {
+      try {
+        const { value, done } = await iterator.next();
+        if (!done) {
+          results.push(value);
+        } else {
+          break;
+        }
+      } catch (err) {
+        if (err instanceof Interruption || err instanceof Timeout) {
+          results.push(err);
+        } else {
+          throw err;
+        }
+      }
+    }
+    await iterator.return();
+    expect(results[0]).to.be.instanceOf(Timeout);
+  })
+
   it('should invoke finally section of generator', async function() {
     const iterator = new IntermittentIterator({});
-    iterator.setDelay(25);
+    iterator.setDelay(25, 1000);
     let finalized = false;
     const create = async function*() {
       try {

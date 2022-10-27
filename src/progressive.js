@@ -15,10 +15,12 @@ export function progressive(cb) {
       }
       if (typeof(type) === 'object' && 'default' in type) {
         elementType = type.default;
-      } else if (typeof(type) === 'object' && type.constructor === null) {
+      } else if (typeof(type) === 'object' && type.constructor == null) {
+        // module object has no constructor
         if (process.env.NODE_ENV === 'development') {
           console.warn('You seem to have passed a module without a default export');
         }
+        elementType = type;
       } else {
         if (process.env.NODE_ENV === 'development') {
           if (isPromise(type)) {
@@ -153,7 +155,7 @@ export async function* generateProps(asyncProps, usables) {
           let propUsable = false;
           if (p.usable !== undefined) {
             if (typeof(p.usable) === 'function') {
-              propUsable = !!p.usable(p.value, p.resolved, props);
+              propUsable = !!p.usable(p.value, props);
             } else if (typeof(p.usable) === 'number') {
               let length = 0;
               if (p.value instanceof Array) {
@@ -191,6 +193,10 @@ export async function* generateProps(asyncProps, usables) {
         try {
           await p.generator.return();
         } catch (err) {
+          // normally, return() is a no-op since the finally section has already been run
+          // return() runs the finally run section only when the generator is prematurely
+          // closed; any error would simply be silently ignored; we throw it therefore
+          // in to the console so the programmer at least know an error is happening
           console.error(err);
         }
       }
@@ -208,8 +214,6 @@ export async function* generateNext(source, current = undefined, sent = false) {
         sent = false;
       }
       current.push(next);
-    } else if (isGenerator(source)) {
-      current = [ next ];
     } else {
       current = next;
     }
@@ -257,15 +261,8 @@ export async function* generateNext(source, current = undefined, sent = false) {
       }
     } finally {
       // run finally section
-      try {
-        if (source.return) {
-          const ret = source.return();
-          if (isPromise(ret)) {
-            ret.catch((err) => console.error(err));
-          }
-        }
-      } catch (err) {
-        console.error(err);
+      if (source.return) {
+        await source.return();
       }
     }
   } else if (isPromise(source)) {
