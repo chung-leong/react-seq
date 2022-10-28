@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { createElement, useMemo } from 'react';
-import { create } from 'react-test-renderer';
+import { createTestRenderer } from './test-renderer.js';
 import { createSteps } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
@@ -81,7 +81,7 @@ describe('#useProgressiveState', function() {
       return (sober) ? ':-(' : '8-)';
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(':-(');
     expect(state).to.eql({ drinks: [], sober: true });
     assertions[0].done();
@@ -125,7 +125,7 @@ describe('#useProgressiveState', function() {
       return (sober) ? ':-(' : '8-)';
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(':-(');
     expect(state).to.eql({ drinks: [], sober: true });
     assertions[0].done();
@@ -155,7 +155,7 @@ describe('#useProgressiveState', function() {
     await noConsole(async () => {
       const el = createElement(Test);
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       await delay(10);
       expect(caughtAt(boundary)).to.be.an('error');
     });

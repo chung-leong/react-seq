@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { create } from 'react-test-renderer';
 import { createElement } from 'react';
+import { createTestRenderer } from './test-renderer.js';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
@@ -14,7 +14,7 @@ import {
 describe('#sequentialState()', function() {
   it('should invoke function with new state', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createDrinks = async function*() {
       await assertions[0];
       yield 'Whiskey drink';
       steps[1].done();
@@ -31,7 +31,7 @@ describe('#sequentialState()', function() {
     const results = [], errors = [];
     const setState = value => results.push(value);
     const setError = err => errors.push(err);
-    const { initialState } = sequentialState(create, setState, setError);
+    const { initialState } = sequentialState(createDrinks, setState, setError);
     expect(initialState).to.be.undefined;
     assertions[0].done();
     await steps[1];
@@ -48,7 +48,7 @@ describe('#sequentialState()', function() {
   })
   it('should invoke function with error when it occurs', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createDrinks = async function*() {
       await assertions[0];
       yield 'Whiskey drink';
       steps[1].done();
@@ -61,7 +61,7 @@ describe('#sequentialState()', function() {
     const results = [], errors = [];
     const setState = value => results.push(value);
     const setError = err => errors.push(err);
-    const { initialState } = sequentialState(create, setState, setError);
+    const { initialState } = sequentialState(createDrinks, setState, setError);
     expect(initialState).to.be.undefined;
     assertions[0].done();
     await steps[1];
@@ -75,7 +75,7 @@ describe('#sequentialState()', function() {
   })
   it('should return the initial state', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*({ initial }) {
+    const createDrinks = async function*({ initial }) {
       initial('Sober');
       await assertions[0];
       yield 'Whiskey drink';
@@ -93,7 +93,7 @@ describe('#sequentialState()', function() {
     const results = [], errors = [];
     const setState = value => results.push(value);
     const setError = err => errors.push(err);
-    const { initialState } = sequentialState(create, setState, setError);
+    const { initialState } = sequentialState(createDrinks, setState, setError);
     expect(initialState).to.equal('Sober');
     for (let i = 0; i <= 4; i++) {
       assertions[i].done();
@@ -103,7 +103,7 @@ describe('#sequentialState()', function() {
   })
   it('should allow the deferrment of state update', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*({ defer }) {
+    const createDrinks = async function*({ defer }) {
       defer(20);
       await assertions[0];
       yield 'Whiskey drink';
@@ -121,7 +121,7 @@ describe('#sequentialState()', function() {
     const results = [], errors = [];
     const setState = value => results.push(value);
     const setError = err => errors.push(err);
-    const { initialState } = sequentialState(create, setState, setError);
+    const { initialState } = sequentialState(createDrinks, setState, setError);
     assertions[0].done();
     await steps[1];
     expect(results).to.eql([]);
@@ -137,7 +137,7 @@ describe('#sequentialState()', function() {
   })
   it('should interrupt iteration of generator when abort controller is invoked', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createDrinks = async function*() {
       try {
         await assertions[0];
         yield 'Whiskey drink';
@@ -159,7 +159,7 @@ describe('#sequentialState()', function() {
     const setState = value => results.push(value);
     let error;
     const setError = err => error = err;
-    const { abortController } = sequentialState(create, setState, setError);
+    const { abortController } = sequentialState(createDrinks, setState, setError);
     expect(abortController).to.be.instanceOf(AbortController);
     assertions[0].done();
     await steps[1];
@@ -206,7 +206,7 @@ describe('#useSequentialState()', function() {
       return state;
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(results).to.eql([ 'Pissing the night away' ]);
     assertions[0].done();
     await steps[1];
@@ -243,7 +243,7 @@ describe('#useSequentialState()', function() {
       return state;
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Whiskey drink');
     assertions[0].done();
     renderer.unmount();
@@ -262,7 +262,7 @@ describe('#useSequentialState()', function() {
       return state;
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Whiskey drink');
     assertions[0].done();
     await steps[1];
@@ -275,7 +275,7 @@ describe('#useSequentialState()', function() {
     }
     await noConsole(async () => {
       const el = createElement(Test);
-      expect(() => create(el)).to.throw();
+      expect(() => createTestRenderer(el)).to.throw();
     });
   })
   it('should throw any error encountered so it can be caught by error boundary', async function() {
@@ -294,7 +294,7 @@ describe('#useSequentialState()', function() {
     await noConsole(async () => {
       const el = createElement(Test);
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       expect(renderer.toJSON()).to.equal('Sober');
       assertions[0].done();
       await steps[1];
@@ -317,7 +317,7 @@ describe('#useSequentialState()', function() {
     await noConsole(async () => {
       const el = createElement(Test);
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       expect(renderer.toJSON()).to.equal(null);
       assertions[0].done();
       await delay(5);
@@ -345,7 +345,7 @@ describe('#useSequentialState()', function() {
     }
     const el = createElement(Test);
     const boundary = createErrorBoundary(el);
-    const renderer = create(boundary);
+    const renderer = createTestRenderer(boundary);
     expect(renderer.toJSON()).to.equal('Sober');
     assertions[0].done();
     await steps[1];
@@ -364,10 +364,13 @@ describe('#useSequentialState()', function() {
       return typeof(state);
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('string');
     assertions[0].done();
     await steps[1];
+    for (let i = 0; i < 10; i++) {
+      await delay(0);
+    }
     expect(renderer.toJSON()).to.equal('object');
   })
   it('should update state immediately where there is an unused slot', async function() {
@@ -384,7 +387,7 @@ describe('#useSequentialState()', function() {
       return state;
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Sober');
     await delay(45);
     expect(renderer.toJSON()).to.equal('Drunk');

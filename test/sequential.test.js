@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { renderToPipeableStream } from 'react-dom/server';
 import { createWriteStream } from 'fs';
 import MemoryStream from 'memorystream';
-import { create } from 'react-test-renderer';
+import { createTestRenderer, updateTestRenderer, unmountTestRenderer } from './test-renderer.js';
 import { createElement, Suspense, Component } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
@@ -35,7 +35,7 @@ describe('#sequential()', function() {
       yield 'Pig';
       steps[1].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -53,7 +53,7 @@ describe('#sequential()', function() {
       yield 'Chicken';
       steps[2].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -78,7 +78,7 @@ describe('#sequential()', function() {
       yield 'Chicken';
       steps[3].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(null);
     assertions[0].done();
     await steps[1];
@@ -109,7 +109,7 @@ describe('#sequential()', function() {
       yield 'Chicken';
       steps[3].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(null);
     assertions[0].done();
     await steps[1];
@@ -133,7 +133,7 @@ describe('#sequential()', function() {
       yield 'Chicken';
       steps[2].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(null);
     assertions[0].done();
     await steps[1];
@@ -153,7 +153,7 @@ describe('#sequential()', function() {
       yield 'Chicken';
       steps[2].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -173,7 +173,7 @@ describe('#sequential()', function() {
       yield 'Chicken';
       steps[2].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -192,7 +192,7 @@ describe('#sequential()', function() {
     });
     await noConsole(async () => {
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       expect(renderer.toJSON()).to.equal(null);
       assertions[0].done();
       await delay(5);
@@ -219,7 +219,7 @@ describe('#sequential()', function() {
       yield 'Rocky';
       steps[3].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -260,7 +260,7 @@ describe('#sequential()', function() {
         steps[5].done('finally');
       }
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -268,7 +268,7 @@ describe('#sequential()', function() {
     assertions[1].done();
     await steps[2];
     expect(renderer.toJSON()).to.equal('Chicken');
-    renderer.unmount();
+    unmountTestRenderer(renderer);
     assertions[2].done();
     expect(renderer.toJSON()).to.equal(null);
     assertions[3].done();
@@ -288,9 +288,9 @@ describe('#sequential()', function() {
         steps[2].done('finally');
       }
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(null);
-    renderer.unmount();
+    unmountTestRenderer(renderer);
     assertions[0].done();
     const result = await Promise.race([ steps[1], steps[2] ]);
     expect(result).to.equal('finally');
@@ -316,14 +316,14 @@ describe('#sequential()', function() {
         steps[4].done('finally');
       }
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
     expect(renderer.toJSON()).to.equal('Pig');
     assertions[1].done();
     await delay(5);
-    renderer.update(null);
+    updateTestRenderer(renderer, null);
     expect(renderer.toJSON()).to.equal(null);
     const result = await Promise.race([ steps[3], steps[4] ]);
     expect(result).to.equal('finally');
@@ -338,7 +338,7 @@ describe('#sequential()', function() {
       yield 'Pig';
       steps[1].done();
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     await delay(15);
     expect(renderer.toJSON()).to.equal('Tortoise');
@@ -356,7 +356,7 @@ describe('#sequential()', function() {
       steps[2].done();
     });
     const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
-    const renderer = create(suspense);
+    const renderer = createTestRenderer(suspense);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -379,13 +379,13 @@ describe('#sequential()', function() {
     });
     await noConsole(async () => {
       const boundary1 = createErrorBoundary(el1);
-      const renderer1 = create(boundary1);
+      const renderer1 = createTestRenderer(boundary1);
       await delay(5)
       expect(renderer1.toJSON()).to.equal('ERROR');
       expect(caughtAt(boundary1)).to.be.an('error');
 
       const boundary2 = createErrorBoundary(el2);
-      const renderer2 = create(boundary2);
+      const renderer2 = createTestRenderer(boundary2);
       await delay(5)
       expect(renderer2.toJSON()).to.equal('ERROR');
       expect(caughtAt(boundary2)).to.be.an('error');
@@ -398,7 +398,7 @@ describe('#sequential()', function() {
         yield createElement('div', {}, cat); // also an undeclared variable here
       });
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       await delay(5);
       expect(caughtAt(boundary)).to.be.an('error');
     });
@@ -415,7 +415,7 @@ describe('#sequential()', function() {
         yield createElement('div', {}, cat);
       });
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       expect(renderer.toJSON()).to.equal('Cow');
       assertions[0].done();
       await steps[1];
@@ -436,7 +436,7 @@ describe('#sequential()', function() {
       steps[2].done();
     })
     extendDelay(1);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(null);
     assertions[0].done();
     await steps[1];
@@ -532,13 +532,13 @@ describe('#useSequential()', function() {
       }, [ cat ]);
     }
     const el1 = createElement(Test, { cat: 'Rocky' });
-    const renderer = create(el1);
+    const renderer = createTestRenderer(el1);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
     expect(renderer.toJSON()).to.equal('Pig');
     const el2 = createElement(Test, { cat: 'Barbie' });
-    renderer.update(el2);
+    updateTestRenderer(renderer, el2);
     expect(renderer.toJSON()).to.equal('Cow');
     await delay(5);
     expect(renderer.toJSON()).to.equal('Pig');
@@ -567,13 +567,13 @@ describe('#useSequential()', function() {
       });
     }
     const el1 = createElement(Test, { cat: 'Rocky' });
-    const renderer = create(el1);
+    const renderer = createTestRenderer(el1);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
     expect(renderer.toJSON()).to.equal('Pig');
     const el2 = createElement(Test, { cat: 'Barbie' });
-    renderer.update(el2);
+    updateTestRenderer(renderer, el2);
     expect(renderer.toJSON()).to.equal('Cow');
     await delay(5);
     expect(renderer.toJSON()).to.equal('Pig');
@@ -602,7 +602,7 @@ describe('#useSequential()', function() {
       }, [ cat ]);
     }
     const el1 = createElement(Test, { cat: 'Rocky', dog: 'Dingo' });
-    const renderer = create(el1);
+    const renderer = createTestRenderer(el1);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -611,7 +611,7 @@ describe('#useSequential()', function() {
     await steps[2];
     expect(renderer.toJSON()).to.equal('Rocky');
     const el2 = createElement(Test, { cat: 'Rocky', dog: 'Pi' });
-    renderer.update(el2);
+    updateTestRenderer(renderer, el2);
     assertions[2].done();
     await steps[3];
     expect(cats).to.eql([ 'Rocky' ]);
@@ -641,13 +641,14 @@ describe('#useSequential()', function() {
         }
       });
     }
-    const renderer = create(createElement(Test, { cat: 'Rocky' }));
+    const el = createElement(Test, { cat: 'Rocky' });
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
     expect(renderer.toJSON()).to.equal('Pig');
     const el2 = createElement(Test, { cat: 'Barbie' });
-    renderer.update(el2);
+    updateTestRenderer(renderer, el2);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[1].done();
     await steps[2];
@@ -695,7 +696,7 @@ describe('#useSequential()', function() {
       }, [ cat ]);
     }
     const el1 = createElement(Test, { cat: 'Rocky' });
-    const renderer = create(el1);
+    const renderer = createTestRenderer(el1);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -703,7 +704,7 @@ describe('#useSequential()', function() {
     assertions[1].done();
     await delay(5); // ensure that the component get a chance to await on click and keypress
     const el2 = createElement(Test, { cat: 'Barbie' });
-    renderer.update(el2);
+    updateTestRenderer(renderer, el2);
     expect(renderer.toJSON()).to.equal('Cow');
     await delay(5);
     expect(renderer.toJSON()).to.equal('Pig');
@@ -750,7 +751,7 @@ describe('#useSequential()', function() {
     }
     const el = createElement(Test);
     const boundary = createErrorBoundary(el);
-    const renderer = create(boundary);
+    const renderer = createTestRenderer(boundary);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -785,7 +786,7 @@ describe('#useSequential()', function() {
     }
     const el = createElement(Test);
     const boundary = createErrorBoundary(el);
-    const renderer = create(boundary);
+    const renderer = createTestRenderer(boundary);
     expect(renderer.toJSON()).to.equal('Cow');
     abortController.abort();
     assertions[0].done();
@@ -813,7 +814,7 @@ describe('#useSequential()', function() {
     }
     const el = createElement(Test);
     const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
-    const renderer = create(suspense);
+    const renderer = createTestRenderer(suspense);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -823,8 +824,8 @@ describe('#useSequential()', function() {
     expect(renderer.toJSON()).to.equal('Chicken');
     // simulate the recreation of the container element for the sake
     // of code coverage
-    renderer.update(null);
-    renderer.update(suspense);
+    updateTestRenderer(renderer, null);
+    updateTestRenderer(renderer, suspense);
     // should immediately get the previously created component
     expect(renderer.toJSON()).to.equal('Chicken');
   })
@@ -844,7 +845,7 @@ describe('#useSequential()', function() {
       }, []);
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal(null);
     assertions[0].done();
     await steps[1];
@@ -873,7 +874,7 @@ describe('#useSequential()', function() {
       }, []);
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -903,7 +904,7 @@ describe('#useSequential()', function() {
       }, []);
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(renderer.toJSON()).to.equal(null);
@@ -929,7 +930,7 @@ describe('#useSequential()', function() {
       }, []);
     }
     const el = createElement(Test);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('Cow');
     await delay(45);
     expect(renderer.toJSON()).to.equal('Pig');

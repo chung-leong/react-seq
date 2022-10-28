@@ -1,6 +1,6 @@
 import { expect } from 'chai';
-import { create } from 'react-test-renderer';
 import { createElement } from 'react';
+import { createTestRenderer } from './test-renderer.js';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
@@ -203,7 +203,7 @@ describe('#generateProps()', function() {
   })
   it('should retrieve items from async generator', async function() {
     const steps = createSteps();
-    const create = async function*() {
+    const createAnimals = async function*() {
       await steps[0];
       yield 'Cow';
       await steps[2];
@@ -214,7 +214,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
+      animals: createAnimals(),
     };
     await loopThrough(steps, 5, async () => {
       const generator = generateProps(props, {});
@@ -224,7 +224,7 @@ describe('#generateProps()', function() {
     });
   })
   it('should retrieve items from sync generator', async function() {
-    const create = function*() {
+    const createAnimals = function*() {
       yield 'Cow';
       yield 'Pig';
       yield 'Chicken';
@@ -232,7 +232,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: delay(5).then(() => 'World'),
-      animals: create(),
+      animals: createAnimals(),
     };
     const generator = generateProps(props, {});
     const list = await getList(generator);
@@ -252,7 +252,7 @@ describe('#generateProps()', function() {
   })
   it('should deem array of certain length as usable', async function() {
     const steps = createSteps();
-    const create = async function*() {
+    const createAnimals = async function*() {
       await steps[0];
       yield 'Cow';
       await steps[2];
@@ -263,7 +263,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
+      animals: createAnimals(),
     };
     await loopThrough(steps, 5, async () => {
       const generator = generateProps(props, { animals: 2 });
@@ -275,7 +275,7 @@ describe('#generateProps()', function() {
   })
   it('should call a function to determine usability', async function() {
     const steps = createSteps();
-    const create = async function*() {
+    const createAnimals = async function*() {
       await steps[0];
       yield 'Cow';
       await steps[2];
@@ -286,7 +286,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
+      animals: createAnimals(),
     };
     function checkArray(arr, props) {
       expect(props).to.have.property('hello');
@@ -304,7 +304,7 @@ describe('#generateProps()', function() {
   })
   it('should accept number as usability for non-array', async function() {
     const steps = createSteps();
-    const create = async function*() {
+    const createAnimals = async function*() {
       await steps[0];
       yield 'Cow';
       await steps[2];
@@ -315,7 +315,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
+      animals: createAnimals(),
     };
     await loopThrough(steps, 5, async () => {
       const generator = generateProps(props, { world: 1, animals: 0 });
@@ -328,7 +328,7 @@ describe('#generateProps()', function() {
   })
   it('should return an array even when usability criteria cannot be met', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createAnimals = async function*() {
       await steps[0];
       yield 'Cow';
       await steps[2];
@@ -339,7 +339,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
+      animals: createAnimals(),
     };
     await loopThrough(steps, 5, async() => {
       const generator = generateProps(props, { animals: Infinity });
@@ -350,7 +350,7 @@ describe('#generateProps()', function() {
   })
   it('should retrieve items from multiple generators', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createAnimals = async function*() {
       await steps[0];
       yield 'Cow';
       await steps[2];
@@ -361,8 +361,8 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
-      names: create(),
+      animals: createAnimals(),
+      names: createAnimals(),
     };
     await loopThrough(steps, 5, async() => {
       const generator = generateProps(props, { animals: 2 });
@@ -378,7 +378,7 @@ describe('#generateProps()', function() {
   })
   it('should merge items from multiple generators into single list', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createNumbers = async function*() {
       await steps[1];
       yield [ 1, 2, 3 ].values();
       await steps[2];
@@ -389,7 +389,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[0].then(() => 'World'),
-      animals: create(),
+      animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
       const generator = generateProps(props, {});
@@ -404,7 +404,7 @@ describe('#generateProps()', function() {
   })
   it('should throw an error when a prop\'s generator encounters one', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createNumbers = async function*() {
       await steps[0];
       yield [ 1, 2, 3 ].values();
       await steps[2];
@@ -415,7 +415,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
+      animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
       const generator = generateProps(props, { world: true, animals: true });
@@ -438,7 +438,7 @@ describe('#generateProps()', function() {
   })
   it('should send error that happens in finally section of generator to console', async function() {
     const steps = createSteps(), assertions = createSteps();
-    const create = async function*() {
+    const createNumbers = async function*() {
       try {
         await steps[0];
         yield [ 1, 2, 3 ].values();
@@ -453,7 +453,7 @@ describe('#generateProps()', function() {
     const props = {
       hello: Promise.resolve('Hello'),
       world: steps[1].then(() => 'World'),
-      animals: create(),
+      animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
       const results = await noConsole(async () => {
@@ -502,7 +502,7 @@ describe('#progressive', function() {
       });
       return { animals: generate() };
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -535,7 +535,7 @@ describe('#progressive', function() {
       type(TestComponent);
       return { animals: generate() };
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -570,7 +570,7 @@ describe('#progressive', function() {
       usable({ animals: 1 })
       return { animals: generate() };
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -603,7 +603,7 @@ describe('#progressive', function() {
         return { animals: generate() };
       });
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       expect(renderer.toJSON()).to.equal('None');
       assertions[0].done();
       await steps[1];
@@ -636,7 +636,7 @@ describe('#progressive', function() {
       usable({ animals: true });
       return { animals: generate() };
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -667,7 +667,7 @@ describe('#progressive', function() {
       element(({ animals = [] }) => createElement('span', {}, animals.join(', ')));
       return { animals: generate() };
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -704,7 +704,7 @@ describe('#progressive', function() {
       usable({ animals: true });
       return { animals: generate() };
     });
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -723,7 +723,7 @@ describe('#progressive', function() {
         return {};
       });
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       await delay(1);
       expect(caughtAt(boundary)).to.be.an('error');
     });
@@ -736,7 +736,7 @@ describe('#progressive', function() {
         return {};
       });
       const boundary1 = createErrorBoundary(el1);
-      const renderer1 = create(boundary1);
+      const renderer1 = createTestRenderer(boundary1);
       await delay(5);
       expect(caughtAt(boundary1)).to.be.an('error');
 
@@ -746,7 +746,7 @@ describe('#progressive', function() {
         return {};
       });
       const boundary2 = createErrorBoundary(el2);
-      const renderer2 = create(boundary2);
+      const renderer2 = createTestRenderer(boundary2);
       await delay(5);
       expect(caughtAt(boundary2)).to.be.an('error');
     });
@@ -758,7 +758,7 @@ describe('#progressive', function() {
         return {};
       });
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       await delay(5);
       expect(caughtAt(boundary)).to.be.an('error');
     })
@@ -770,7 +770,7 @@ describe('#progressive', function() {
         return 123;
       });
       const boundary = createErrorBoundary(el);
-      const renderer = create(boundary);
+      const renderer = createTestRenderer(boundary);
       await delay(5);
       expect(caughtAt(boundary)).to.be.an('error');
     })
@@ -804,7 +804,7 @@ describe('#progressive', function() {
       element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
       return { animals: create1(), sandwiches: create2() };
     });
-    let renderer = create(el);
+    let renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -850,7 +850,7 @@ describe('#progressive', function() {
       element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
       return { animals: create1(), sandwiches: create2() };
     });
-    let renderer = create(el);
+    let renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -896,7 +896,7 @@ describe('#useProgressive()', function() {
       return animals.join(', ');
     }
     const el = createElement(ContainerComponent);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -932,7 +932,7 @@ describe('#useProgressive()', function() {
       }, []);
     }
     const el = createElement(ContainerComponent);
-    const renderer = create(el);
+    const renderer = createTestRenderer(el);
     expect(renderer.toJSON()).to.equal('None');
     assertions[0].done();
     await steps[1];
@@ -956,7 +956,7 @@ describe('#useProgressive()', function() {
     }
     const el = createElement(ContainerComponent);
     const result = await noConsole(async () => {
-      const renderer = create(el);
+      const renderer = createTestRenderer(el);
       expect(JSON.parse(renderer.toJSON())).to.eql(null);
       assertions[0].done();
       await steps[1];
@@ -975,7 +975,7 @@ describe('#useProgressive()', function() {
     }
     const el = createElement(ContainerComponent);
     const result = await noConsole(async () => {
-      const renderer = create(el);
+      const renderer = createTestRenderer(el);
       expect(JSON.parse(renderer.toJSON())).to.eql(null);
       assertions[0].done();
       await steps[1];
@@ -995,7 +995,7 @@ describe('#useProgressive()', function() {
     }
     const el = createElement(ContainerComponent);
     const result = await noConsole(async () => {
-      const renderer = create(el);
+      const renderer = createTestRenderer(el);
       expect(JSON.parse(renderer.toJSON())).to.eql(null);
       assertions[0].done();
       await steps[1];
