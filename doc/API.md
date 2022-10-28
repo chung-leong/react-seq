@@ -18,7 +18,7 @@
 
 * [defer](defer.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [fallback](fallback.md) <sup>`useSequential`, `useProgressive`</sup>
-* [timeout](timeout.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
+* [timeout](timeout.md) <sup>`useSequential`, `useProgressive`</sup>
 * [suspend](suspend.md) <sup>`useSequential`, `useProgressive`</sup>
 * [manageEvents](manageEvents.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [signal](signal.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
@@ -29,8 +29,8 @@
 
 ## Global configuration functions
 
-* [extendDeferment](extendDeferment.md)
-* [limitDeferment](limitDeferment.md)
+* [extendDelay](extendDelay.md)
+* [limitTimeout](limitTimeout.md)
 
 ## Prop generation functions
 

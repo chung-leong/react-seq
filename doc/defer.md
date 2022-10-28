@@ -81,23 +81,45 @@ At 160ms, "Finished" appears as before.
 
 ## Notes
 
-You can call `defer` while the generator is running. Doing so is useful for looping generators whose initial run
-builds the page while subsequent runs only update it with fresh data from the server. For example:
+You can use [extendDelay](./extendDelay.md) to extend the delay globally. This allows you to effectively disable the
+rendering of intermediate content during server-side rendering.
+
+You might also wish to disable progressive rendering after the component has reached a stage of readiness and the
+generator is kept active only to update it occasionally with fresh data from the server. The following example uses
+the [`useSequentialState`](./useSequentialState.md) hook with a infinite-loop generator to obtain
+maintain up-to-date information about a movie:
 
 ```js
 function MovieInfo({ id }) {
-  return useSequential(async function*({ fallback, defer, signal }) {
+  const [ info ] = useSequentialState(async function*({ defer, initial, signal }) {
+    initial({});
     defer(100);
-    for (;;) {
-      const film = await fetch(`https://modernmoviessu.ck/films/${id}`, { signal });
-      /* ... */
-      defer(Infinity);
-      // wait an hour
-      await delay(1000 * 60 * 60, { signal });
+    for (let i = 0;; i++) {
+      try {
+        const film = await fetch(`https://modernmoviessu.ck/films/${id}`, { signal });
+        yield { film };
+        /* ... */
+        defer(0);
+        yield { film, actors, directors, producers };
+        defer(Infinity);
+      } catch (err) {
+        // try again later unless it's the first loop
+        if (i === 0) {
+          throw err;
+        }
+      } finally {
+        // wait an hour
+        await delay(1000 * 60 * 60, { signal });
+      }
     }
   })
+  /* ... */
 }
 ```
+
+During the first loop, `info` will gain more and more properties as the generator function retrieves them. Once that
+happens, we don't want it to regress. We therefore set the deferment period to infinity to suppress all intermediate
+states. Only the complete data set gets returned.
 
 ## Examples
 
