@@ -1,4 +1,4 @@
-# limitDeferment(limit)
+# limitTimeout(limit)
 
 ## Syntax
 

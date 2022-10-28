@@ -12,7 +12,7 @@ import { isAbortError } from '../src/utils.js';
 import {
   sequential,
   useSequential,
-  extendDeferment,
+  extendDelay,
 } from '../index.js';
 
 describe('#sequential()', function() {
@@ -331,9 +331,9 @@ describe('#sequential()', function() {
   it('should render timeout content when time limit is breached', async function() {
     const steps = createSteps(), assertions = createSteps();
     const el = sequential(async function*({ defer, fallback, timeout }) {
-      defer(10, 10);
+      defer(10);
       fallback('Cow');
-      timeout(async () => 'Tortoise');
+      timeout(10, async () => 'Tortoise');
       await assertions[0];
       yield 'Pig';
       steps[1].done();
@@ -425,7 +425,7 @@ describe('#sequential()', function() {
   })
   it('should use delay multiplier', async function() {
     const steps = createSteps(), assertions = createSteps();
-    extendDeferment(10);
+    extendDelay(10);
     const el = sequential(async function*({ defer }) {
       defer(10);
       await assertions[0];
@@ -435,7 +435,7 @@ describe('#sequential()', function() {
       yield 'Chicken';
       steps[2].done();
     })
-    extendDeferment(1);
+    extendDelay(1);
     const renderer = create(el);
     expect(renderer.toJSON()).to.equal(null);
     assertions[0].done();
@@ -890,10 +890,9 @@ describe('#useSequential()', function() {
   it('should correctly deal with undefined as the timeout content', async function() {
     const steps = createSteps(5), assertions = createSteps();
     function Creator() {
-      return useSequential(async function*({ fallback, defer, timeout }) {
-        defer(0, 20);
+      return useSequential(async function*({ fallback, timeout }) {
         fallback('Cow');
-        timeout(() => undefined);
+        timeout(20, () => undefined);
         await assertions[0];
         yield 'Monkey';
         steps[1].done();

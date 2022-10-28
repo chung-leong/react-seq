@@ -3,11 +3,11 @@ import { Abort } from './utils.js';
 let delayMultiplier = 1;
 let delayLimit = Infinity;
 
-export function extendDeferment(multiplier = 1) {
+export function extendDelay(multiplier) {
   delayMultiplier = multiplier;
 }
 
-export function limitDeferment(limit = Infinity) {
+export function limitTimeout(limit) {
   delayLimit = limit;
 }
 
@@ -31,9 +31,8 @@ export class IntermittentIterator {
     }
   }
 
-  setDelay(delay, limit = Infinity) {
+  setDelay(delay) {
     const actualDelay = delay * delayMultiplier;
-    const actualLimit = Math.min(limit, delayLimit);
     if (actualDelay !== this.delay) {
       this.delay = actualDelay;
       if (this.started) {
@@ -45,6 +44,10 @@ export class IntermittentIterator {
         }
       }
     }
+  }
+
+  setLimit(limit) {
+    const actualLimit = Math.min(limit, delayLimit);
     if (actualLimit !== this.limit) {
       this.limit = actualLimit;
       if (this.started) {

@@ -1,4 +1,4 @@
-# extendDeferment(multiplier)
+# extendDelay(multiplier)
 
 ## Syntax
 

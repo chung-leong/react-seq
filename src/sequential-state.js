@@ -33,8 +33,16 @@ export function sequentialState(cb, setState, setError) {
 
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
-  function defer(delay, limit) {
-    iterator.setDelay(delay, limit);
+  function defer(delay) {
+    iterator.setDelay(delay);
+  }
+
+  // let callback set timeout state (or its creation function), to be used when
+  // we fail to retrieve the first item from the generator after time limit has been exceeded
+  let timeoutState;
+  function timeout(limit, el) {
+    iterator.setLimit(limit);
+    timeoutState = el;
   }
 
   // let callback manages events with help of promises
@@ -56,13 +64,6 @@ export function sequentialState(cb, setState, setError) {
       state = state();
     }
     initialState = state;
-  }
-
-  // let callback set timeout state (or its creation function), to be used when
-  // we fail to retrieve the first item from the generator after time limit has been exceeded
-  let timeoutState;
-  function timeout(el) {
-    timeoutState = el;
   }
 
   // create the first generator and pull the first result to trigger

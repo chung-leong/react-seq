@@ -17,8 +17,8 @@ export {
   progressiveState,
 } from './src/progressive-state.js';
 export {
-  extendDeferment,
-  limitDeferment,
+  extendDelay,
+  limitTimeout,
 } from './src/iterator.js';
 export {
   important,

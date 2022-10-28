@@ -272,9 +272,9 @@ describe('#useSequentialState()', function() {
     const steps = createSteps(), assertions = createSteps();
     function Test({ }) {
       const [ state, on ] = useSequentialState(async function*({ initial, timeout, defer }) {
-        defer(5, 25);
+        defer(5);
         initial(() => 'Whiskey drink');
-        timeout(async () => 'I got knocked down!')
+        timeout(25, async () => 'I got knocked down!')
         await assertions[0];
         yield 'Vodka drink';
         steps[1].done();
