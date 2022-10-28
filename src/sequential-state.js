@@ -74,6 +74,7 @@ export function sequentialState(cb, setState, setError) {
   sync = false;
 
   let pendingState;
+  let unusedSlot = false;
   retrieveRemaining();
 
   return {
@@ -82,7 +83,13 @@ export function sequentialState(cb, setState, setError) {
     ...eventManager
   };
 
-  function updateState(urgent) {
+  function updateState(urgent, conditional = false) {
+    if (conditional) {
+      if (iterator.delay > 0 && !unusedSlot) {
+        // wait for interruption
+        return;
+      }
+    }
     if (pendingState !== undefined) {
       const newState = pendingState;
       pendingState = undefined;
@@ -93,6 +100,9 @@ export function sequentialState(cb, setState, setError) {
           setState(newState);
         });
       }
+      unusedSlot = false;
+    } else {
+      unusedSlot = true;
     }
   }
 
@@ -107,6 +117,7 @@ export function sequentialState(cb, setState, setError) {
         const { value, done } = await iterator.next();
         if (!done) {
           pendingState = (value !== undefined) ? value : null;
+          updateState(false, true);
         } else {
           stop = true;
         }

@@ -38,10 +38,6 @@ export class IntermittentIterator {
       if (this.started) {
         this.stopInterval();
         this.startInterval();
-        if (this.delay === 0) {
-          // timer disabled
-          this.interrupt();
-        }
       }
     }
   }
@@ -70,9 +66,6 @@ export class IntermittentIterator {
   }
 
   throw(err) {
-    if (!this.reject && this.generator) {
-      this.fetch();
-    }
     if (this.reject) {
       this.reject(err);
     }
@@ -138,13 +131,6 @@ export class IntermittentIterator {
           // we got something, turn off the timeout
           this.stopTimeout();
           this.expired = true;
-        }
-      }).then(() => {
-        // in the next tick, after the promise has been given to the caller...
-        if (this.delay === 0) {
-          // since there's no timer triggering interruption
-          // we do it immediately upon receiving a value
-          this.interrupt();
         }
       }, err => {});
     }

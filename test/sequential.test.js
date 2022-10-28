@@ -800,7 +800,7 @@ describe('#useSequential()', function() {
     // since it doesn't recreate the state of the container element
     // upon unsuspension
     const steps = createSteps(5), assertions = createSteps();
-    function Creator() {
+    function Test() {
       return useSequential(async function*({ suspend }) {
         suspend('#112');
         await assertions[0];
@@ -811,7 +811,7 @@ describe('#useSequential()', function() {
         steps[2].done();
       }, []);
     }
-    const el = createElement(Creator);
+    const el = createElement(Test);
     const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
     const renderer = create(suspense);
     expect(renderer.toJSON()).to.equal('Cow');
@@ -830,7 +830,7 @@ describe('#useSequential()', function() {
   })
   it('should correctly deal with undefined', async function() {
     const steps = createSteps(5), assertions = createSteps();
-    function Creator() {
+    function Test() {
       return useSequential(async function*() {
         await assertions[0];
         yield 'Pig';
@@ -843,9 +843,8 @@ describe('#useSequential()', function() {
         steps[3].done();
       }, []);
     }
-    const el = createElement(Creator);
-    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
-    const renderer = create(suspense);
+    const el = createElement(Test);
+    const renderer = create(el);
     expect(renderer.toJSON()).to.equal(null);
     assertions[0].done();
     await steps[1];
@@ -859,7 +858,7 @@ describe('#useSequential()', function() {
   })
   it('should correctly deal with undefined as the initial non-fallback content', async function() {
     const steps = createSteps(5), assertions = createSteps();
-    function Creator() {
+    function Test() {
       return useSequential(async function*({ fallback }) {
         fallback('Cow');
         await assertions[0];
@@ -873,9 +872,8 @@ describe('#useSequential()', function() {
         steps[3].done();
       }, []);
     }
-    const el = createElement(Creator);
-    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
-    const renderer = create(suspense);
+    const el = createElement(Test);
+    const renderer = create(el);
     expect(renderer.toJSON()).to.equal('Cow');
     assertions[0].done();
     await steps[1];
@@ -889,7 +887,7 @@ describe('#useSequential()', function() {
   })
   it('should correctly deal with undefined as the timeout content', async function() {
     const steps = createSteps(5), assertions = createSteps();
-    function Creator() {
+    function Test() {
       return useSequential(async function*({ fallback, timeout }) {
         fallback('Cow');
         timeout(20, () => undefined);
@@ -904,9 +902,8 @@ describe('#useSequential()', function() {
         steps[3].done();
       }, []);
     }
-    const el = createElement(Creator);
-    const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
-    const renderer = create(suspense);
+    const el = createElement(Test);
+    const renderer = create(el);
     expect(renderer.toJSON()).to.equal('Cow');
     await delay(30);
     expect(renderer.toJSON()).to.equal(null);
@@ -919,6 +916,23 @@ describe('#useSequential()', function() {
     assertions[2].done();
     await steps[3];
     expect(renderer.toJSON()).to.equal('Chicken');
+  })
+  it('should update immediately when nothing occurred in the previous interruption', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, defer }) {
+        fallback('Cow');
+        defer(30);
+        await delay(40);    // interruption
+        yield 'Pig';        // 40ms
+        await delay(20);
+        yield 'Chicken';    // 60ms
+      }, []);
+    }
+    const el = createElement(Test);
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('Cow');
+    await delay(45);
+    expect(renderer.toJSON()).to.equal('Pig');
   })
 })
 

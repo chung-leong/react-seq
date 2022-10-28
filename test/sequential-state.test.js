@@ -392,4 +392,23 @@ describe('#useSequentialState()', function() {
     await steps[1];
     expect(renderer.toJSON()).to.equal('object');
   })
+  it('should update state immediately where there is an unused slot', async function() {
+    function Test() {
+      const [ state, on ] = useSequentialState(async function*({ initial, defer }) {
+        initial('Sober');
+        defer(30);
+        await delay(40);  // interruption
+        yield 'Drunk';    // 40ms
+        await delay(20);
+        yield 'Wasted';   // 60ms
+
+      }, []);
+      return state;
+    }
+    const el = createElement(Test);
+    const renderer = create(el);
+    expect(renderer.toJSON()).to.equal('Sober');
+    await delay(45);
+    expect(renderer.toJSON()).to.equal('Drunk');
+  })
 })

@@ -35,46 +35,6 @@ describe('#limitTimeout()', function() {
 })
 
 describe('#IntermittentIterator()', function() {
-  it('should alternate between returning value and interruption where delay is 0', async function() {
-    const iterator = new IntermittentIterator({});
-    const create = async function*() {
-      await delay(30);
-      yield 'Whiskey drink';
-      await delay(10);
-      yield 'Vodka drink';
-      await delay(10);
-      yield 'Lager drink';
-      await delay(10);
-      yield 'Cider drink';
-    };
-    const results = [];
-    iterator.start(create());
-    for (;;) {
-      try {
-        const { value, done } = await iterator.next();
-        if (!done) {
-          results.push(value);
-        } else {
-          break;
-        }
-      } catch (err) {
-        if (err instanceof Interruption) {
-          results.push(err);
-        } else {
-          throw err;
-        }
-      }
-    }
-    await iterator.return();
-    expect(results).to.have.lengthOf(7);
-    expect(results[0]).to.equal('Whiskey drink');
-    expect(results[1]).to.be.instanceOf(Interruption);
-    expect(results[2]).to.equal('Vodka drink');
-    expect(results[3]).to.be.instanceOf(Interruption);
-    expect(results[4]).to.equal('Lager drink');
-    expect(results[5]).to.be.instanceOf(Interruption);
-    expect(results[6]).to.equal('Cider drink');
-  })
   it('should throw interruption intermittently', async function() {
     const iterator = new IntermittentIterator({});
     iterator.setDelay(25);

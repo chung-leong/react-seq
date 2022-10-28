@@ -478,6 +478,7 @@ describe('#generateProps()', function() {
 
 describe('#progressive', function() {
   it('should return a component that renders progressively', async function () {
+    debugger;
     const steps = createSteps(), assertions = createSteps();
     async function* generate() {
       await assertions[0];
@@ -493,7 +494,7 @@ describe('#progressive', function() {
     function TestComponent({ animals }) {
       return animals.join(', ');
     }
-    const el = progressive(({ fallback, type, usable }) => {
+    const el = progressive(async ({ fallback, type, usable }) => {
       fallback('None');
       type(TestComponent);
       usable({
@@ -529,7 +530,7 @@ describe('#progressive', function() {
     function TestComponent({ animals }) {
       return animals.join(', ');
     }
-    const el = progressive(({ fallback, type }) => {
+    const el = progressive(async ({ fallback, type }) => {
       fallback('None');
       type(TestComponent);
       return { animals: generate() };
@@ -562,7 +563,7 @@ describe('#progressive', function() {
     function TestComponent({ animals }) {
       return animals.join(', ');
     }
-    const el = progressive(({ fallback, type, defer, usable }) => {
+    const el = progressive(async ({ fallback, type, defer, usable }) => {
       type(TestComponent);
       fallback('None');
       defer(15);
@@ -595,7 +596,7 @@ describe('#progressive', function() {
       return animals.join(', ');
     }
     await noConsole(async () => {
-      const el = progressive(({ fallback, usable, type }) => {
+      const el = progressive(async ({ fallback, usable, type }) => {
         fallback('None');
         type(TestComponent);
         usable({ animals: true });
@@ -629,7 +630,7 @@ describe('#progressive', function() {
     function Title({ animals = [] }) {
       return createElement('h1', {}, animals.join(', '));
     }
-    const el = progressive(({ fallback, usable, type }) => {
+    const el = progressive(async ({ fallback, usable, type }) => {
       fallback('None');
       type({ default: Title });
       usable({ animals: true });
@@ -660,7 +661,7 @@ describe('#progressive', function() {
       yield 'Chicken';
       steps[3].done();
     }
-    const el = progressive(({ fallback, usable, element }) => {
+    const el = progressive(async ({ fallback, usable, element }) => {
       fallback('None');
       usable({ animals: true });
       element(({ animals = [] }) => createElement('span', {}, animals.join(', ')));
@@ -697,7 +698,7 @@ describe('#progressive', function() {
     function TestComponent({ animals = [] }) {
       return animals.join(', ');
     }
-    const el = progressive(({ fallback, usable, type }) => {
+    const el = progressive(async ({ fallback, usable, type }) => {
       fallback('None');
       type(TestComponent);
       usable({ animals: true });
@@ -718,7 +719,7 @@ describe('#progressive', function() {
   it('should throw if an element type is not given', async function() {
     const steps = createSteps(), assertions = createSteps();
     await noConsole(async () => {
-      const el = progressive(() => {
+      const el = progressive(async () => {
         return {};
       });
       const boundary = createErrorBoundary(el);
@@ -727,9 +728,9 @@ describe('#progressive', function() {
       expect(caughtAt(boundary)).to.be.an('error');
     });
   })
-  it('should throw if both type() and element() are used', async function() {
+  it('should throw if both type and element are used', async function() {
     await noConsole(async () => {
-      const el1 = progressive(({ element, type }) => {
+      const el1 = progressive(async ({ element, type }) => {
         type('div');
         element('Hello');
         return {};
@@ -739,7 +740,7 @@ describe('#progressive', function() {
       await delay(1);
       expect(caughtAt(boundary1)).to.be.an('error');
 
-      const el2 = progressive(({ element, type }) => {
+      const el2 = progressive(async ({ element, type }) => {
         element('Hello');
         type('div');
         return {};
@@ -752,7 +753,7 @@ describe('#progressive', function() {
   })
   it('should throw if usable is given a non-object', async function() {
     await noConsole(async () => {
-      const el = progressive(({ usable }) => {
+      const el = progressive(async ({ usable }) => {
         usable('cow', 1);
         return {};
       });
@@ -764,7 +765,7 @@ describe('#progressive', function() {
   })
   it('should throw if function returns a non-object', async function() {
     await noConsole(async () => {
-      const el = progressive(({ element }) => {
+      const el = progressive(async ({ element }) => {
         element((props) => 'Hello');
         return 123;
       });
@@ -797,7 +798,7 @@ describe('#progressive', function() {
       yield 'Chicken sandwich';
     }
 
-    const el = progressive(({ element, usable, fallback }) => {
+    const el = progressive(async ({ element, usable, fallback }) => {
       fallback('None');
       usable(2);
       element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
@@ -842,7 +843,7 @@ describe('#progressive', function() {
       yield 'Chicken sandwich';
     }
 
-    const el = progressive(({ element, usable, fallback }) => {
+    const el = progressive(async ({ element, usable, fallback }) => {
       fallback('None');
       usable(0);
       usable({ sandwiches: 1 })
