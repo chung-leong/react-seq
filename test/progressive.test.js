@@ -348,6 +348,18 @@ describe('#generateProps()', function() {
       expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
     });
   })
+  it('should yield initial state when usability for all props is 0', async function() {
+    const props = {
+      hello: Promise.resolve('Hello'),
+      world: delay(5).then(() => 'World'),
+    };
+    const generator = generateProps(props, { hello: 0, world: 0 });
+    const list = await getList(generator);
+    expect(list).to.have.lengthOf(3);
+    expect(list[0]).to.eql({ hello: undefined, world: undefined });
+    expect(list[1]).to.eql({ hello: 'Hello', world: undefined });
+    expect(list[2]).to.eql({ hello: 'Hello', world: 'World' });
+  })
   it('should retrieve items from multiple generators', async function() {
     const steps = createSteps(), assertions = createSteps();
     const createAnimals = async function*() {

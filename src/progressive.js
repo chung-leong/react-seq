@@ -114,34 +114,9 @@ export async function* generateProps(asyncProps, usables) {
       }
     }
     let stop = false;
-    do {
-      // obtain a list of promises for props that aren't fully resolved
-      // using forEach() since we need to bind p to callbacks
-      const promises = [];
-      propSet.forEach(p => {
-        if (!p.resolved) {
-          if (!p.promise) {
-            p.promise = p.generator.next().then(({ value, done }) => {
-              if (!done) {
-                p.value = value;
-                p.changed = true;
-                p.promise = null;
-              } else {
-                p.resolved = true;
-                p.generator = null;
-              }
-            });
-          }
-          promises.push(p.promise);
-        }
-      });
-      if (promises.length > 0) {
-        // wait until one of them resolves
-        await ((promises.length === 1) ? promises[0] : Promise.race(promises));
-      } else {
-        stop = true;
-      }
-      // check if all props are usable
+    for (;;) {
+      // see if we can yield a usable propset--this can happen at the very beginning
+      // before anything is retrieved when all props have usability of 0
       const props = {};
       for (const p of propSet) {
         props[p.name] = p.value;
@@ -184,7 +159,37 @@ export async function* generateProps(asyncProps, usables) {
         }
         yield props;
       }
-    } while (!stop);
+      if (stop) {
+        break;
+      }
+
+      // obtain a list of promises for props that aren't fully resolved
+      // using forEach() since we need to bind p to callbacks
+      const promises = [];
+      propSet.forEach(p => {
+        if (!p.resolved) {
+          if (!p.promise) {
+            p.promise = p.generator.next().then(({ value, done }) => {
+              if (!done) {
+                p.value = value;
+                p.changed = true;
+                p.promise = null;
+              } else {
+                p.resolved = true;
+                p.generator = null;
+              }
+            });
+          }
+          promises.push(p.promise);
+        }
+      });
+      if (promises.length > 0) {
+        // wait until one of them resolves
+        await ((promises.length === 1) ? promises[0] : Promise.race(promises));
+      } else {
+        stop = true;
+      }
+    }
   } finally {
     // run finally section of generators
     for(const p of propSet) {
