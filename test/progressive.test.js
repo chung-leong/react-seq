@@ -737,7 +737,7 @@ describe('#progressive', function() {
       });
       const boundary1 = createErrorBoundary(el1);
       const renderer1 = create(boundary1);
-      await delay(1);
+      await delay(5);
       expect(caughtAt(boundary1)).to.be.an('error');
 
       const el2 = progressive(async ({ element, type }) => {
@@ -747,7 +747,7 @@ describe('#progressive', function() {
       });
       const boundary2 = createErrorBoundary(el2);
       const renderer2 = create(boundary2);
-      await delay(1);
+      await delay(5);
       expect(caughtAt(boundary2)).to.be.an('error');
     });
   })

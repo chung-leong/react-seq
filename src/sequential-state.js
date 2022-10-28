@@ -37,14 +37,6 @@ export function sequentialState(cb, setState, setError) {
     iterator.setDelay(delay);
   }
 
-  // let callback set timeout state (or its creation function), to be used when
-  // we fail to retrieve the first item from the generator after time limit has been exceeded
-  let timeoutState;
-  function timeout(limit, el) {
-    iterator.setLimit(limit);
-    timeoutState = el;
-  }
-
   // let callback manages events with help of promises
   let eventManager;
   function manageEvents(options = {}) {
@@ -68,7 +60,7 @@ export function sequentialState(cb, setState, setError) {
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ defer, manageEvents, initial, timeout, signal });
+  const generator = cb({ defer, manageEvents, initial, signal });
   iterator.start(generator);
   iterator.fetch();
   sync = false;
@@ -122,15 +114,7 @@ export function sequentialState(cb, setState, setError) {
           stop = true;
         }
       } catch (err) {
-        if (err instanceof Timeout) {
-          // time limit has been reached and we got nothing to show
-          // reach for the timeout element
-          if (typeof(timeoutState) === 'function') {
-            timeoutState = await timeoutState();
-          }
-          pendingState = timeoutState;
-          updateState(true);
-        } else if (err instanceof Interruption) {
+        if (err instanceof Interruption) {
           updateState(false);
         } else if (err instanceof Abort) {
           stop = aborted = true;

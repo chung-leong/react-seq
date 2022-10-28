@@ -268,28 +268,6 @@ describe('#useSequentialState()', function() {
     await steps[1];
     expect(renderer.toJSON()).to.equal('Vodka drink');
   })
-  it('should set the state to the timeout state when time limit is reached', async function() {
-    const steps = createSteps(), assertions = createSteps();
-    function Test({ }) {
-      const [ state, on ] = useSequentialState(async function*({ initial, timeout, defer }) {
-        defer(5);
-        initial(() => 'Whiskey drink');
-        timeout(25, async () => 'I got knocked down!')
-        await assertions[0];
-        yield 'Vodka drink';
-        steps[1].done();
-      }, []);
-      return state;
-    }
-    const el = createElement(Test);
-    const renderer = create(el);
-    expect(renderer.toJSON()).to.equal('Whiskey drink');
-    await delay(35);
-    expect(renderer.toJSON()).to.equal('I got knocked down!');
-    assertions[0].done();
-    await steps[1];
-    expect(renderer.toJSON()).to.equal('Vodka drink');
-  })
   it('should immediately throw when dependencies are not given', async function() {
     function Test() {
       const [ state, on ] = useSequentialState(async function*({}) {
