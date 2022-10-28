@@ -44,10 +44,10 @@ export function progressive(cb) {
     function usable(arg) {
       if (arg instanceof Object) {
         Object.assign(usables, arg);
-      } else if ([ 'number', 'boolean', 'function' ].includes(typeof(arg))) {
+      } else if (typeof(arg) === 'number' || typeof(arg) === 'function') {
         usableDefault = arg;
       } else {
-        throw new Error('usable() expects an object, boolean, number, or a function');
+        throw new Error('usable() expects a number, a function, or an object');
       }
     }
 

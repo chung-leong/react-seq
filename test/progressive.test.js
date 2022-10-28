@@ -774,96 +774,6 @@ describe('#progressive', function() {
       expect(caughtAt(boundary)).to.be.an('error');
     })
   })
-  it('should mark all props as usable when a boolean is given', async function() {
-    const steps = createSteps(), assertions = createSteps();
-    async function* create1() {
-      await assertions[0];
-      yield 'Pig';              // 1
-      steps[1].done();
-      await assertions[2];
-      yield 'Cow';              // 3
-      steps[3].done();
-      await assertions[4];
-      yield 'Chicken';
-    }
-    async function* create2() {
-      await assertions[1];
-      yield 'Cuban';            // 2
-      steps[2].done();
-      await assertions[3];
-      yield 'Hamburger';        // 4
-      steps[4].done();
-      await assertions[5];
-      yield 'Chicken sandwich';
-    }
-
-    const el = progressive(({ element, usable, fallback }) => {
-      usable(true);
-      fallback('None');
-      element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
-      return { animals: create1(), sandwiches: create2() };
-    });
-    let renderer = create(el);
-    assertions[0].done();
-    await steps[1];
-    expect(renderer.toJSON()).to.equal('Pig ()');
-    assertions[1].done();
-    await steps[2];
-    expect(renderer.toJSON()).to.equal('Pig (Cuban)');
-    assertions[2].done();
-    await steps[3];
-    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban)');
-    assertions[3].done()
-    await steps[4];
-    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
-    assertions[4].done()
-  })
-  it('should let usable override the default for one prop', async function() {
-    const steps = createSteps(), assertions = createSteps();
-    async function* create1() {
-      await assertions[0];
-      yield 'Pig';              // 1
-      steps[1].done();
-      await assertions[2];
-      yield 'Cow';              // 3
-      steps[3].done();
-      await assertions[4];
-      yield 'Chicken';
-    }
-    async function* create2() {
-      await assertions[1];
-      yield 'Cuban';            // 2
-      steps[2].done();
-      await assertions[3];
-      yield 'Hamburger';        // 4
-      steps[4].done();
-      await assertions[5];
-      yield 'Chicken sandwich';
-    }
-
-    const el = progressive(({ element, usable, fallback }) => {
-      fallback('None');
-      usable(true);
-      usable({ sandwiches: 1 })
-      element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
-      return { animals: create1(), sandwiches: create2() };
-    });
-    let renderer = create(el);
-    expect(renderer.toJSON()).to.equal('None');
-    assertions[0].done();
-    await steps[1];
-    expect(renderer.toJSON()).to.equal('None');
-    assertions[1].done();
-    await steps[2];
-    expect(renderer.toJSON()).to.equal('Pig (Cuban)');
-    assertions[2].done();
-    await steps[3];
-    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban)');
-    assertions[3].done()
-    await steps[4];
-    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
-    assertions[4].done()
-  })
   it('should accept number as usablility default', async function() {
     const steps = createSteps(), assertions = createSteps();
     async function* create1() {
@@ -904,6 +814,52 @@ describe('#progressive', function() {
     assertions[2].done();
     await steps[3];
     expect(renderer.toJSON()).to.equal('None');
+    assertions[3].done()
+    await steps[4];
+    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
+    assertions[4].done()
+  })
+  it('should let usable override the default for one prop', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    async function* create1() {
+      await assertions[0];
+      yield 'Pig';              // 1
+      steps[1].done();
+      await assertions[2];
+      yield 'Cow';              // 3
+      steps[3].done();
+      await assertions[4];
+      yield 'Chicken';
+    }
+    async function* create2() {
+      await assertions[1];
+      yield 'Cuban';            // 2
+      steps[2].done();
+      await assertions[3];
+      yield 'Hamburger';        // 4
+      steps[4].done();
+      await assertions[5];
+      yield 'Chicken sandwich';
+    }
+
+    const el = progressive(({ element, usable, fallback }) => {
+      fallback('None');
+      usable(0);
+      usable({ sandwiches: 1 })
+      element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
+      return { animals: create1(), sandwiches: create2() };
+    });
+    let renderer = create(el);
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('None');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Pig (Cuban)');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban)');
     assertions[3].done()
     await steps[4];
     expect(renderer.toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
