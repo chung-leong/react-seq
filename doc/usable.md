@@ -10,19 +10,34 @@ Control whether content update occur when the data set is incomplete
 ## Syntax
 
 ```js
-function StarWarsCharacter({ id }) {
-  return useProgressive(async ({ fallback, type, usable }) => {
+function Product({ id }) {
+  return useProgressive(async ({ fallback, type, usable, signal }) => {
     fallback(<Spinner />);
-    type(StarWarsCharacterUI);
+    type(ProductUI);
     usable(0);
-    const person = await fetchOne(`people/${id}`);
+    const product = await fetchProduct(id);
     return {
-      person,
-      films: fetchMultiple(person.films),
-      species: fetchMultiple(person.species),
-      homeworld: fetchOne(person.homeworld),
-      vehicles: fetchMultiple(person.vehicles),
-      starships: fetchMultiple(person.starships),
+      product,
+      producer: fetchProducer(product.producer_id, { signal }),
+      categories: fetchProductCategories(product.category_ids, { signal }),
+      reviews: fetchProductReviews(product.id, { signal }),
+    };
+  }, [ id ]);
+}
+```
+
+```js
+function Product({ id }) {
+  return useProgressive(async ({ fallback, type, usable, signal }) => {
+    fallback(<Spinner />);
+    type(ProductUI);
+    usable({ producer: 1, categories: 1, reviews: 0 });
+    const product = await fetchProduct(id);
+    return {
+      product,
+      producer: fetchProducer(product.producer_id, { signal }),
+      categories: fetchProductCategories(product.category_ids, { signal }),
+      reviews: fetchProductReviews(product.id, { signal }),
     };
   }, [ id ]);
 }
@@ -39,10 +54,28 @@ the usability criteria for each individual property.
 
 By default, `useProgressive` would wait until all properties have been fully resolved before rendering a component (
 or returning the state in case of [useProgressiveState](./useProgressiveState.md)). This behavior is obviously
-not very progressive. An end-user would end up staring at a spinner for a long time.
+not very progressive. A visitor would end up staring at a spinner for a long time.
 
 `usable` lets you tell the hook that it's okay to render with an incomplete data set, that the target component
 is capable of handling missing data.
+
+The first example above uses `usable(0)` to indicate that all props can be empty. `product` would never be empty,
+of course, since it's been retrieved already, but the others props will be at the beginning, assuming `fetchProducer`
+returns a promise to an object, `fetchProductReviews` returns a promise to an array, and `fetchProductCategories`
+returns an async generator. `useProgressive` immediately creates a `<ProductUI />` with the following props:
+
+```js
+{ product: [object], producer: undefined, categories: undefined, reviews: undefined }
+```
+
+The second example has more stringent requirements: `producer` must be present and `categories` must have at least one
+element, while `reviews` can be empty. The first `<ProductUI />` that gets created will thus have the following props:
+
+```js
+{ product: [object], producer: [object], categories: [ [object] ], reviews: undefined }`
+```
+
+(the assumptions here are that `reviews` doesn't arrive first and `categories` are fetched one at a time)
 
 ## Notes
 
@@ -51,16 +84,12 @@ restriction on one prop:
 
 ```js
 usable(0);
-usable({ films: 7, homeworld: 1 })
+usable({ producer: 1 })
 ```
 
-In addition to the property in question, usability functions are called with a second parameter: `props`. It contains
-the current states of all properties. You can potentially use it to determine whether the prop in question is usable
+In addition to the property in question, usability-check functions are called with a second parameter: `props`. It
+contains the current values of all props. You can potentially use it to determine whether the prop is usable
 based on the length of another prop.
-
-For clarity, [`signal`](./signal.md) is omitted from the calls to fetch functions above. It would be passed in
-real-world scenario to cancel pending fetch requests no longer needed (due to the user switching to a different
-page, for instance).
 
 ## Examples
 
