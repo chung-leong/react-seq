@@ -97,7 +97,7 @@ export async function* generateProps(asyncProps, usables) {
         propSet.push({
           name,
           usable,
-          value: isGenerator(value) ? [] : undefined,
+          value: undefined,
           generator: generateNext(value),
           promise: null,
           changed: true,

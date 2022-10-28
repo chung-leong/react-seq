@@ -429,7 +429,7 @@ describe('#generateProps()', function() {
         error = err;
       }
       expect(list).to.eql([
-        { hello: 'Hello', world: undefined, animals: [] },
+        { hello: 'Hello', world: undefined, animals: undefined },
         { hello: 'Hello', world: undefined, animals: [ 1, 2, 3 ] },
         { hello: 'Hello', world: 'World', animals: [ 1, 2, 3 ] },
       ]);
