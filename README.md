@@ -12,11 +12,11 @@ npm install --save-dev react-seq
 
 ## Basic Usage
 
-`useSequence()` is React-seq's most basic hook. It accepts an async generator function as a parameter and returns a
+`useSequential()` is React-seq's most basic hook. It accepts an async generator function as a parameter and returns a
 component that will display the output from the async generator as content:
 
 ```js
-import { useSequence, delay } from 'react-seq';
+import { useSequential, delay } from 'react-seq';
 
 function LovelyAnimals({ favorite = 'Chicken' }) {
   return useSequence(async function*({ fallback }) {
@@ -52,7 +52,7 @@ Add the following rule to your ESLint settings to enable the linting of React-se
     "react-hooks/exhaustive-deps": [
       "warn",
       {
-        "additionalHooks": "use(Progressive|Sequence|GeneratedState)"
+        "additionalHooks": "use(Progressive(State)?|Sequential(State)?)"
       }
     ]
   }

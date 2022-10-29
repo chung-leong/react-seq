@@ -121,7 +121,7 @@ export function useSWAPI(type, params = {}, options = {}) {
         console.log(`refreshing (${i + 1})...`)
       }
     }
-  }, []);
+  }, [ delay, id, refresh, type ]);
   return [ state, () => on.updateRequest() ];
 }
 
