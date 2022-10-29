@@ -10,42 +10,45 @@ export function useSequential(cb, deps) {
 export function sequential(cb) {
   const abortController = new AbortController();
   const { signal } = abortController;
+  const methods = { signal };
 
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
-  function defer(delay) {
+  methods.defer = delay => {
     iterator.setDelay(delay);
-  }
+  };
 
   // let callback set timeout element (or its creation function), to be used when
   // we fail to retrieve the first item from the generator after time limit has been exceeded
   let timeoutEl;
-  function timeout(limit, el) {
+  methods.timeout = (limit, el) => {
     iterator.setLimit(limit);
     timeoutEl = el;
-  }
+  };
 
   // allow the creation of suspending component
   let suspending = false;
   let suspensionKey;
-  function suspend(key = undefined) {
+  methods.suspend = (key = undefined) => {
     if (placeholder) {
       throw new Error('suspend() cannot be used together with fallback()');
     }
     suspending = true;
     suspensionKey = key;
-  }
+  };
 
   // let callback manages events with help of promises
-  function manageEvents(options = {}) {
-    const { on, eventual } = new EventManager({ ...options, signal });
-    return [ on, eventual ];
+  if (!process.env.REACT_SEQ_NO_EM) {
+    methods.manageEvents = (options = {}) => {
+      const { on, eventual } = new EventManager({ ...options, signal });
+      return [ on, eventual ];
+    };
   }
 
   // let callback set fallback content
   let placeholder;
   let sync = true;
-  function fallback(el) {
+  methods.fallback = (el) => {
     if (!sync) {
       throw new Error('Fallback component must be set prior to any yield or await statement');
     }
@@ -56,7 +59,7 @@ export function sequential(cb) {
       el = el();
     }
     placeholder = el;
-  }
+  };
 
   // container for fallback content, the use of which allows to detect
   // unexpected unmounting of the fallback content (i.e. the parent
@@ -75,7 +78,7 @@ export function sequential(cb) {
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ defer, manageEvents, fallback, timeout, suspend, signal });
+  const generator = cb(methods);
   iterator.start(generator);
   iterator.fetch();
   sync = false;

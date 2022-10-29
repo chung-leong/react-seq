@@ -30,25 +30,28 @@ export function useFunctionState(fn, cb, deps) {
 export function sequentialState(cb, setState, setError) {
   const abortController = new AbortController();
   const { signal } = abortController;
+  const methods = { signal };
 
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
-  function defer(delay) {
+  methods.defer = (delay) => {
     iterator.setDelay(delay);
-  }
+  };
 
   // let callback manages events with help of promises
   let eventManager;
-  function manageEvents(options = {}) {
-    const { on, eventual } = new EventManager({ ...options, signal });
-    eventManager = { on, eventual };
-    return [ on, eventual ];
+  if (!process.env.REACT_SEQ_NO_EM) {
+    methods.manageEvents = (options = {}) => {
+      const { on, eventual } = new EventManager({ ...options, signal });
+      eventManager = { on, eventual };
+      return [ on, eventual ];
+    };
   }
 
   // let callback set initial state
   let initialState;
   let sync = true;
-  function initial(state) {
+  methods.initial = (state) => {
     if (!sync) {
       throw new Error('Initial state must be set prior to any yield or await statement');
     }
@@ -56,11 +59,11 @@ export function sequentialState(cb, setState, setError) {
       state = state();
     }
     initialState = state;
-  }
+  };
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
-  const generator = cb({ defer, manageEvents, initial, signal });
+  const generator = cb(methods);
   iterator.start(generator);
   iterator.fetch();
   sync = false;

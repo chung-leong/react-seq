@@ -9,7 +9,7 @@ export function useProgressive(cb, deps) {
 export function progressive(cb) {
   return sequential(async function* (methods) {
     let elementType;
-    function type(type) {
+    methods.type = (type) => {
       if (elementFn) {
         throw new Error('type() cannot be used together with element()');
       }
@@ -29,19 +29,19 @@ export function progressive(cb) {
         }
         elementType = type;
       }
-    }
+    };
 
     let elementFn;
-    function element(fn) {
+    methods.element = (fn) => {
       if (elementType) {
         throw new Error('element() cannot be used together with type()');
       }
       elementFn = fn;
-    }
+    };
 
     let usableDefault = false;
     let usables = {};
-    function usable(arg) {
+    methods.usable = (arg) => {
       if (arg instanceof Object) {
         Object.assign(usables, arg);
       } else if (typeof(arg) === 'number' || typeof(arg) === 'function') {
@@ -49,9 +49,9 @@ export function progressive(cb) {
       } else {
         throw new Error('usable() expects a number, a function, or an object');
       }
-    }
+    };
 
-    const asyncProps = await cb({ ...methods, type, element, usable });
+    const asyncProps = await cb(methods);
     checkAsyncProps(asyncProps, usables, usableDefault);
     if (!elementType && !elementFn) {
       throw new Error('Callback function did not call type() to set the element type');

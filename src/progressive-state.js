@@ -10,7 +10,7 @@ export function progressiveState(cb, setState, setError) {
   return sequentialState(async function* (methods) {
     let usableDefault = false;
     let usables = {};
-    function usable(arg) {
+    methods.usable = (arg) => {
       if (arg instanceof Object) {
         Object.assign(usables, arg);
       } else if (typeof(arg) === 'number' || typeof(arg) === 'function') {
@@ -18,9 +18,9 @@ export function progressiveState(cb, setState, setError) {
       } else {
         throw new Error('usable() expects a number, a function, or an object');
       }
-    }
+    };
 
-    const asyncProps = await cb({ ...methods, usable });
+    const asyncProps = await cb(methods);
     checkAsyncProps(asyncProps, usables, usableDefault);
     for await (const props of generateProps(asyncProps, usables)) {
       yield props;
