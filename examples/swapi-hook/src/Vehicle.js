@@ -1,8 +1,8 @@
 import { useSWAPI } from './swapi.js';
 import List from './List.js';
 
-export default function VehicleUI({ id }) {
-  const [ state ] = useSWAPI('vehicles', { id }, { refresh: 300000 });
+export default function Vehicle({ id }) {
+  const [ state ] = useSWAPI('vehicles', { id }, { refresh: 1 });
   const { vehicle, films, pilots } = state;
   return (
     <div>

@@ -1,8 +1,8 @@
 import { useSWAPI } from './swapi.js';
 import List from './List.js';
 
-export default function SpeciesListUI() {
-  const [ { species } ] = useSWAPI('species', {}, { refresh: 300000 });
+export default function SpeciesList() {
+  const [ { species } ] = useSWAPI('species', {}, { refresh: 1 });
   return (
     <div>
       <h1>Species</h1>

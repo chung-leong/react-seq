@@ -28,9 +28,11 @@ export default function App() {
       const { target, button, defaultPrevented } = evt;
       if (button === 0 && !defaultPrevented) {
         const link = target.closest('A');
-        if (link && link.tagName === 'A' && link.origin === window.location.origin) {
+        if (link && link.origin === window.location.origin) {
           if (!link.target && !link.download) {
-            setURL(new URL(link));
+            const url = new URL(link);
+            setURL(url);
+            window.history.pushState({}, undefined, url);
             evt.preventDefault();
             evt.stopPropagation();
           }

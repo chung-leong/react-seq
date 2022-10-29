@@ -5,7 +5,7 @@ export function trimURL(url) {
 }
 
 export async function fetchOne(url, options) {
-  let absURL = (new URL(url, baseURL)).toString();
+  const absURL = (new URL(url, baseURL)).toString();
   return fetchJSON(absURL, options);
 }
 

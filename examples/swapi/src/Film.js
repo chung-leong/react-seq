@@ -6,7 +6,7 @@ export default function Film({ id }) {
   return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(FilmUI);
     defer(200);
-    usable({ characters: 0, species: 0, planets: 0, vehicles: 0, starships: 0 });
+    usable(0);
     suspend(`film-${id}`);
     const film = await fetchOne(`films/${id}`, { signal });
     return {

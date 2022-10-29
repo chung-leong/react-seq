@@ -3,12 +3,12 @@ import { fetchList } from './swapi.js';
 import List from './List.js';
 
 export default function FilmList() {
-  return useProgressive(async ({ type, defer, usable, suspend }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(FilmListUI);
     defer(200);
-    usable({ films: 20 });
+    usable(10);
     suspend(`film-list`);
-    return { films: fetchList('films/') };
+    return { films: fetchList('films/', { signal }) };
   }, []);
 }
 

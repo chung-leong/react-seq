@@ -1,8 +1,8 @@
 import { useSWAPI } from './swapi.js';
 import List from './List.js';
 
-export default function StarshipUI({ id }) {
-  const [ state ] = useSWAPI('starships', { id }, { refresh: 300000 });
+export default function Starship({ id }) {
+  const [ state ] = useSWAPI('starships', { id }, { refresh: 1 });
   const { starship, films, pilots } = state;
   return (
     <div>

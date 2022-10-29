@@ -7,7 +7,7 @@ export default function Vehicle({ id }) {
     type(VehicleUI);
     defer(200);
     suspend(`vehicles-${id}`);
-    usable({ films: 0, pilots: 0 });
+    usable(0);
     const vehicle = await fetchOne(`vehicles/${id}`, { signal });
     return {
       vehicle,

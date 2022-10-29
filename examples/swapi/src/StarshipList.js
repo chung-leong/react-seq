@@ -3,20 +3,20 @@ import { fetchList } from './swapi.js';
 import List from './List.js';
 
 export default function StarshipList() {
-  return useProgressive(async ({ type, defer, usable, suspend }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(StarshipListUI);
     defer(200);
-    usable({ films: 20 });
+    usable(10);
     suspend(`starship-list`);
-    return { films: fetchList('starships/') };
+    return { starships: fetchList('starships/', { signal }) };
   }, []);
 }
 
-function StarshipListUI({ films }) {
+function StarshipListUI({ starships }) {
   return (
     <div>
       <h1>Starships</h1>
-      <List items={films}/>
+      <List items={starships}/>
     </div>
   );
 }

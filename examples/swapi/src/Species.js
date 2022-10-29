@@ -6,7 +6,7 @@ export default function Species({ id }) {
   return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(SpeciesUI);
     defer(200);
-    usable({ films: 0, people: 0, homeworld: 0 });
+    usable(0);
     suspend(`species-${id}`);
     const species = await fetchOne(`species/${id}`, { signal });
     return {
@@ -18,7 +18,7 @@ export default function Species({ id }) {
   }, [ id ]);
 }
 
-function SpeciesUI({ species, films, people, homeworld = null }) {
+function SpeciesUI({ species, films, people, homeworld }) {
   return (
     <div>
       <h1>{species.name}</h1>

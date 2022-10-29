@@ -6,7 +6,7 @@ export default function Starship({ id }) {
   return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(StarshipUI);
     defer(200);
-    usable({ films: 0, pilots: 0 });
+    usable(0);
     suspend(`starship-${id}`);
     const starship = await fetchOne(`starships/${id}`, { signal });
     return {

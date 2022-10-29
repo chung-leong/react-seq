@@ -1,8 +1,8 @@
 import { useSWAPI } from './swapi.js';
 import List from './List.js';
 
-export default function CharacterListUI({ people }) {
-  const [ { people } ] = useSWAPI('people', {}, { refresh: 300000 });
+export default function CharacterList() {
+  const [ { people } ] = useSWAPI('people', {}, { refresh: 1 });
   return (
     <div>
       <h1>Characters</h1>

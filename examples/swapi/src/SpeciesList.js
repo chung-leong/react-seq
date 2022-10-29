@@ -3,12 +3,12 @@ import { fetchList } from './swapi.js';
 import List from './List.js';
 
 export default function SpeciesList() {
-  return useProgressive(async ({ type, defer, usable, suspend }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(SpeciesListUI);
     defer(200);
-    usable({ species: 20 });
+    usable(10);
     suspend(`species-list`);
-    return { species: fetchList('species/') };
+    return { species: fetchList('species/', { signal }) };
   }, []);
 }
 

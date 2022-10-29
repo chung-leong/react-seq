@@ -3,12 +3,12 @@ import { fetchList } from './swapi.js';
 import List from './List.js';
 
 export default function PlanetList() {
-  return useProgressive(async ({ type, defer, usable, suspend }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(PlanetListUI);
     defer(200);
-    usable({ planets: 20 });
+    usable(10);
     suspend(`planet-list`);
-    return { planets: fetchList('planets/') };
+    return { planets: fetchList('planets/', { signal }) };
   }, []);
 }
 

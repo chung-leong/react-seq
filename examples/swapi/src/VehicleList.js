@@ -3,12 +3,12 @@ import { fetchList } from './swapi.js';
 import List from './List.js';
 
 export default function VehicleList() {
-  return useProgressive(async ({ type, defer, usable, suspend }) => {
+  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(VehicleListUI);
     defer(200);
-    usable({ vehicles: 30 });
+    usable(10);
     suspend(`vehicle-list`);
-    return { vehicles: fetchList('vehicles/') };
+    return { vehicles: fetchList('vehicles/', { signal }) };
   }, []);
 }
 

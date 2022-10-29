@@ -2,7 +2,7 @@ import { useSWAPI } from './swapi.js';
 import List from './List.js';
 
 export default function Planet({ id }) {
-  const [ state ] = useSWAPI('planets', { id }, { refresh: 300000 });
+  const [ state ] = useSWAPI('planets', { id }, { refresh: 1 });
   const { planet, films, residents } = state;
   return (
     <div>

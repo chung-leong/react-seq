@@ -2,7 +2,8 @@ import { useSWAPI } from './swapi.js';
 import List from './List.js';
 
 export default function Species({ id }) {
-  const [ state ] = useSWAPI('species', { id }, { refresh: 300000 });
+  const [ state ] = useSWAPI('species', { id }, { refresh: 1 });
+  const { species, films, people, homeworld } = state;
   return (
     <div>
       <h1>{species?.name}</h1>

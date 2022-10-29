@@ -6,7 +6,7 @@ export default function Planet({ id }) {
   return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
     type(PlanetUI);
     defer(200);
-    usable({ films: 0, films: 0, residents: 0 });
+    usable(0);
     suspend(`planet-${id}`);
     const planet = await fetchOne(`planets/${id}`, { signal });
     return {
