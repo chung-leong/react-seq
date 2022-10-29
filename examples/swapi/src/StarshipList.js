@@ -1,4 +1,3 @@
-import React from 'react';
 import { useProgressive } from 'react-seq';
 import { fetchList } from './swapi.js';
 import List from './List.js';
