@@ -3,6 +3,9 @@ export async function delay(ms, options = {}) {
     value,
     signal
   } = options;
+  if (signal && signal.aborted) {
+    return Promise.reject(new Abort('Abort'));
+  }
   return new Promise((resolve, reject) => {
     let callback;
     const timeout = setTimeout(() => {

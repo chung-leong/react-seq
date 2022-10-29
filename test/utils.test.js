@@ -34,6 +34,19 @@ describe('#delay()', function() {
     }
     expect(error).to.be.instanceOf(Abort);
   })
+  it('should fail immediately when signal is already on', async function() {
+    // can't use AbortSignal.abort() as it's missing from the implementation
+    const abortController = new AbortController();
+    const { signal } = abortController;
+    abortController.abort();
+    let error;
+    try {
+      await delay(20, { signal });
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.instanceOf(Abort);
+  })
   it('should remove listener on signal timeout fires', async function() {
     const abortController = new AbortController();
     const { signal } = abortController;
