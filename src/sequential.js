@@ -38,7 +38,7 @@ export function sequential(cb) {
   };
 
   // let callback manages events with help of promises
-  if (!process.env.REACT_SEQ_NO_EM) {
+  if (!process.env.REACT_APP_SEQ_NO_EM) {
     methods.manageEvents = (options = {}) => {
       const { on, eventual } = new EventManager({ ...options, signal });
       return [ on, eventual ];

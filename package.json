@@ -1,6 +1,6 @@
 {
   "name": "react-seq",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Create React components that output contents from async generators",
   "main": "index.js",
   "type": "module",

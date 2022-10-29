@@ -40,7 +40,7 @@ export function sequentialState(cb, setState, setError) {
 
   // let callback manages events with help of promises
   let eventManager;
-  if (!process.env.REACT_SEQ_NO_EM) {
+  if (!process.env.REACT_APP_SEQ_NO_EM) {
     methods.manageEvents = (options = {}) => {
       const { on, eventual } = new EventManager({ ...options, signal });
       eventManager = { on, eventual };
