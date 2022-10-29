@@ -123,7 +123,7 @@ describe('#EventManager', function() {
     expect(value4).to.eql([ 8, undefined ]);
   })
   it('should create filtering handler when apply() is used', async function() {
-    const { on, eventual, reject } = new EventManager({});
+    const { on, eventual } = new EventManager({});
     const filter = a => `[${a}]`;
     const handler = on.click.apply(filter);
     expect(handler).to.equal(on.click.apply(filter));
@@ -132,7 +132,7 @@ describe('#EventManager', function() {
     expect(value).to.equal('[hello]');
   })
   it('should behave as expected apply() is called in the normal way', async function() {
-    const { on, eventual, reject } = new EventManager({});
+    const { on, eventual } = new EventManager({});
     setTimeout(() => on.click.apply(), 10);
     const value1 = await eventual.click;
     expect(value1).to.be.undefined;
@@ -141,7 +141,7 @@ describe('#EventManager', function() {
     expect(value2).to.be.equal('duck');
   })
   it('should allow value marked by important() to be retrieved later', async function() {
-    const { on, eventual, reject } = new EventManager({});
+    const { on, eventual } = new EventManager({});
     const handler = on.click.apply(important);
     handler('Turkey');
     const value1 = await eventual.click;
@@ -150,7 +150,7 @@ describe('#EventManager', function() {
     expect(value2).to.equal(undefined);
   })
   it('should allow value marked by persistent() to be retrieved again and again', async function() {
-    const { on, eventual, reject } = new EventManager({});
+    const { on, eventual } = new EventManager({});
     const handler = on.click.apply(persistent);
     handler('Turkey');
     const value1 = await eventual.click;
@@ -160,7 +160,7 @@ describe('#EventManager', function() {
     const value3 = await eventual.click;
   })
   it('should throw value marked by throwing()', async function() {
-    const { on, eventual, reject } = new EventManager({});
+    const { on, eventual } = new EventManager({});
     const handler1 = on.click;
     const handler2 = on.click.apply(throwing);
     setTimeout(() => handler1(new Error), 10);
@@ -193,7 +193,7 @@ describe('#EventManager', function() {
     expect(error3).to.be.instanceOf(Error);
   })
   it('should force creation of new promises when after a regular handler is called', async function() {
-    const { on, eventual, reject } = new EventManager({});
+    const { on, eventual } = new EventManager({});
     const handler1 = on.click.apply(persistent);
     const handler2 = on.click;
     handler1('Turkey');
@@ -207,7 +207,7 @@ describe('#EventManager', function() {
     expect(value4).to.be.undefined;
   })
   it('should force creation of new promises when after an important handler is called', async function() {
-    const { on, eventual, reject } = new EventManager({});
+    const { on, eventual } = new EventManager({});
     const handler1 = on.click.apply(persistent);
     const handler2 = on.click.apply(important);
     handler1('Turkey');
@@ -225,7 +225,7 @@ describe('#EventManager', function() {
   it('should abort successfully when external promise has been wrapped with eventual()', async function() {
     const abortController = new AbortController();
     const { signal } = abortController;
-    const { on, eventual, reject } = new EventManager({ signal });
+    const { on, eventual } = new EventManager({ signal });
     const dead = Promise.race([]);
     setTimeout(() => abortController.abort(), 10);
     let error;
@@ -239,7 +239,7 @@ describe('#EventManager', function() {
   it('should cause all to reject when abort controller signals', async function() {
     const abortController = new AbortController();
     const { signal } = abortController;
-    const { on, eventual, reject } = new EventManager({ signal });
+    const { on, eventual } = new EventManager({ signal });
     setTimeout(() => abortController.abort(), 10);
     let error;
     try {
@@ -248,6 +248,50 @@ describe('#EventManager', function() {
       error = err;
     }
     expect(error).to.be.an('error');
+  })
+  it('should permit attachment of timeout', async function() {
+    const { on, eventual } = new EventManager({});
+    const promise = eventual.click.for(20).milliseconds;
+    expect(promise).to.be.a('promise');
+    const value = await promise;
+    expect(value).to.equal('timeout');
+  })
+  it('should permit attachment of timeout to promise chain', async function() {
+    const { on, eventual } = new EventManager({});
+    const promise = eventual.click.and.keypress.or.scroll.for(20).milliseconds;
+    expect(promise).to.be.a('promise');
+    const value = await promise;
+    expect(value).to.equal('timeout');
+  })
+  it('should throw an error when .for() is awaited upon', async function() {
+    const { on, eventual } = new EventManager({});
+    let error;
+    try {
+      await eventual.click.for(30);
+    } catch (err) {
+      error = err;
+    }
+    expect(error.message).to.equal('No time unit selected');
+  })
+  it('should throw an error when an unrecognized time unit is selected', async function() {
+    const { on, eventual } = new EventManager({});
+    let error;
+    try {
+      await eventual.click.for(30).lightyears;
+    } catch (err) {
+      error = err;
+    }
+    expect(error.message).to.equal('Invalid time unit: lightyears');
+  })
+  it('should throw an invalid number is given', async function() {
+    const { on, eventual } = new EventManager({});
+    let error;
+    try {
+      await eventual.click.for(undefined).hours;
+    } catch (err) {
+      error = err;
+    }
+    expect(error.message).to.equal(`Invalid duration: undefined`);
   })
   it('should not allow the setting of properties', function() {
     const { on, eventual } = new EventManager({});

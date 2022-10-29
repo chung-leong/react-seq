@@ -70,7 +70,10 @@ export class EventManager {
       // allow multiple promises to be chained together
       // promise from an 'or' chain fulfills when the quickest one fulfills
       // promise from an 'add' chain fulfills when all promises do
-      this.enablePromiseMerge(promise, 'or', 'and');
+      this.enablePromiseMerge(promise);
+      // allow attachment of a timer using the syntax
+      // await eventual.click.for(4).seconds
+      this.enableTimeout(promise);
       if (this.warning && process.env.NODE_ENV === 'development') {
         promise.then = (thenFn, catchFn) => {
           if (!(name in this.handlers)) {
@@ -96,16 +99,18 @@ export class EventManager {
       this.abortPromise = new Promise((_, reject) => this.abortReject = reject);
     }
     const wrapped = Promise.race([ promise, this.abortPromise ]);
-    this.enablePromiseMerge(wrapped, 'or', 'and');
+    this.enablePromiseMerge(wrapped);
+    this.enableTimeout(wrapped);
     return wrapped;
   }
 
-  enablePromiseMerge(parent, ...ops) {
-    ops.forEach(op => {
+  enablePromiseMerge(parent) {
+    [ 'or', 'and' ].forEach(op => {
       // the op word itself is callable
       const fn = (promise) => {
         const mergedPromise = mergePromises([ parent, promise ], op);
-        this.enablePromiseMerge(mergedPromise, op);
+        this.enablePromiseMerge(mergedPromise);
+        this.enableTimeout(mergedPromise);
         return mergedPromise;
       };
       parent[op] = new Proxy(fn, { get: (fn, name) => this.getMergedPromise(parent, name, op), set: throwError });
@@ -118,9 +123,43 @@ export class EventManager {
     const promise = eventual[name];
     // merge it with the ones earlier in the chain
     const mergedPromise = mergePromises([ parent, promise ], op);
-    // allow further chaining (but only of the same operation)
-    this.enablePromiseMerge(mergedPromise, op);
+    // allow further chaining
+    this.enablePromiseMerge(mergedPromise);
+    this.enableTimeout(mergedPromise);
     return mergedPromise;
+  }
+
+  enableTimeout(parent) {
+    const multipliers = {
+      milliseconds: 1,
+      seconds: 1000,
+      minutes: 1000 * 60,
+      hours: 1000 * 60 * 60
+    };
+    parent.for = (number) => {
+      if (!(number > 0)) {
+        throw new TypeError(`Invalid duration: ${number}`);
+      }
+      const proxy = new Proxy({}, {
+        get: (p, name) => {
+          const multipler = multipliers[name] || multipliers[name + 's'];
+          if (multipler === undefined) {
+            const msg = (name === 'then') ? 'No time unit selected' : `Invalid time unit: ${name}`;
+            throw new Error(msg);
+          }
+          const delay = number * multipler;
+          let resolve;
+          const promise = new Promise(r => resolve = r);
+          const timeout = setTimeout(() => resolve('timeout'), delay);
+          // kill the timer when promise resolves();
+          const stop = () => clearTimeout(timeout);
+          parent.then(stop, stop);
+          return Promise.race([ parent, promise ]);
+        },
+        set: throwError,
+      });
+      return proxy;
+    };
   }
 
   getHandlerProp(fn, name, handlers, key) {
@@ -206,7 +245,8 @@ export class EventManager {
       if (!handled) {
         // allow the value to be picked up later
         const promise = (rejecting) ? Promise.reject(value) : Promise.resolve(value);
-        this.enablePromiseMerge(promise, 'or', 'and');
+        this.enablePromiseMerge(promise);
+        this.enableTimeout(promise);
         promises[name] = promise;
         handled = true;
       }
