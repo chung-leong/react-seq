@@ -105,6 +105,7 @@ export function sequential(cb) {
     flushFn = () => {
       if (pendingContent !== undefined) {
         iterator.interrupt();
+        unusedSlot = false;
       }
     };
     do {
@@ -186,7 +187,7 @@ export function sequential(cb) {
       return currentContent;
     }
 
-    function updateContent(conditional = false) {
+    function updateContent({ conditional = false, reusable = false }) {
       if (conditional) {
         if (iterator.delay > 0 && !unusedSlot) {
           // wait for next interruption
@@ -201,7 +202,7 @@ export function sequential(cb) {
         }
         unusedSlot = false;
       } else {
-        unusedSlot = true;
+        unusedSlot = reusable;
       }
     }
 
@@ -215,19 +216,19 @@ export function sequential(cb) {
     async function retrieveRemaining() {
       let stop = false, aborted = false;
       pendingContent = undefined;
-      flushFn = updateContent;
+      flushFn = () => updateContent({});
       do {
         try {
           const { value, done } = await iterator.next();
           if (!done) {
             pendingContent = (value !== undefined) ? value : null;
-            updateContent(true);
+            updateContent({ conditional: true });
           } else {
             stop = true;
           }
         } catch (err) {
           if (err instanceof Interruption) {
-            updateContent();
+            updateContent({ resuable: true });
           } else if (err instanceof Abort) {
             stop = aborted = true;
           } else if (isAbortError(err)) {
@@ -240,7 +241,7 @@ export function sequential(cb) {
         }
       } while (!stop);
       if (!aborted) {
-        updateContent();
+        updateContent({});
       }
       await iterator.return().catch(err => console.error(err));
     }

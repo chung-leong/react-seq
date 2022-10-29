@@ -86,7 +86,7 @@ export function sequentialState(cb, setState, setError) {
     ...eventManager
   };
 
-  function updateState(conditional = false) {
+  function updateState({ conditional = false, reusable = false }) {
     if (conditional) {
       if (iterator.delay > 0 && !unusedSlot) {
         // wait for interruption
@@ -99,7 +99,7 @@ export function sequentialState(cb, setState, setError) {
       startTransition(() => setState(newState));
       unusedSlot = false;
     } else {
-      unusedSlot = true;
+      unusedSlot = reusable;
     }
   }
 
@@ -109,19 +109,19 @@ export function sequentialState(cb, setState, setError) {
 
   async function retrieveRemaining() {
     let stop = false, aborted = false;
-    flushFn = updateState;
+    flushFn = () => updateState({});
     do {
       try {
         const { value, done } = await iterator.next();
         if (!done) {
           pendingState = (value !== undefined) ? value : null;
-          updateState(true);
+          updateState({ conditional: true });
         } else {
           stop = true;
         }
       } catch (err) {
         if (err instanceof Interruption) {
-          updateState();
+          updateState({ reusable: true });
         } else if (err instanceof Abort) {
           stop = aborted = true;
         } else if (isAbortError(err)) {
@@ -134,7 +134,7 @@ export function sequentialState(cb, setState, setError) {
       }
     } while (!stop);
     if (!aborted) {
-      updateState();
+      updateState({});
     }
     await iterator.return();
   }
