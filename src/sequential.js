@@ -61,6 +61,14 @@ export function sequential(cb) {
     placeholder = el;
   };
 
+  // permit explicit request to use pending content
+  let flushFn;
+  methods.flush = () => {
+    if (flushFn) {
+      flushFn();
+    }
+  };
+
   // container for fallback content, the use of which allows to detect
   // unexpected unmounting of the fallback content (i.e. the parent
   // got unmounted)
@@ -94,6 +102,11 @@ export function sequential(cb) {
 
     // retrieve initial contents
     let stop = false, empty = false, aborted = false;
+    flushFn = () => {
+      if (pendingContent !== undefined) {
+        iterator.interrupt();
+      }
+    };
     do {
       try {
         const { value, done } = await iterator.next();
@@ -173,7 +186,7 @@ export function sequential(cb) {
       return currentContent;
     }
 
-    function updateContent(urgent, conditional = false) {
+    function updateContent(conditional = false) {
       if (conditional) {
         if (iterator.delay > 0 && !unusedSlot) {
           // wait for next interruption
@@ -184,13 +197,7 @@ export function sequential(cb) {
         currentContent = pendingContent;
         pendingContent = undefined;
         if (redrawComponent) {
-          if (urgent) {
-            redrawComponent();
-          } else {
-            startTransition(() => {
-              redrawComponent();
-            });
-          }
+          startTransition(redrawComponent);
         }
         unusedSlot = false;
       } else {
@@ -206,22 +213,23 @@ export function sequential(cb) {
     }
 
     async function retrieveRemaining() {
-      let stop = false;
+      let stop = false, aborted = false;
       pendingContent = undefined;
+      flushFn = updateContent;
       do {
         try {
           const { value, done } = await iterator.next();
           if (!done) {
             pendingContent = (value !== undefined) ? value : null;
-            updateContent(false, true);
+            updateContent(true);
           } else {
             stop = true;
           }
         } catch (err) {
           if (err instanceof Interruption) {
-            updateContent(false);
+            updateContent();
           } else if (err instanceof Abort) {
-            stop = true;
+            stop = aborted = true;
           } else if (isAbortError(err)) {
             // quietly ignore error
             stop = true;
@@ -231,7 +239,9 @@ export function sequential(cb) {
           }
         }
       } while (!stop);
-      updateContent(true);
+      if (!aborted) {
+        updateContent();
+      }
       await iterator.return().catch(err => console.error(err));
     }
   });

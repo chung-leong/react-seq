@@ -61,6 +61,14 @@ export function sequentialState(cb, setState, setError) {
     initialState = state;
   };
 
+  // permit explicit request to use pending state
+  let flushFn;
+  methods.flush = () => {
+    if (flushFn) {
+      flushFn();
+    }
+  };
+
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
   const generator = cb(methods);
@@ -78,7 +86,7 @@ export function sequentialState(cb, setState, setError) {
     ...eventManager
   };
 
-  function updateState(urgent, conditional = false) {
+  function updateState(conditional = false) {
     if (conditional) {
       if (iterator.delay > 0 && !unusedSlot) {
         // wait for interruption
@@ -88,13 +96,7 @@ export function sequentialState(cb, setState, setError) {
     if (pendingState !== undefined) {
       const newState = pendingState;
       pendingState = undefined;
-      if (urgent) {
-        setState(newState);
-      } else {
-        startTransition(() => {
-          setState(newState);
-        });
-      }
+      startTransition(() => setState(newState));
       unusedSlot = false;
     } else {
       unusedSlot = true;
@@ -107,18 +109,19 @@ export function sequentialState(cb, setState, setError) {
 
   async function retrieveRemaining() {
     let stop = false, aborted = false;
+    flushFn = updateState;
     do {
       try {
         const { value, done } = await iterator.next();
         if (!done) {
           pendingState = (value !== undefined) ? value : null;
-          updateState(false, true);
+          updateState(true);
         } else {
           stop = true;
         }
       } catch (err) {
         if (err instanceof Interruption) {
-          updateState(false);
+          updateState();
         } else if (err instanceof Abort) {
           stop = aborted = true;
         } else if (isAbortError(err)) {
@@ -131,7 +134,7 @@ export function sequentialState(cb, setState, setError) {
       }
     } while (!stop);
     if (!aborted) {
-      updateState(true);
+      updateState();
     }
     await iterator.return();
   }

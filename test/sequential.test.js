@@ -935,6 +935,77 @@ describe('#useSequential()', function() {
     await delay(45);
     expect(renderer.toJSON()).to.equal('Pig');
   })
+  it('should show previously pending content after flush is called', async function() {
+    const steps = createSteps(5), assertions = createSteps();
+    let f;
+    function Test() {
+      return useSequential(async function*({ fallback, defer, flush }) {
+        f = flush;
+        fallback('Cow');
+        defer(Infinity);
+        await assertions[0];
+        yield 'Monkey';
+        steps[1].done();
+        await assertions[1];
+        yield 'Pig';
+        steps[2].done();
+        await assertions[2];
+        yield 'Chicken';
+        steps[3].done();
+      }, []);
+    }
+    const el = createElement(Test);
+    const renderer = createTestRenderer(el);
+    expect(renderer.toJSON()).to.equal('Cow');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Cow');
+    f();
+    await delay(5);
+    expect(renderer.toJSON()).to.equal('Monkey');
+    assertions[1].done();
+    await steps[2];
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Chicken');
+  })
+  it('should show previously pending content after initial item has been retrieved and flush is called', async function() {
+    const steps = createSteps(5), assertions = createSteps();
+    let f;
+    function Test() {
+      return useSequential(async function*({ fallback, defer, flush }) {
+        f = flush;
+        fallback('Cow');
+        defer(0);
+        await assertions[0];
+        yield 'Monkey';
+        steps[1].done();
+        defer(Infinity);
+        await assertions[1];
+        yield 'Pig';
+        steps[2].done();
+        await assertions[2];
+        yield 'Chicken';
+        steps[3].done();
+      }, []);
+    }
+    const el = createElement(Test);
+    const renderer = createTestRenderer(el);
+    expect(renderer.toJSON()).to.equal('Cow');
+    assertions[0].done();
+    await steps[1];
+    expect(renderer.toJSON()).to.equal('Monkey');
+    assertions[1].done();
+    await steps[2];
+    expect(renderer.toJSON()).to.equal('Monkey');
+    f();
+    await delay(5);
+    expect(renderer.toJSON()).to.equal('Pig');
+    assertions[2].done();
+    await steps[3];
+    expect(renderer.toJSON()).to.equal('Chicken');
+  })
+
 })
 
 async function readStream(stream) {

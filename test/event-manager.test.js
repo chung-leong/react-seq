@@ -263,6 +263,11 @@ describe('#EventManager', function() {
     const value = await promise;
     expect(value).to.equal('timeout');
   })
+  it('should simply return the promise when delay is Infinity', async function() {
+    const { on, eventual } = new EventManager({});
+    const promise = eventual.click.for(Infinity).milliseconds;
+    expect(promise).to.be.equal(eventual.click);
+  })
   it('should throw an error when .for() is awaited upon', async function() {
     const { on, eventual } = new EventManager({});
     let error;

@@ -137,17 +137,20 @@ export class EventManager {
       hours: 1000 * 60 * 60
     };
     parent.for = (number) => {
-      if (!(number > 0)) {
+      if (!(number >= 0)) {
         throw new TypeError(`Invalid duration: ${number}`);
       }
       const proxy = new Proxy({}, {
-        get: (p, name) => {
+        get: (_, name) => {
           const multipler = multipliers[name] || multipliers[name + 's'];
           if (multipler === undefined) {
             const msg = (name === 'then') ? 'No time unit selected' : `Invalid time unit: ${name}`;
             throw new Error(msg);
           }
           const delay = number * multipler;
+          if (delay === Infinity) {
+            return parent;
+          }
           let resolve;
           const promise = new Promise(r => resolve = r);
           const timeout = setTimeout(() => resolve('timeout'), delay);

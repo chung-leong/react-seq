@@ -392,4 +392,43 @@ describe('#useSequentialState()', function() {
     await delay(45);
     expect(renderer.toJSON()).to.equal('Drunk');
   })
+  it('should make use of pending state after call to flush', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    const results = [];
+    let f;
+    function Test() {
+      const [ state, on ] = useSequentialState(async function*({ defer, flush }) {
+        f = flush;
+        defer(Infinity);
+        await assertions[0];
+        yield 'Whiskey drink';
+        steps[1].done();
+        await assertions[1];
+        yield 'Vodka drink';
+        steps[2].done();
+        await assertions[2];
+        yield 'Lager drink';
+        steps[3].done();
+        await assertions[3];
+        yield 'Cider drink';
+        steps[4].done();
+      }, []);
+      results.push(state);
+      return state;
+    }
+    const el = createElement(Test);
+    const renderer = createTestRenderer(el);
+    expect(results).to.eql([ undefined ]);
+    assertions[0].done();
+    await steps[1];
+    expect(results).to.eql([ undefined ]);
+    assertions[1].done();
+    await steps[2];
+    expect(results).to.eql([ undefined ]);
+    f();
+    await delay(5);
+    expect(results).to.eql([ undefined, 'Vodka drink' ]);
+    assertions[2].done();
+
+  })
 })
