@@ -10,6 +10,29 @@ export function useSequential(cb, deps) {
 export function sequential(cb) {
   const abortController = new AbortController();
   const { signal } = abortController;
+  // when strict mode is used, the component will get mounted twice in rapid succession
+  // we can't abort immediately on unmount, as the component can be remount immediately
+  // schedule the operation on the next tick instead so there's a window of opportunity
+  // to cancel it
+  let abortPromise, abortCancelled = false;
+  function scheduleAbort() {
+    if (!abortPromise) {
+      abortPromise = Promise.resolve().then(() => {
+        abortPromise = null;
+        if (!abortCancelled) {
+          abortController.abort()
+        }
+      })
+    }
+    abortCancelled = false;
+  }
+  function cancelAbort() {
+    if (abortPromise) {
+      abortCancelled = true;
+    }
+  }
+
+  // methods passed to callback functions (including abort signal)
   const methods = { signal };
 
   // let callback set content update delay
@@ -37,8 +60,8 @@ export function sequential(cb) {
     suspensionKey = key;
   };
 
-  // let callback manages events with help of promises
   if (!process.env.REACT_APP_SEQ_NO_EM) {
+    // let callback manages events with help of promises
     methods.manageEvents = (options = {}) => {
       const { on, eventual } = new EventManager({ ...options, signal });
       return [ on, eventual ];
@@ -75,9 +98,10 @@ export function sequential(cb) {
   let fallbackUnmountExpected = false;
   function Fallback({ children }) {
     useEffect(() => {
+      cancelAbort();
       return () => {
         if (!fallbackUnmountExpected) {
-          abortController.abort();
+          scheduleAbort();
         }
       };
     });
@@ -181,9 +205,10 @@ export function sequential(cb) {
           pendingError = undefined;
           redrawComponent();
         }
+        cancelAbort();
         return () => {
           // abort iteration through generator on unmount
-          abortController.abort();
+          scheduleAbort();
         };
       }, []);
       return currentContent;
@@ -261,14 +286,39 @@ export function sequential(cb) {
 }
 
 const lazyComponents = {};
+const lazyComponentTickCounts = {};
+let tickCount = 0;
 
 function createLazyComponent(key, fn) {
   if (typeof(key) === 'string') {
     let c = lazyComponents[key];
+    // deal with issues caused by both StrictMode and Suspense here:
+    // StrictMode will cause the function to get executed twice
+    // combine that with suspension means the function get called
+    // four times.
+    //
+    // We want the function to be executed once, with same lazy
+    // component returned each time, then promptly removed.
+    //
+    // Call #1 creates the lazy component
+    // Call #2 find the existing component, sees that its tick count matches the current, does nothing
+    // Call #3 find the existing component, sees that its tick count is differernt, schedule a removal
+    // on the next tick
+    // Call #4 find the existing component, sees that its tick count is differernt, schedule a removal
+    // on the next tick too, which does nothing
     if (c) {
-      delete lazyComponents[key];
+      if (lazyComponentTickCounts[key] !== tickCount) {
+        Promise.resolve().then(() => {
+          delete lazyComponents[key];
+          delete lazyComponentTickCounts[key];
+        });
+      }
     } else {
-      c = lazyComponents[key] = lazy(fn);
+      c = lazy(fn);
+      lazyComponents[key] = c;
+      lazyComponentTickCounts[key] = tickCount;
+      // increase the tick count on the next tick
+      Promise.resolve().then(() => tickCount++);
     }
     return c;
   } else {

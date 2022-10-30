@@ -9,9 +9,10 @@ export async function withReactDOM(cb) {
       unmount: () => act(() => root.unmount()),
       root,
       node,
+      act,
     });
   } finally {
-    root.unmount();
+    await act(() => root.unmount());
     node.remove();
   }
 }

@@ -16,10 +16,34 @@ export function useFunctionState(fn, cb, deps) {
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
+
+  // when strict mode is used, the component will get mounted twice in rapid succession
+  // we can't abort immediately on unmount, as the component can be remount immediately
+  // schedule the operation on the next tick instead so there's a window of opportunity
+  // to cancel it
+  let abortPromise, abortCancelled = false;
+  function scheduleAbort() {
+    if (!abortPromise) {
+      abortPromise = Promise.resolve().then(() => {
+        abortPromise = null;
+        if (!abortCancelled) {
+          abortController.abort()
+        }
+      })
+    }
+    abortCancelled = false;
+  }
+  function cancelAbort() {
+    if (abortPromise) {
+      abortCancelled = true;
+    }
+  }
+
   useEffect(() => {
     setState(initialState);
     setError();
-    return () => abortController.abort();
+    cancelAbort();
+    return () => scheduleAbort();
   }, [ initialState, abortController ]);
   if (error) {
     throw error;
@@ -30,6 +54,8 @@ export function useFunctionState(fn, cb, deps) {
 export function sequentialState(cb, setState, setError) {
   const abortController = new AbortController();
   const { signal } = abortController;
+
+  // methods passed to callback functions (including abort signal)
   const methods = { signal };
 
   // let callback set content update delay

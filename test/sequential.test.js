@@ -404,7 +404,7 @@ describe('#sequential()', function() {
   })
   it('should allow creation of a suspending component', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(5), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps();
       const el = sequential(async function*({ suspend }) {
         suspend();
         await assertions[0];
@@ -883,7 +883,7 @@ describe('#useSequential()', function() {
     // since it doesn't recreate the state of the container element
     // upon unsuspension
     await withTestRenderer(async ({ create, update, toJSON }) => {
-      const steps = createSteps(5), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps();
       function Test() {
         return useSequential(async function*({ suspend }) {
           suspend('#112');
@@ -915,7 +915,7 @@ describe('#useSequential()', function() {
   })
   it('should correctly deal with undefined', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(5), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps();
       function Test() {
         return useSequential(async function*() {
           await assertions[0];
@@ -945,7 +945,7 @@ describe('#useSequential()', function() {
   })
   it('should correctly deal with undefined as the initial non-fallback content', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(5), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps();
       function Test() {
         return useSequential(async function*({ fallback }) {
           fallback('Cow');
@@ -976,7 +976,7 @@ describe('#useSequential()', function() {
   })
   it('should correctly deal with undefined as the timeout content', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(5), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps();
       function Test() {
         return useSequential(async function*({ fallback, timeout }) {
           fallback('Cow');
@@ -1029,7 +1029,7 @@ describe('#useSequential()', function() {
   })
   it('should show previously pending content after flush is called', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(5), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps();
       let f;
       function Test() {
         return useSequential(async function*({ fallback, defer, flush }) {
@@ -1065,7 +1065,7 @@ describe('#useSequential()', function() {
   })
   it('should show previously pending content after initial item has been retrieved and flush is called', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(5), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps();
       let f;
       function Test() {
         return useSequential(async function*({ fallback, defer, flush }) {
@@ -1101,39 +1101,88 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.equal('Chicken');
     });
   })
-  skip.if.dom.is.absent.
+  skip.if.dom.is.absent.or.not.in.development.mode.
   it('should work under strict mode', async function() {
-    await withReactDOM(async ({ render, node }) => {
-      const steps = createSteps(5), assertions = createSteps();
+    await withReactDOM(async ({ render, act, node }) => {
+      // need to wrap calls to promise fulfilling calls to prevent
+      // act() warnings; updates are caused by completion of assertions
+      // so those are the steps where .done() uses act()
+      // that effectively turn it into an async function
+      const steps = createSteps(), assertions = createSteps(act);
+      let call = 0;
       function Test() {
         return useSequential(async function*({ fallback }) {
-          steps[0].done();
           fallback('Cow');
-          await assertions[0];
+          steps[call].done();
+          await assertions[call++];
           yield 'Monkey';
-          steps[1].done();
-          await assertions[1];
-          yield 'Pig';
           steps[2].done();
           await assertions[2];
-          yield 'Chicken';
+          yield 'Pig';
           steps[3].done();
+          await assertions[3];
+          yield 'Chicken';
+          steps[4].done();
         }, []);
       }
       const el = createElement(Test);
       const strict = createElement(StrictMode, {}, el);
       await render(strict);
+      // in strict mode a function passed to useMemo (used by useSequential) is run twice
       await steps[0];
-      expect(node.textContent).to.equal('Cow');
-      assertions[0].done();
       await steps[1];
-      expect(node.textContent).to.equal('Monkey');
-      assertions[1].done();
+      expect(node.textContent).to.equal('Cow');
+      await assertions[0].done();
+      await assertions[1].done();
       await steps[2];
-      expect(node.textContent).to.equal('Pig');
-      assertions[2].done();
+      expect(node.textContent).to.equal('Monkey');
+      await assertions[2].done();
       await steps[3];
+      expect(node.textContent).to.equal('Pig');
+      await assertions[3].done();
+      await steps[4];
       expect(node.textContent).to.equal('Chicken');
+    })
+  })
+  skip.if.dom.is.absent.or.not.in.development.mode.
+  it('should allow a container component to return a suspending component when a real DOM is involved', async function() {
+    await withReactDOM(async ({ render, act, node }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      let call = 0;
+      function Test() {
+        return useSequential(async function*({ suspend }) {
+          suspend('#112');
+          steps[call].done();
+          await assertions[call++];
+          yield 'Pig';
+          steps[4].done();
+          await assertions[4];
+          yield 'Chicken';
+          steps[5].done();
+        }, []);
+      }
+      const el = createElement(Test);
+      const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
+      const strict = createElement(StrictMode, {}, suspense);
+      // the callback will get invoked 2 x 2 = 4 times; twice due to StrictMode
+      // and twice due to suspension/unsuspension
+      await render(strict);
+      await steps[0];
+      await steps[1];
+      expect(node.textContent).to.equal('Cow');
+      await assertions[0].done();
+      await assertions[1].done();
+      // at this point the component is suspended; wait for it to get mounted twice again
+      await steps[2];
+      await steps[3];
+      await assertions[2].done();
+      await assertions[3].done();
+      await steps[4];
+      expect(node.textContent).to.equal('Pig');
+      await assertions[4].done();
+      await steps[5];
+      expect(node.textContent).to.equal('Chicken');
+      expect(call).to.equal(4);
     });
   })
 })

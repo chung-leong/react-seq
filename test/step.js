@@ -1,4 +1,7 @@
-export function createSteps(delay = 0) {
+export function createSteps(invoke = null) {
+  if (!invoke) {
+    invoke = (cb) => setTimeout(cb, 0);
+  }
   return new Proxy([], {
     get(arr, name) {
       const num = parseInt(name);
@@ -9,10 +12,10 @@ export function createSteps(delay = 0) {
         if (!promise) {
           let resolve, reject;
           promise = arr[num] = new Promise((r1, r2) => { resolve = r1; reject = r2; });
-          promise.done = (value) => setTimeout(() => resolve(value), delay);
-          promise.fail = (err) => setTimeout(() => reject(err), delay);
+          promise.done = (value) => invoke(() => resolve(value));
+          promise.fail = (err) => invoke(() => reject(err));
           promise.throw = (err, value) => {
-            setTimeout(() => resolve(value), delay);
+            invoke(() => resolve(value));
             throw err;
           };
         }

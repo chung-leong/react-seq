@@ -13,4 +13,6 @@ global.fetch = fetch;
 
 process.env.NODE_ENV = 'development';
 
-skip.condition('dom.is.absent', typeof(window) !== 'object');
+skip
+  .condition('dom.is.absent', typeof(window) !== 'object')
+  .condition('in.development.mode', process.env.NODE_ENV === 'development');
