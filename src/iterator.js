@@ -33,7 +33,7 @@ export class IntermittentIterator {
   }
 
   setDelay(delay) {
-    const actualDelay = delay * delayMultiplier;
+    const actualDelay = (delay === 0) ? 0 : delay * delayMultiplier;
     if (actualDelay !== this.delay) {
       this.delay = actualDelay;
       if (this.started) {

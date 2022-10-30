@@ -20,6 +20,12 @@ describe('#extendDelay()', function() {
     iterator.setDelay(3);
     expect(iterator.delay).to.equal(3);
   })
+  it('should interpret 0 x Infinity as zero', function() {
+    extendDelay(Infinity);
+    const iterator = new IntermittentIterator({});
+    iterator.setDelay(0);
+    expect(iterator.delay).to.equal(0);
+  })
 })
 
 describe('#limitTimeout()', function() {
