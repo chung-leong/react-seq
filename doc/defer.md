@@ -91,17 +91,16 @@ maintain up-to-date information about a movie:
 
 ```js
 function MovieInfo({ id }) {
-  const [ info ] = useSequentialState(async function*({ defer, initial, signal }) {
+  const [ info ] = useSequentialState(async function*({ defer, flush, initial, signal }) {
     initial({});
-    defer(100);
     for (let i = 0;; i++) {
+      defer(i === 0 ? 100 : Infinity);
       try {
         const film = await fetch(`https://modernmoviessu.ck/films/${id}`, { signal });
         yield { film };
         /* ... */
-        defer(0);
         yield { film, actors, directors, producers };
-        defer(Infinity);
+        flush();
       } catch (err) {
         // try again later unless it's the first loop
         if (i === 0) {
@@ -124,3 +123,4 @@ states. Only the complete data set gets returned.
 ## Examples
 
 * [SWAPI Example](../examples/swapi/README.md)
+* [SWAPI Hook Example](../examples/swapi-hook/README.md)

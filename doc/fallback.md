@@ -1,5 +1,13 @@
 # fallback(element)
 
+Specify an element to be displayed while the React-seq hook in question retrieves the first element from the
+given generator function
+
+## Providers
+
+* [useSequential](useSequential.md)
+* [useProgressive](useProgressive.md)
+
 ## Syntax
 
 ```js
@@ -20,9 +28,15 @@ function Widget({ id }) {
 
 ## Parameters
 
-* `element` - `<Element>` or `<Function>`
+* `element` - `<Element>` or `<Function>` If `element` is a function, it'll be called and its return value used as
+the fallback element
 
-## Providers
+## Notes
 
-* [useSequential](useSequential.md)
-* [useProgressive](useProgressive.md)
+`element` will be handed to the [`<React.Suspend>`](https://reactjs.org/docs/react-api.html#suspense) element that
+wraps the lazily, asynchronously fulfilled component created by React-seq.
+
+`fallback()` and [`suspend`](suspend.md) cannot be used at the same time.
+
+[`initial`](./initial.md) is the equivalent function for state hooks ([useSequentialState](useSequentialState.md),
+[useProgressiveState](useProgressiveState.md)).
