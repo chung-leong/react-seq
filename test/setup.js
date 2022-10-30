@@ -4,9 +4,13 @@ import AbortController from 'abort-controller';
 import fetch from 'node-fetch';
 import 'mocha-skip-if';
 
-global.AbortController = AbortController;
+Chai.use(ChaiAsPromised);
+
+if (!(AbortController in global)) {
+  global.AbortController = AbortController;
+}
 global.fetch = fetch;
 
 process.env.NODE_ENV = 'development';
 
-Chai.use(ChaiAsPromised);
+skip.condition('dom.is.absent', typeof(window) !== 'object');

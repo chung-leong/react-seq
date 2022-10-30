@@ -1,15 +1,16 @@
-import { create, act } from 'react-test-renderer';
-
-export function createTestRenderer(el) {
+export async function withTestRenderer(cb) {
+  const { create, act } = await import('react-test-renderer');
   let renderer;
-  act(() => renderer = create(el));
-  return renderer;
-}
-
-export function updateTestRenderer(renderer, el) {
-  act(() => renderer.update(el));
-}
-
-export function unmountTestRenderer(renderer) {
-  act(() => renderer.unmount());
+  try {
+    await cb({
+      create: (el) => act(() => renderer = create(el)),
+      update: (el) => act(() => renderer.update(el)),
+      unmount: () => act(() => renderer.unmount()),
+      toJSON: () => renderer.toJSON()
+    });
+  } finally {
+    if (renderer) {
+      renderer.unmount();
+    }
+  }
 }
