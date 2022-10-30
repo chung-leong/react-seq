@@ -344,6 +344,37 @@ describe('#sequential()', function() {
     expect(renderer.toJSON()).to.equal('Tortoise');
     assertions[0].done();
   })
+  it('should allow the timeout function to abort generator', async function() {
+    const steps = createSteps(), assertions = createSteps();
+    let timeoutDuration;
+    const el = sequential(async function*({ fallback, timeout }) {
+      fallback('Cow');
+      timeout(10, async ({ abort, limit }) => {
+        timeoutDuration = limit;
+        abort();
+        return 'Tortoise';
+      });
+      try {
+        await assertions[0];
+        yield 'Pig';
+        steps[1].done();
+        await assertions[1];
+        yield 'Chicken';
+        steps[2].done('end');
+      } finally {
+        await assertions[0];
+        steps[3].done('finally');
+      }
+    });
+    const renderer = createTestRenderer(el);
+    expect(renderer.toJSON()).to.equal('Cow');
+    await delay(15);
+    expect(renderer.toJSON()).to.equal('Tortoise');
+    expect(timeoutDuration).to.equal(10);
+    assertions[0].done();
+    const results = await Promise.race([ steps[1], steps[3] ]);
+    expect(results).to.equal('finally');
+  })
   it('should allow creation of a suspending component', async function() {
     const steps = createSteps(5), assertions = createSteps();
     const el = sequential(async function*({ suspend }) {

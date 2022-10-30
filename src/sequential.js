@@ -125,7 +125,9 @@ export function sequential(cb) {
           if (pendingContent === undefined) {
             // we got nothing to show--reach for the timeout element
             if (typeof(timeoutEl) === 'function') {
-              timeoutEl = await timeoutEl();
+              const abort = () => abortController.abort();
+              const { limit } = iterator;
+              timeoutEl = await timeoutEl({ limit, abort });
             }
             pendingContent = (timeoutEl !== undefined) ? timeoutEl : null;
           }

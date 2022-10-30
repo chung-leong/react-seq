@@ -26,6 +26,7 @@ export class IntermittentIterator {
     this.started = false;
     this.tick = null;
     this.reject = null;
+    this.error = null;
     if (signal) {
       signal.addEventListener('abort', () => this.throw(new Abort()), { once: true });
     }
@@ -68,6 +69,8 @@ export class IntermittentIterator {
   throw(err) {
     if (this.reject) {
       this.reject(err);
+    } else {
+      this.error = err;
     }
   }
 
@@ -135,9 +138,14 @@ export class IntermittentIterator {
       }, err => {});
     }
     if (!this.tick && this.generator) {
-      this.tick = new Promise((_, reject) => {
-        this.reject = reject;
-      });
+      if (this.error) {
+        this.tick = Promise.reject(this.error);
+        this.error = null;
+      } else {
+        this.tick = new Promise((_, reject) => {
+          this.reject = reject;
+        });
+      }
       this.tick.catch(() => {
         this.tick = null;
         this.reject = null;
