@@ -1,4 +1,4 @@
-import { Abort } from './utils.js';
+import { Abort } from './abort-manager.js';
 
 let delayMultiplier = 1;
 let delayLimit = Infinity;

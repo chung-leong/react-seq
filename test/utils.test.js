@@ -8,7 +8,7 @@ import {
 } from '../index.js';
 import {
   isAbortError,
-} from '../src/utils.js';
+} from '../src/abort-manager.js';
 
 describe('#delay()', function() {
   it('should return a promise that is fulfilled after a delay', async function() {

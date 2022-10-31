@@ -1,36 +1,27 @@
 import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
 import { IntermittentIterator, Timeout, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
-import { Abort, isAbortError } from './utils.js';
+import { Abort, AbortManager, isAbortError } from './abort-manager.js';
 
 export function useSequential(cb, deps) {
-  return useMemo(() => sequential(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+  return useFunction(sequential, cb, deps);
+}
+
+export function useFunction(fn, cb, deps) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { element, abortManager } = useMemo(() => fn(cb), deps);
+  useEffect(() => {
+    abortManager.unschedule();
+    return () => {
+      abortManager.schedule()
+    };
+  }, [ abortManager ]);
+  return element;
 }
 
 export function sequential(cb) {
-  const abortController = new AbortController();
-  const { signal } = abortController;
-  // when strict mode is used, the component will get mounted twice in rapid succession
-  // we can't abort immediately on unmount, as the component can be remount immediately
-  // schedule the operation on the next tick instead so there's a window of opportunity
-  // to cancel it
-  let abortPromise, abortCancelled = false;
-  function scheduleAbort() {
-    if (!abortPromise) {
-      abortPromise = Promise.resolve().then(() => {
-        abortPromise = null;
-        if (!abortCancelled) {
-          abortController.abort()
-        }
-      })
-    }
-    abortCancelled = false;
-  }
-  function cancelAbort() {
-    if (abortPromise) {
-      abortCancelled = true;
-    }
-  }
+  const abortManager = new AbortManager();
+  const { signal } = abortManager;
 
   // methods passed to callback functions (including abort signal)
   const methods = { signal };
@@ -59,6 +50,10 @@ export function sequential(cb) {
     suspending = true;
     suspensionKey = key;
   };
+
+  // allow callback to wait for useEffect()
+  const abortDisavowal = abortManager.disavow();
+  methods.mount = async () => abortDisavowal;
 
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
@@ -92,22 +87,6 @@ export function sequential(cb) {
     }
   };
 
-  // container for fallback content, the use of which allows to detect
-  // unexpected unmounting of the fallback content (i.e. the parent
-  // got unmounted)
-  let fallbackUnmountExpected = false;
-  function Fallback({ children }) {
-    useEffect(() => {
-      cancelAbort();
-      return () => {
-        if (!fallbackUnmountExpected) {
-          scheduleAbort();
-        }
-      };
-    });
-    return children;
-  }
-
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
   const generator = cb(methods);
@@ -117,6 +96,7 @@ export function sequential(cb) {
 
   // stop iterator when abort is signaled
   signal.addEventListener('abort', () => iterator.throw(new Abort()), { once: true });
+  abortDisavowal.catch((err) => {});
 
   // define lazy component Sequence
   const Lazy = createLazyComponent(suspensionKey, async () => {
@@ -149,7 +129,7 @@ export function sequential(cb) {
           if (pendingContent === undefined) {
             // we got nothing to show--reach for the timeout element
             if (typeof(timeoutEl) === 'function') {
-              const abort = () => abortController.abort();
+              const abort = () => abortManager.abort();
               const { limit } = iterator;
               timeoutEl = await timeoutEl({ limit, abort });
             }
@@ -178,7 +158,7 @@ export function sequential(cb) {
     } while (!stop);
 
     let currentContent = pendingContent;
-    let currentError;
+    let currentError = pendingError;
     let redrawComponent;
 
     // retrieve the remaining items from the generator unless an error was encountered
@@ -189,7 +169,6 @@ export function sequential(cb) {
       // don't wait for return()
       iterator.return().catch(err => console.error(err));
     }
-    fallbackUnmountExpected = true;
     return { default: Sequence };
 
     function Sequence() {
@@ -198,19 +177,6 @@ export function sequential(cb) {
       if (currentError) {
         throw currentError;
       }
-      useEffect(() => {
-        if (pendingError) {
-          // throw error encountered while obtaining initial content
-          currentError = pendingError;
-          pendingError = undefined;
-          redrawComponent();
-        }
-        cancelAbort();
-        return () => {
-          // abort iteration through generator on unmount
-          scheduleAbort();
-        };
-      }, []);
       return currentContent;
     }
 
@@ -276,13 +242,9 @@ export function sequential(cb) {
 
   // create the component
   const lazyEl = createElement(Lazy);
-  if (suspending) {
-    return lazyEl;
-  } else {
-    // wrap it in a Suspense
-    const fallbackEl = createElement(Fallback, {}, placeholder);
-    return createElement(Suspense, { fallback: fallbackEl }, lazyEl);
-  }
+  // wrap it in a Suspense if not suspending
+  const element = (suspending) ? lazyEl : createElement(Suspense, { fallback: placeholder }, lazyEl);
+  return { element, abortManager };
 }
 
 const lazyComponents = {};

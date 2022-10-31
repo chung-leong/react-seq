@@ -1,7 +1,7 @@
 import { useMemo, useEffect, useState, startTransition } from 'react';
 import { IntermittentIterator, Interruption, Timeout } from './iterator.js';
 import { EventManager } from './event-manager.js';
-import { Abort, isAbortError } from './utils.js';
+import { Abort, AbortManager, isAbortError } from './abort-manager.js';
 
 export function useSequentialState(cb, deps) {
   return useFunctionState(sequentialState, cb, deps);
@@ -11,40 +11,17 @@ export function useFunctionState(fn, cb, deps) {
   if (!deps) {
     throw new Error('No dependencies specified');
   }
-  const { initialState, abortController, on, eventual } = useMemo(() => {
+  const { initialState, abortManager, on, eventual } = useMemo(() => {
     return fn(cb, state => setState(state), err => setError(err));
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
-
-  // when strict mode is used, the component will get mounted twice in rapid succession
-  // we can't abort immediately on unmount, as the component can be remount immediately
-  // schedule the operation on the next tick instead so there's a window of opportunity
-  // to cancel it
-  let abortPromise, abortCancelled = false;
-  function scheduleAbort() {
-    if (!abortPromise) {
-      abortPromise = Promise.resolve().then(() => {
-        abortPromise = null;
-        if (!abortCancelled) {
-          abortController.abort()
-        }
-      })
-    }
-    abortCancelled = false;
-  }
-  function cancelAbort() {
-    if (abortPromise) {
-      abortCancelled = true;
-    }
-  }
-
   useEffect(() => {
     setState(initialState);
     setError();
-    cancelAbort();
-    return () => scheduleAbort();
-  }, [ initialState, abortController ]);
+    abortManager.unschedule();
+    return () => abortManager.schedule();
+  }, [ initialState, abortManager ]);
   if (error) {
     throw error;
   }
@@ -52,8 +29,8 @@ export function useFunctionState(fn, cb, deps) {
 }
 
 export function sequentialState(cb, setState, setError) {
-  const abortController = new AbortController();
-  const { signal } = abortController;
+  const abortManager = new AbortManager();
+  const { signal } = abortManager;
 
   // methods passed to callback functions (including abort signal)
   const methods = { signal };
@@ -108,7 +85,7 @@ export function sequentialState(cb, setState, setError) {
 
   return {
     initialState,
-    abortController,
+    abortManager,
     ...eventManager
   };
 

@@ -1,9 +1,9 @@
 import { useMemo, createElement } from 'react';
-import { sequential } from './sequential.js';
+import { sequential, useFunction } from './sequential.js';
 import { isPromise, isGenerator, isAsync } from './utils.js';
 
 export function useProgressive(cb, deps) {
-  return useMemo(() => progressive(cb), deps); // eslint-disable-line react-hooks/exhaustive-deps
+  return useFunction(progressive, cb, deps);
 }
 
 export function progressive(cb) {

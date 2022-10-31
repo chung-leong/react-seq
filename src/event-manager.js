@@ -1,4 +1,4 @@
-import { Abort } from './utils.js';
+import { Abort } from './abort-manager.js';
 
 export class EventManager {
   constructor(options) {

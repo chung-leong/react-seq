@@ -26,6 +26,8 @@ export {
 } from './src/event-manager.js';
 export {
   Abort,
+} from './src/abort-manager.js';
+export {
   delay,
   preload,
 } from './src/utils.js';

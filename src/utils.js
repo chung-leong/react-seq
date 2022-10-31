@@ -1,3 +1,5 @@
+import { Abort, isAbortError } from './abort-manager.js';
+
 export async function delay(ms, options = {}) {
   const {
     value,
@@ -34,10 +36,6 @@ export async function preload(fn) {
   }
 }
 
-export function isAbortError(err) {
-  return err instanceof Error && (err.name === 'AbortError' || err.code === 20);
-}
-
 export function isAsync(obj) {
   return isPromise(obj) || isGenerator(obj);
 }
@@ -49,5 +47,3 @@ export function isPromise(obj) {
 export function isGenerator(obj) {
   return (obj instanceof Object && typeof(obj.next) === 'function');
 }
-
-export class Abort extends Error {}

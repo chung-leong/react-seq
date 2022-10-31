@@ -4,7 +4,7 @@ import { withTestRenderer } from './test-renderer.js';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
-import { isAbortError } from '../src/utils.js';
+import { isAbortError } from '../src/abort-manager.js';
 
 import {
   sequentialState,
@@ -168,8 +168,8 @@ describe('#sequentialState()', function() {
       const setState = value => results.push(value);
       let error;
       const setError = err => error = err;
-      const { abortController } = sequentialState(createDrinks, setState, setError);
-      expect(abortController).to.be.instanceOf(AbortController);
+      const { abortManager } = sequentialState(createDrinks, setState, setError);
+      expect(abortManager).to.be.instanceOf(AbortController);
       assertions[0].done();
       await steps[1];
       expect(results).to.eql([ 'Whiskey drink' ]);
@@ -177,7 +177,7 @@ describe('#sequentialState()', function() {
       await steps[2];
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
       assertions[2].done();
-      abortController.abort();
+      abortManager.abort();
       await delay(0);
       assertions[3].done();
       assertions[4].done();
