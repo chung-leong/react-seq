@@ -16,8 +16,6 @@ export class EventManager {
     this.resolves = {};
     // reject functions of promises
     this.rejects = {};
-    // controls handling of certain promises
-    this.types = {};
     // promise that external promises will race against
     this.abortPromise = null;
     // rejection function of promise above
@@ -60,7 +58,7 @@ export class EventManager {
   }
 
   getPromise(name) {
-    const { promises, resolves, rejects, types } = this;
+    const { promises, resolves, rejects } = this;
     let promise = promises[name];
     if (!promise) {
       promises[name] = promise = new Promise((resolve, reject) => {
@@ -84,10 +82,9 @@ export class EventManager {
         };
       }
     } else {
-      // an important value has just been picked up
-      if (types[name] === 'important') {
+      if (!(name in resolves)) {
+        // an important value has just been picked up
         delete promises[name];
-        delete types[name];
       }
     }
     return promise;
@@ -222,14 +219,11 @@ export class EventManager {
   }
 
   triggerFulfillment(name, value) {
-    const { promises, resolves, rejects, types, warning } = this;
-    let important = false, persistent = false, rejecting = false;
+    const { promises, resolves, rejects, warning } = this;
+    let important = false, rejecting = false;
     for (;;) {
       if (value instanceof ImportantValue) {
         important = true;
-        value = value.value;
-      } else if (value instanceof PersistentValue) {
-        persistent = true;
         value = value.value;
       } else if (value instanceof ThrowableValue) {
         rejecting = true;
@@ -244,20 +238,16 @@ export class EventManager {
       fn(value);
     }
     let handled = !!fn;
-    if (persistent || (important && !handled)) {
-      if (!handled) {
-        // allow the value to be picked up later
-        const promise = (rejecting) ? Promise.reject(value) : Promise.resolve(value);
-        this.enablePromiseMerge(promise);
-        this.enableTimeout(promise);
-        promises[name] = promise;
-        handled = true;
-      }
-      types[name] = (persistent) ? 'persistent' : 'important';
+    if (important && !handled) {
+      // allow the value to be picked up later
+      const promise = (rejecting) ? Promise.reject(value) : Promise.resolve(value);
+      this.enablePromiseMerge(promise);
+      this.enableTimeout(promise);
+      promises[name] = promise;
+      handled = true;
     } else {
       // remove the promise once it is fulfilled or rejected so a new one will be created later
       delete promises[name];
-      delete types[name];
     }
     delete resolves[name];
     delete rejects[name];
@@ -294,21 +284,11 @@ export function important(value) {
   return new ImportantValue(value);
 }
 
-export function persistent(value) {
-  return new PersistentValue(value);
-}
-
 export function throwing(value) {
   return new ThrowableValue(value);
 }
 
 class ImportantValue {
-  constructor(value) {
-    this.value = value;
-  }
-}
-
-class PersistentValue {
   constructor(value) {
     this.value = value;
   }

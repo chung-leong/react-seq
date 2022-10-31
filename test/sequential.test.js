@@ -1185,6 +1185,38 @@ describe('#useSequential()', function() {
       expect(call).to.equal(4);
     });
   })
+  skip.if.dom.is.absent.
+  it('should allow a container component to return a suspending component when strict mode is not used', async function() {
+    await withReactDOM(async ({ render, act, node }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      let call = 0;
+      function Test() {
+        return useSequential(async function*({ suspend }) {
+          suspend('#112');
+          steps[call].done();
+          await assertions[call++];
+          yield 'Pig';
+          steps[4].done();
+          await assertions[4];
+          yield 'Chicken';
+          steps[5].done();
+        }, []);
+      }
+      const el = createElement(Test);
+      const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
+      await render(suspense);
+      await steps[0];
+      expect(node.textContent).to.equal('Cow');
+      await assertions[0].done();
+      await assertions[1].done();
+      await steps[4];
+      expect(node.textContent).to.equal('Pig');
+      await assertions[4].done();
+      await steps[5];
+      expect(node.textContent).to.equal('Chicken');
+      expect(call).to.equal(2);
+    });
+  })
 })
 
 async function readStream(stream) {

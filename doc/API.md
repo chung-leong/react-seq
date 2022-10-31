@@ -14,9 +14,10 @@
 * [sequentialState](sequentialState.md)
 * [progressiveState](progressiveState.md)
 
-## Configuration functions
+## Configuration and management functions
 
 * [defer](defer.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
+* [flush](flush.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [fallback](fallback.md) <sup>`useSequential`, `useProgressive`</sup>
 * [timeout](timeout.md) <sup>`useSequential`, `useProgressive`</sup>
 * [suspend](suspend.md) <sup>`useSequential`, `useProgressive`</sup>
@@ -31,6 +32,7 @@
 
 * [extendDelay](extendDelay.md)
 * [limitTimeout](limitTimeout.md)
+* [disableStateHooks](disableStateHooks.md)
 
 ## Prop generation functions
 

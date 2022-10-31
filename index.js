@@ -22,7 +22,6 @@ export {
 } from './src/iterator.js';
 export {
   important,
-  persistent,
   throwing,
 } from './src/event-manager.js';
 export {

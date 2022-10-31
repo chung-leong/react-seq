@@ -10,36 +10,6 @@ import {
   Timeout,
 } from '../src/iterator.js';
 
-describe('#extendDelay()', function() {
-  it('should set the delay multiplier', function() {
-    extendDelay(10);
-    const iterator = new IntermittentIterator({});
-    iterator.setDelay(3);
-    expect(iterator.delay).to.equal(3 * 10);
-    extendDelay(1);
-    iterator.setDelay(3);
-    expect(iterator.delay).to.equal(3);
-  })
-  it('should interpret 0 x Infinity as zero', function() {
-    extendDelay(Infinity);
-    const iterator = new IntermittentIterator({});
-    iterator.setDelay(0);
-    expect(iterator.delay).to.equal(0);
-  })
-})
-
-describe('#limitTimeout()', function() {
-  it('should limit the time limit for the first item', function() {
-    limitTimeout(999);
-    const iterator = new IntermittentIterator({});
-    iterator.setLimit(Infinity);
-    expect(iterator.limit).to.equal(999);
-    limitTimeout(Infinity);
-    iterator.setLimit(100000);
-    expect(iterator.limit).to.equal(100000);
-  })
-})
-
 describe('#IntermittentIterator()', function() {
   it('should throw interruption intermittently', async function() {
     const iterator = new IntermittentIterator({});
@@ -47,8 +17,8 @@ describe('#IntermittentIterator()', function() {
     const create = async function*() {
       await delay(20);
       yield 'Whiskey drink';    // 20ms
-      await delay(10);          // 25ms interruption
-      yield 'Vodka drink';      // 30ms
+      await delay(15);          // 25ms interruption
+      yield 'Vodka drink';      // 35ms
       await delay(30);          // 50ms interruption
       yield 'Lager drink';      // 60ms
       await delay(30);          // 70ms interruption
@@ -66,7 +36,6 @@ describe('#IntermittentIterator()', function() {
         }
       } catch (err) {
         if (err instanceof Interruption) {
-          debugger;
           results.push(err);
         } else {
           throw err;
@@ -329,5 +298,35 @@ describe('#IntermittentIterator()', function() {
     await iterator.return();
     expect(finalized).to.be.true;
     expect(error).to.be.instanceOf(Error);
+  })
+})
+
+describe('#extendDelay()', function() {
+  it('should set the delay multiplier', function() {
+    extendDelay(10);
+    const iterator = new IntermittentIterator({});
+    iterator.setDelay(3);
+    expect(iterator.delay).to.equal(3 * 10);
+    extendDelay(1);
+    iterator.setDelay(3);
+    expect(iterator.delay).to.equal(3);
+  })
+  it('should interpret 0 x Infinity as zero', function() {
+    extendDelay(Infinity);
+    const iterator = new IntermittentIterator({});
+    iterator.setDelay(0);
+    expect(iterator.delay).to.equal(0);
+  })
+})
+
+describe('#limitTimeout()', function() {
+  it('should limit the time limit for the first item', function() {
+    limitTimeout(999);
+    const iterator = new IntermittentIterator({});
+    iterator.setLimit(Infinity);
+    expect(iterator.limit).to.equal(999);
+    limitTimeout(Infinity);
+    iterator.setLimit(100000);
+    expect(iterator.limit).to.equal(100000);
   })
 })

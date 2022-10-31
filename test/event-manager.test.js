@@ -8,7 +8,6 @@ import {
 } from '../src/event-manager.js';
 import {
   important,
-  persistent,
   throwing,
   Abort,
 } from '../index.js';
@@ -149,16 +148,6 @@ describe('#EventManager', function() {
     const value2 = await eventual.click.or(delay(10));
     expect(value2).to.equal(undefined);
   })
-  it('should allow value marked by persistent() to be retrieved again and again', async function() {
-    const { on, eventual } = new EventManager({});
-    const handler = on.click.apply(persistent);
-    handler('Turkey');
-    const value1 = await eventual.click;
-    expect(value1).to.equal('Turkey');
-    const value2 = await eventual.click.or(delay(10));
-    expect(value2).to.equal('Turkey');
-    const value3 = await eventual.click;
-  })
   it('should throw value marked by throwing()', async function() {
     const { on, eventual } = new EventManager({});
     const handler1 = on.click;
@@ -191,36 +180,6 @@ describe('#EventManager', function() {
       error3 = err;
     }
     expect(error3).to.be.instanceOf(Error);
-  })
-  it('should force creation of new promises when after a regular handler is called', async function() {
-    const { on, eventual } = new EventManager({});
-    const handler1 = on.click.apply(persistent);
-    const handler2 = on.click;
-    handler1('Turkey');
-    const value1 = await eventual.click;
-    expect(value1).to.equal('Turkey');
-    const value2 = await eventual.click.or(delay(10));
-    expect(value2).to.equal('Turkey');
-    const value3 = await eventual.click;
-    handler2('Weasel');
-    const value4 = await eventual.click.or(delay(10));
-    expect(value4).to.be.undefined;
-  })
-  it('should force creation of new promises when after an important handler is called', async function() {
-    const { on, eventual } = new EventManager({});
-    const handler1 = on.click.apply(persistent);
-    const handler2 = on.click.apply(important);
-    handler1('Turkey');
-    const value1 = await eventual.click;
-    expect(value1).to.equal('Turkey');
-    const value2 = await eventual.click.or(delay(10));
-    expect(value2).to.equal('Turkey');
-    const value3 = await eventual.click;
-    handler2('Weasel');
-    const value4 = await eventual.click.or(delay(10));
-    expect(value4).to.equal('Weasel');
-    const value5 = await eventual.click.or(delay(10));
-    expect(value5).to.be.undefined;
   })
   it('should abort successfully when external promise has been wrapped with eventual()', async function() {
     const abortController = new AbortController();
