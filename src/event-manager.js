@@ -304,7 +304,7 @@ class ThrowableValue {
         this.value = value;
       }
     }
-    if (!this.error) {
+    if (!this.value) {
       this.value = new Error(value);
     }
   }
