@@ -1,19 +1,25 @@
 import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
 import { IntermittentIterator, Timeout, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
-import { Abort, AbortManager, isAbortError } from './abort-manager.js';
+import { AbortManager } from './abort-manager.js';
+import { Abort, nextTick, isAbortError } from './utils.js';
 
 export function useSequential(cb, deps) {
   return useFunction(sequential, cb, deps);
 }
 
 export function useFunction(fn, cb, deps) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const { element, abortManager } = useMemo(() => fn(cb), deps);
+  const { element, abortManager } = useMemo(() => {
+    const s = fn(cb);
+    // deal with StrictMode double invocation by shutting down one of the
+    // two generators on a timer
+    s.abortManager.timeout();
+    return s;
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
-    abortManager.unschedule();
+    abortManager.onMount();
     return () => {
-      abortManager.schedule()
+      abortManager.onUnmount()
     };
   }, [ abortManager ]);
   return element;
@@ -52,8 +58,7 @@ export function sequential(cb) {
   };
 
   // allow callback to wait for useEffect()
-  const abortDisavowal = abortManager.disavow();
-  methods.mount = async () => abortDisavowal;
+  methods.mount = async () => abortManager.preclusion;
 
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
@@ -107,9 +112,6 @@ export function sequential(cb) {
       iterator.return().catch(() => {});
     }
   }, { once: true });
-
-  // prevent unhandled error message in case mount() isn't called
-  abortDisavowal.catch(() => {});
 
   // define lazy component Sequence
   const Lazy = createLazyComponent(suspensionKey, async () => {
@@ -286,7 +288,8 @@ function createLazyComponent(key, fn) {
     // on the next tick too, which does nothing
     if (c) {
       if (lazyComponentTickCounts[key] !== tickCount) {
-        Promise.resolve().then(() => {
+        // remove it on the next tick
+        nextTick(() => {
           delete lazyComponents[key];
           delete lazyComponentTickCounts[key];
         });
@@ -296,7 +299,7 @@ function createLazyComponent(key, fn) {
       lazyComponents[key] = c;
       lazyComponentTickCounts[key] = tickCount;
       // increase the tick count on the next tick
-      Promise.resolve().then(() => tickCount++);
+      nextTick(() => tickCount++);
     }
     return c;
   } else {

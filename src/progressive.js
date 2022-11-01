@@ -197,10 +197,10 @@ export async function* generateProps(asyncProps, usables) {
         try {
           await p.generator.return();
         } catch (err) {
-          // normally, return() is a no-op since the finally section has already been run
-          // return() runs the finally run section only when the generator is prematurely
+          // normally, return() is a no-op since the finally section has already been run;
+          // return() runs the finally section only when the generator is prematurely
           // closed; any error would simply be silently ignored; we throw it therefore
-          // in to the console so the programmer at least know an error is happening
+          // into the console so the programmer at least know an error is happening
           console.error(err);
         }
       }

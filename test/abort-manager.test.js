@@ -6,69 +6,70 @@ import {
 } from '../src/abort-manager.js';
 
 describe('#AbortManager', function() {
-  it('should trigger abort when schedule is called', async function() {
+  it('should trigger abort when onUnmount is called', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    manager.schedule();
+    manager.onUnmount();
     const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.have.property('type', 'abort');
   })
-  it('should not abort when schedule and unschedule are called in the same tick', async function() {
+  it('should not abort when onUnmount and onMount are called in the same tick', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    manager.schedule();
-    manager.unschedule();
+    manager.onUnmount();
+    manager.onMount();
     const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.equal('timeout');
   })
-  it('should trigger abort when schedule is the last call', async function() {
+  it('should trigger abort when onUnmount is the last call', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    manager.schedule();
-    manager.unschedule();
-    manager.schedule();
-    manager.unschedule();
-    manager.schedule();
+    manager.onUnmount();
+    manager.onMount();
+    manager.onUnmount();
+    manager.onMount();
+    manager.onUnmount();
     const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.have.property('type', 'abort');
   })
-  it('should disavow when unschedule is called', async function() {
+  it('should preclude that it will abort when onMount is called', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    const promise = manager.disavow();
-    setTimeout(() => manager.unschedule(), 10);
+    const promise = manager.preclusion;
+    setTimeout(() => manager.onMount(), 10);
     const result = await Promise.race([ promise, delay(50, { value: 'timeout' }) ]);
     expect(result).to.not.equal('timeout');
   })
-  it('should disavow when unschedule the last call', async function() {
+  it('should preclude that it will abort when onMount/onUnmount occur in succession, ending with an onMount', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    const promise = manager.disavow();
+    const promise = manager.preclusion;
     setTimeout(() => {
-      manager.unschedule();
-      manager.schedule();
-      manager.unschedule();
+      manager.onMount();
+      manager.onUnmount();
+      manager.onMount();
     }, 10);
     const result = await Promise.race([ promise, delay(50, { value: 'timeout' }) ]);
     expect(result).to.not.equal('timeout');
   })
-  it('should reject disavowal when unschedule and schedule are called in succession', async function() {
+  it('should reject abort preclusion when onMount and onUnmount are called in succession', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    const promise = manager.disavow();
+    const promise = manager.preclusion;
     setTimeout(() => {
-      manager.unschedule();
-      manager.schedule();
+      manager.onMount();
+      manager.onUnmount();
     }, 10);
     await expect(promise).to.eventually.be.rejected;
   })
-  it('should reject disavowal after some time has passed', async function() {
+  it('should reject abort preclusion after some time has passed', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    const promise = manager.disavow(25);
+    const promise = manager.preclusion;
+    manager.timeout(25);
     await expect(promise).to.eventually.be.rejected;
   })
 })

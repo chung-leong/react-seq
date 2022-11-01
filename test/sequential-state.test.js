@@ -4,7 +4,7 @@ import { withTestRenderer } from './test-renderer.js';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
-import { isAbortError } from '../src/abort-manager.js';
+import { isAbortError } from '../src/utils.js';
 
 import {
   sequentialState,

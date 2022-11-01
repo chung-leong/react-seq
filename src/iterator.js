@@ -1,4 +1,4 @@
-import { Abort } from './abort-manager.js';
+import { Abort } from './utils.js';
 
 let delayMultiplier = 1;
 let delayLimit = Infinity;
@@ -27,9 +27,7 @@ export class IntermittentIterator {
     this.tick = null;
     this.reject = null;
     this.error = null;
-    if (signal) {
-      signal.addEventListener('abort', () => this.throw(new Abort()), { once: true });
-    }
+    signal?.addEventListener('abort', () => this.throw(new Abort()), { once: true });
   }
 
   setDelay(delay) {
@@ -82,10 +80,8 @@ export class IntermittentIterator {
     const { generator } = this;
     this.stopInterval();
     this.stopTimeout();
-    if (this.promise) {
-      // just in case we're returning prior to next() getting called
-      this.promise.catch(err => {});
-    }
+    // just in case we're returning prior to next() getting called
+    this.promise?.catch(err => {});
     this.generator = null;
     this.promise = null;
     this.tick = null;

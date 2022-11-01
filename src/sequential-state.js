@@ -1,7 +1,8 @@
 import { useMemo, useEffect, useState, startTransition } from 'react';
 import { IntermittentIterator, Interruption, Timeout } from './iterator.js';
 import { EventManager } from './event-manager.js';
-import { Abort, AbortManager, isAbortError } from './abort-manager.js';
+import { AbortManager } from './abort-manager.js';
+import { Abort, isAbortError } from './utils.js';
 
 export function useSequentialState(cb, deps) {
   return useFunctionState(sequentialState, cb, deps);
@@ -12,15 +13,19 @@ export function useFunctionState(fn, cb, deps) {
     throw new Error('No dependencies specified');
   }
   const { initialState, abortManager, on, eventual } = useMemo(() => {
-    return fn(cb, state => setState(state), err => setError(err));
+    const s = fn(cb, state => setState(state), err => setError(err));
+    // deal with StrictMode double invocation by shutting down one of the
+    // two generators on a timer
+    s.abortManager.timeout();
+    return s;
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
   useEffect(() => {
     setState(initialState);
     setError();
-    abortManager.unschedule();
-    return () => abortManager.schedule();
+    abortManager.onMount();
+    return () => abortManager.onUnmount();
   }, [ initialState, abortManager ]);
   if (error) {
     throw error;
@@ -40,6 +45,9 @@ export function sequentialState(cb, setState, setError) {
   methods.defer = (delay) => {
     iterator.setDelay(delay);
   };
+
+  // allow callback to wait for useEffect()
+  methods.mount = async () => abortManager.preclusion;
 
   // let callback manages events with help of promises
   let eventManager;

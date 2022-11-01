@@ -1,4 +1,4 @@
-import { Abort } from './abort-manager.js';
+import { Abort } from './utils.js';
 
 export class EventManager {
   constructor(options) {
@@ -25,9 +25,7 @@ export class EventManager {
     // proxy yielding promises, which is callable itself
     const fn = (promise) => this.wrapExternalPromise(promise);
     this.eventual = new Proxy(fn, { get: (_, name) => this.getPromise(name), set: throwError });
-    if (signal) {
-      signal.addEventListener('abort', () => this.abortAll(), { once: true });
-    }
+    signal?.addEventListener('abort', () => this.abortAll(), { once: true });
   }
 
   getHandler(name) {
@@ -139,7 +137,7 @@ export class EventManager {
       }
       const proxy = new Proxy({}, {
         get: (_, name) => {
-          const multipler = multipliers[name] || multipliers[name + 's'];
+          const multipler = multipliers[name] ?? multipliers[name + 's'];
           if (multipler === undefined) {
             const msg = (name === 'then') ? 'No time unit selected' : `Invalid time unit: ${name}`;
             throw new Error(msg);
