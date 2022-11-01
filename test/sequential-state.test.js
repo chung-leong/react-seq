@@ -192,7 +192,7 @@ describe('#useSequentialState()', function() {
       const steps = createSteps(), assertions = createSteps();
       const results = [];
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ initial }) {
+        const state = useSequentialState(async function*({ initial }) {
           initial('Pissing the night away');
           try {
             await assertions[0];
@@ -240,7 +240,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, unmount, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ manageEvents, initial }) {
+        const state = useSequentialState(async function*({ manageEvents, initial }) {
           initial('Whiskey drink');
           const [ on, eventual ] = manageEvents();
           try {
@@ -268,7 +268,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test({ }) {
-        const [ state, on ] = useSequentialState(async function*({ initial }) {
+        const state = useSequentialState(async function*({ initial }) {
           initial(() => 'Whiskey drink');
           await assertions[0];
           yield 'Vodka drink';
@@ -287,7 +287,7 @@ describe('#useSequentialState()', function() {
   it('should immediately throw when dependencies are not given', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({}) {
+        const state = useSequentialState(async function*({}) {
         });
       }
       await noConsole(async () => {
@@ -300,7 +300,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ initial }) {
+        const state = useSequentialState(async function*({ initial }) {
           initial('Sober');
           await assertions[0];
           yield 'Vodka drink';
@@ -329,7 +329,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ initial }) {
+        const state = useSequentialState(async function*({ initial }) {
         });
         return state;
       }
@@ -346,7 +346,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ initial }) {
+        const state = useSequentialState(async function*({ initial }) {
           await assertions[0];
           setTimeout(() => steps[1].done(), 0);
           initial('Sober');
@@ -369,7 +369,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ mount }) {
+        const state = useSequentialState(async function*({ mount }) {
           await assertions[0];
           setTimeout(() => steps[1].done(), 0);
           mount(() => {});
@@ -391,7 +391,7 @@ describe('#useSequentialState()', function() {
   it('should throw when mount is given a non-function', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ mount }) {
+        const state = useSequentialState(async function*({ mount }) {
           mount();
         }, []);
         return state;
@@ -409,7 +409,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ initial }) {
+        const state = useSequentialState(async function*({ initial }) {
           initial('Sober');
           await assertions[0];
           const abortController = new AbortController();
@@ -438,7 +438,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ initial }) {
+        const state = useSequentialState(async function*({ initial }) {
           initial('Sober');
           await assertions[0];
           yield undefined;
@@ -457,7 +457,7 @@ describe('#useSequentialState()', function() {
   it('should update state immediately where there is an unused slot', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ initial, defer }) {
+        const state = useSequentialState(async function*({ initial, defer }) {
           initial('Sober');
           defer(30);
           await delay(40);  // interruption
@@ -481,7 +481,7 @@ describe('#useSequentialState()', function() {
       const results = [];
       let f;
       function Test() {
-        const [ state, on ] = useSequentialState(async function*({ defer, flush }) {
+        const state = useSequentialState(async function*({ defer, flush }) {
           f = flush;
           defer(Infinity);
           await assertions[0];
@@ -519,7 +519,7 @@ describe('#useSequentialState()', function() {
     let mounted = false, unmounted = false;
     await withTestRenderer(async ({ create, unmount }) => {
       function Test() {
-        const [ state ] = useSequentialState(async function*({ mount }) {
+        const state = useSequentialState(async function*({ mount }) {
           mount(() => {
             mounted = true;
             return () => {

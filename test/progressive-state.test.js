@@ -70,14 +70,14 @@ describe('#useProgressiveState', function() {
         yield 'Cider drink';
         steps[4].done();
       };
-      let state, on;
+      let state;
       function Test() {
         const cb = async ({ usable, initial }) => {
           usable(2);
           initial({ drinks: [], sober: true });
           return { drinks: createDrinks(), sober: false };
         };
-        [ state, on ] = useProgressiveState(cb, []);
+        state = useProgressiveState(cb, []);
         const { drinks, sober } = state;
         return (sober) ? ':-(' : '8-)';
       }
@@ -119,7 +119,7 @@ describe('#useProgressiveState', function() {
       };
       let state;
       function Test() {
-        [ state ] = useProgressiveState(async ({ usable, initial }) => {
+        state = useProgressiveState(async ({ usable, initial }) => {
           usable({ drinks: 2 });
           initial({ drinks: [], sober: true });
           return { drinks: createDrinks(), sober: false };
@@ -149,7 +149,7 @@ describe('#useProgressiveState', function() {
   it('should throw when usability is of the incorrect type', async function() {
     await withTestRenderer(async ({ create }) => {
       function Test() {
-        const [ state ] = useProgressiveState(async ({ usable }) => {
+        const state = useProgressiveState(async ({ usable }) => {
           usable('drinks', 2);
           return {};
         }, []);

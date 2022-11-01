@@ -12,7 +12,7 @@ export function useFunctionState(fn, cb, deps) {
   if (!deps) {
     throw new Error('No dependencies specified');
   }
-  const { initialState, abortManager, on, eventual } = useMemo(() => {
+  const { initialState, abortManager } = useMemo(() => {
     const s = fn(cb, state => setState(state), err => setError(err));
     // deal with StrictMode double invocation by shutting down one of the
     // two generators on a timer
@@ -30,7 +30,7 @@ export function useFunctionState(fn, cb, deps) {
   if (error) {
     throw error;
   }
-  return [ state, on, eventual ];
+  return state;
 }
 
 export function sequentialState(cb, setState, setError) {
@@ -58,12 +58,10 @@ export function sequentialState(cb, setState, setError) {
   };
 
   // let callback manages events with help of promises
-  let eventManager;
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     methods.manageEvents = (options = {}) => {
-      const { on, eventual } = new EventManager({ ...options, signal });
-      eventManager = { on, eventual };
-      return [ on, eventual ];
+      const em = new EventManager({ ...options, signal });
+      return [ em.on, em.eventual ];
     };
   }
 
@@ -99,11 +97,7 @@ export function sequentialState(cb, setState, setError) {
   let unusedSlot = false;
   retrieveRemaining();
 
-  return {
-    initialState,
-    abortManager,
-    ...eventManager
-  };
+  return { initialState, abortManager };
 
   function updateState({ conditional = false, reusable = false }) {
     if (conditional) {
