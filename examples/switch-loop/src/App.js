@@ -19,6 +19,7 @@ export default function App() {
         on.hashChange(throwing(hashChangeError));
       }
     }
+    await 0;
     window.addEventListener('hashchange', onHashChange);
     try {
       let finished = false, lastError;
@@ -56,6 +57,7 @@ export default function App() {
               try {
                 await eventual.hashChange.or(transaction);
               } catch (err) {
+                console.log('Cancelling transaction');
                 transaction.cancel();
                 throw err;
               }
@@ -179,7 +181,7 @@ function ErrorDisplay({ error, onContinue }) {
 function startTransaction() {
   const abortController = new AbortController();
   const { signal } = abortController;
-  const promise = delay(1000, { signal });
+  const promise = delay(3000, { signal });
   promise.cancel = () => abortController.abort();
   return promise;
 }
