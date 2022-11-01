@@ -225,7 +225,6 @@ export class EventManager {
         value = value.value;
       } else if (value instanceof ThrowableValue) {
         rejecting = true;
-        important = true;
         value = value.value;
       } else {
         break;
