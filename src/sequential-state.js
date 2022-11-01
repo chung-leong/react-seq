@@ -46,8 +46,16 @@ export function sequentialState(cb, setState, setError) {
     iterator.setDelay(delay);
   };
 
-  // allow callback to wait for useEffect()
-  methods.mount = async () => abortManager.preclusion;
+  // allow callback to use side effects
+  methods.mount = (fn) => {
+    if (!sync) {
+      throw new Error('Function must be set prior to any yield or await statement');
+    }
+    if (typeof(fn) !== 'function') {
+      throw new TypeError('Invalid argument');
+    }
+    abortManager.setEffect(fn);
+  };
 
   // let callback manages events with help of promises
   let eventManager;

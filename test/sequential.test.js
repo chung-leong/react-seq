@@ -218,6 +218,40 @@ describe('#sequential()', function() {
       });
     });
   })
+  it('should throw when mount is called after an await statement', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      const steps = createSteps(), assertions = createSteps();
+      const { element: el } = sequential(async function*({ mount, defer }) {
+        await assertions[0];
+        setTimeout(() => steps[1].done(), 0);
+        mount(() => {});
+        yield 'Pig';
+        steps[2].done();
+      });
+      await noConsole(async () => {
+        const boundary = createErrorBoundary(el);
+        create(boundary);
+        expect(toJSON()).to.equal(null);
+        assertions[0].done();
+        await steps[1];
+        expect(toJSON()).to.equal('ERROR');
+        expect(caughtAt(boundary)).to.be.an('error');
+      });
+    });
+  })
+  it('should throw when mount is called with a non function', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      const { element: el } = sequential(async function*({ mount, defer }) {
+        mount('Rushmore');
+      });
+      await noConsole(async () => {
+        const boundary = createErrorBoundary(el);
+        await create(boundary);
+        expect(toJSON()).to.equal('ERROR');
+        expect(caughtAt(boundary)).to.be.an('error');
+      });
+    });
+  })
   it('should allow management of events using promises', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
@@ -1272,6 +1306,66 @@ describe('#useSequential()', function() {
       expect(call).to.equal(2);
     });
   })
+  it('should run callback provided through mount', async function() {
+    let mounted = false, unmounted = false;
+    await withTestRenderer(async ({ create, unmount }) => {
+      function Test() {
+        return useSequential(async function*({ mount }) {
+          mount(() => {
+            mounted = true;
+            return () => {
+              unmounted = true;
+            };
+          });
+          yield 'Chicken';
+        }, []);
+      }
+      const el = createElement(Test);
+      create(el);
+      expect(mounted).to.be.true;
+      expect(unmounted).to.be.false;
+      unmount();
+      expect(unmounted).to.be.true;
+    });
+  })
+  it('should allow generator to keep running when preventDefault is used', async function() {
+    await withTestRenderer(async ({ create, unmount, toJSON }) => {
+      const steps = createSteps(), assertions = createSteps();
+      function Test() {
+        return useSequential(async function*({ fallback, mount }) {
+          fallback('Cow');
+          mount(() => {
+            return (evt) => evt.preventDefault();
+          });
+          try {
+            await assertions[0];
+            yield 'Monkey';
+            steps[1].done();
+            await assertions[1];
+            yield 'Pig';
+            steps[2].done();
+            await assertions[2];
+            yield 'Chicken';
+            steps[3].done('end');
+          } finally {
+            steps[4].done('finally')
+          }
+        }, []);
+      }
+      const el = createElement(Test);
+      create(el);
+      expect(toJSON()).to.equal('Cow');
+      assertions[0].done();
+      await steps[1];
+      expect(toJSON()).to.equal('Monkey');
+      unmount();
+      expect(toJSON()).to.equal(null);
+      assertions[1].done();
+      assertions[2].done();
+      const results = await Promise.race([ Promise.all([ steps[3], steps[4] ]), delay(20) ]);
+      expect(results).to.eql([ 'end', 'finally' ]);
+    });
+  })
 })
 
 async function readStream(stream) {
@@ -1283,7 +1377,3 @@ async function readStream(stream) {
   memStream.destroy();
   return string;
 }
-
-process.on('warning', function() {
-  console.log('ERROR');
-});

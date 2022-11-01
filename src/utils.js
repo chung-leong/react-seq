@@ -42,17 +42,6 @@ export function nextTick(fn) {
   return { promise, cancel: () => cancelled = true };
 }
 
-export function createTrigger() {
-  let resolve, reject;
-  const promise = new Promise((r1, r2) => {
-    resolve = r1;
-    reject = r2;
-  });
-  promise.resolve = resolve;
-  promise.reject = reject;
-  return promise;
-}
-
 export function isAsync(obj) {
   return isPromise(obj) || isGenerator(obj);
 }
