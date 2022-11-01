@@ -42,4 +42,4 @@
 ## Utility functions
 
 * [delay](delay.md)
-* [preload](preload.md)
+* [meanwhile](meanwhile.md)

@@ -1,9 +1,10 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
+import { noConsole } from './error-handling.js';
 
 import {
   delay,
-  preload,
+  meanwhile,
   Abort,
 } from '../index.js';
 import {
@@ -62,25 +63,27 @@ describe('#delay()', function() {
   })
 })
 
-describe('#preload()', function() {
+describe('#meanwhile()', function() {
   it('should run the function given to it', function() {
     let ran = false;
-    preload(async () => {
+    meanwhile(async () => {
       ran = true;
     });
     expect(ran).to.be.true;
   })
+  it('should do nothing when no function is given', async function() {
+    const { error } = await noConsole(() => {
+      meanwhile();
+    });
+    expect(error).to.be.null;
+  })
   it('should output errors to console', async function() {
-    let error;
-    const stub = sinon.stub(console, 'error').callsFake(err => error = err);
-    try {
-      await preload(async () => {
+    const { error } = await noConsole(async () => {
+      await meanwhile(async () => {
         throw new Error('Rats live on no evil star');
       });
-      expect(error).to.be.an('error').with.property('message', 'Rats live on no evil star');
-    } finally {
-      stub.restore();
-    }
+    });
+    expect(error).to.be.an('error').with.property('message', 'Rats live on no evil star');
   })
 })
 

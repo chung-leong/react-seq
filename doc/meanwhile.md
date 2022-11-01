@@ -1,11 +1,11 @@
-# preload(fn) <sup>`async`</sup>
+# meanwhile(fn) <sup>`async`</sup>
 
-Run a function in a try block, redirecting errors to the development console
+Run a function in a try block, redirecting errors to development console
 
 ## Syntax
 
 ```js
-preload(async () => {
+meanwhile(async () => {
   await fetch('https://somewhere.com/picture1.png', { signal });
   await fetch('https://somewhere.com/picture2.png', { signal });
   /* ... */

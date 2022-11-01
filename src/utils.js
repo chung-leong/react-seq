@@ -20,9 +20,11 @@ export async function delay(ms, options = {}) {
   });
 }
 
-export async function preload(fn) {
+export async function meanwhile(fn) {
   try {
-    await fn();
+    if (fn) {
+      await fn();
+    }
   } catch (err) {
     if (!isAbortError(err)) {
       console.error(err);
