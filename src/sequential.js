@@ -95,11 +95,27 @@ export function sequential(cb) {
   sync = false;
 
   // stop iterator when abort is signaled
-  signal.addEventListener('abort', () => iterator.throw(new Abort()), { once: true });
-  abortDisavowal.catch((err) => {});
+  let lazyCalled = false;
+  signal.addEventListener('abort', () => {
+    if (lazyCalled) {
+      // createLazyComponent() will call iterator.return() at the end if
+      // it gets an Abort error
+      iterator.throw(new Abort())
+    } else {
+      // createLazyComponent() hasn't been called, probably because this is a bogus call
+      // made by StrictMode; just terminate the iterator
+      iterator.return().catch(() => {});
+    }
+  }, { once: true });
+
+  // prevent unhandled error message in case mount() isn't called
+  abortDisavowal.catch(() => {});
 
   // define lazy component Sequence
   const Lazy = createLazyComponent(suspensionKey, async () => {
+    // indicate that the lazy component is being created
+    lazyCalled = true;
+
     let pendingContent;
     let pendingError;
     let unusedSlot = false;

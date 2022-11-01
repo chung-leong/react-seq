@@ -40,7 +40,19 @@ describe('#AbortManager', function() {
     const { signal } = manager;
     const promise = manager.disavow();
     setTimeout(() => manager.unschedule(), 10);
-    const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
+    const result = await Promise.race([ promise, delay(50, { value: 'timeout' }) ]);
+    expect(result).to.not.equal('timeout');
+  })
+  it('should disavow when unschedule the last call', async function() {
+    const manager = new AbortManager();
+    const { signal } = manager;
+    const promise = manager.disavow();
+    setTimeout(() => {
+      manager.unschedule();
+      manager.schedule();
+      manager.unschedule();
+    }, 10);
+    const result = await Promise.race([ promise, delay(50, { value: 'timeout' }) ]);
     expect(result).to.not.equal('timeout');
   })
   it('should reject disavowal when unschedule and schedule are called in succession', async function() {

@@ -47,9 +47,10 @@ export class AbortManager extends AbortController {
         }
       });
     }
+    this.mountCancelled = false;
   }
 
-  async disavow(delay = 250) {
+  async disavow(delay = 50) {
     if (!this.disavowPromise) {
       let timeout;
       this.disavowPromise = new Promise((resolve, reject) => {
@@ -59,7 +60,7 @@ export class AbortManager extends AbortController {
         };
         this.disavowReject = () => {
           clearTimeout(timeout);
-          reject(new Abort('Abort'));
+          reject(new Abort('Timeout'));
         };
         timeout = setTimeout(() => {
           this.abort();
