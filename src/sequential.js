@@ -100,7 +100,7 @@ export function sequential(cb) {
     if (lazyCalled) {
       // createLazyComponent() will call iterator.return() at the end if
       // it gets an Abort error
-      iterator.throw(new Abort())
+      iterator.throw(new Abort());
     } else {
       // createLazyComponent() hasn't been called, probably because this is a bogus call
       // made by StrictMode; just terminate the iterator

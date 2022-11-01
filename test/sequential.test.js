@@ -307,40 +307,6 @@ describe('#sequential()', function() {
       expect(result).to.equal('finally');
     });
   })
-  skip.it('should cause all event promises to reject on unmount', async function() {
-    await withTestRenderer(async ({ create, update, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
-      const { element: el, abortManager } = sequential(async function*({ fallback, manageEvents }) {
-        fallback('Cow');
-        const [ on, eventual ] = manageEvents();
-        try {
-          await assertions[0];
-          yield 'Pig';
-          steps[1].done();
-          await eventual.click.or.keypress.and(assertions[1]);
-          yield 'Chicken';
-          steps[2].done();
-          await eventual.click.and(assertions[2]);
-          yield 'Rocky';
-          steps[3].done('end');
-        } finally {
-          steps[4].done('finally');
-        }
-      });
-      abortManager.unschedule();
-      create(el);
-      expect(toJSON()).to.equal('Cow');
-      assertions[0].done();
-      await steps[1];
-      expect(toJSON()).to.equal('Pig');
-      assertions[1].done();
-      await update(null);
-      expect(toJSON()).to.equal(null);
-      console.log('step 1');
-      const result = await Promise.race([ steps[3], steps[4] ]);
-      expect(result).to.equal('finally');
-    });
-  })
   it('should render timeout content when time limit is breached', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
@@ -762,6 +728,41 @@ describe('#useSequential()', function() {
       await steps[4];
       expect(cats).to.eql([ 'Barbie' ]);
       expect(finalized).to.eql([ 'Rocky', 'Barbie' ]);
+    });
+  })
+  it('should cause all event promises to reject on unmount', async function() {
+    await withTestRenderer(async ({ create, update, toJSON }) => {
+      const steps = createSteps(), assertions = createSteps();
+      function Test() {
+        return useSequential(async function*({ fallback, manageEvents }) {
+          fallback('Cow');
+          const [ on, eventual ] = manageEvents();
+          try {
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+            await eventual.click.or.keypress.and(assertions[1]);
+            yield 'Chicken';
+            steps[2].done();
+            await eventual.click.and(assertions[2]);
+            yield 'Rocky';
+            steps[3].done('end');
+          } finally {
+            steps[4].done('finally');
+          }
+        });
+      }
+      const el = createElement(Test);
+      create(el);
+      expect(toJSON()).to.equal('Cow');
+      assertions[0].done();
+      await steps[1];
+      expect(toJSON()).to.equal('Pig');
+      assertions[1].done();
+      await update(null);
+      expect(toJSON()).to.equal(null);
+      const result = await Promise.race([ steps[3], steps[4] ]);
+      expect(result).to.equal('finally');
     });
   })
   it('should cause all event promises to reject on prop change', async function() {
