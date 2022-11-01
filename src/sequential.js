@@ -13,7 +13,7 @@ export function useFunction(fn, cb, deps) {
     const s = fn(cb);
     // deal with StrictMode double invocation by shutting down one of the
     // two generators on a timer
-    s.abortManager.timeout();
+    s.abortManager.setTimeout();
     return s;
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -57,8 +57,16 @@ export function sequential(cb) {
     suspensionKey = key;
   };
 
-  // allow callback to wait for useEffect()
-  methods.mount = async () => abortManager.preclusion;
+  // allow callback to use side effects
+  methods.mount = (fn) => {
+    if (!sync) {
+      throw new Error('Function must be set prior to any yield or await statement');
+    }
+    if (typeof(fn) !== 'function') {
+      throw new TypeError('Invalid argument');
+    }
+    abortManager.setEffect(fn);
+  };
 
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises

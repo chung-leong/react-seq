@@ -35,41 +35,16 @@ describe('#AbortManager', function() {
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.have.property('type', 'abort');
   })
-  it('should preclude that it will abort when onMount is called', async function() {
+  it('should not trigger abort when callback calls preventDefault', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    const promise = manager.preclusion;
-    setTimeout(() => manager.onMount(), 10);
+    manager.onMount();
+    manager.setEffect(() => {
+      return (evt) => evt.preventDefault();
+    });
+    manager.onUnmount();
+    const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
     const result = await Promise.race([ promise, delay(50, { value: 'timeout' }) ]);
     expect(result).to.not.equal('timeout');
-  })
-  it('should preclude that it will abort when onMount/onUnmount occur in succession, ending with an onMount', async function() {
-    const manager = new AbortManager();
-    const { signal } = manager;
-    const promise = manager.preclusion;
-    setTimeout(() => {
-      manager.onMount();
-      manager.onUnmount();
-      manager.onMount();
-    }, 10);
-    const result = await Promise.race([ promise, delay(50, { value: 'timeout' }) ]);
-    expect(result).to.not.equal('timeout');
-  })
-  it('should reject abort preclusion when onMount and onUnmount are called in succession', async function() {
-    const manager = new AbortManager();
-    const { signal } = manager;
-    const promise = manager.preclusion;
-    setTimeout(() => {
-      manager.onMount();
-      manager.onUnmount();
-    }, 10);
-    await expect(promise).to.eventually.be.rejected;
-  })
-  it('should reject abort preclusion after some time has passed', async function() {
-    const manager = new AbortManager();
-    const { signal } = manager;
-    const promise = manager.preclusion;
-    manager.timeout(25);
-    await expect(promise).to.eventually.be.rejected;
   })
 })

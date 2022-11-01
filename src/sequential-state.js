@@ -16,7 +16,7 @@ export function useFunctionState(fn, cb, deps) {
     const s = fn(cb, state => setState(state), err => setError(err));
     // deal with StrictMode double invocation by shutting down one of the
     // two generators on a timer
-    s.abortManager.timeout();
+    s.abortManager.setTimeout();
     return s;
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
