@@ -5,8 +5,6 @@ export {
 export {
   useProgressive,
   progressive,
-  generateProps,
-  generateNext,
 } from './src/progressive.js';
 export {
   useSequentialState,
@@ -16,6 +14,9 @@ export {
   useProgressiveState,
   progressiveState,
 } from './src/progressive-state.js';
+export {
+  generateProps,
+} from './src/prop-generator.js';
 export {
   extendDelay,
   limitTimeout,

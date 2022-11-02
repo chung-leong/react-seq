@@ -1,6 +1,7 @@
 import { useMemo, useEffect, useState, startTransition } from 'react';
 import { sequentialState, useFunctionState } from './sequential-state.js';
-import { checkAsyncProps, generateProps } from './progressive.js';
+import { checkAsyncProps } from './progressive.js';
+import { generateProps } from './prop-generator.js';
 
 export function useProgressiveState(cb, deps) {
   return useFunctionState(progressiveState, cb, deps);
