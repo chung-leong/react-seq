@@ -41,17 +41,23 @@ a handler without a corresponding promise is called or a promise without a corre
 
 ## Magical Objects: `on` and `eventual`
 
-`manageEvent` returns two objects, `on` and `eventual`. They are JavaScript [`Proxy`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy)
-objects. Their properties are dynamically generated. When `on.click` is accessed, a handler gets automatically created,
-which would resolve the promise returned by `eventual.click`.
+`manageEvent` returns two objects, `on` and `eventual`. They are JavaScript
+[`Proxy`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects.
+Their properties are dynamically generated. When `on.click` is accessed, a handler gets automatically created,
+which fulfills the promise returned by `eventual.click` when called.
 
-As shown in the example above, generally you'd access the handler then await on the promise. This ordering is not
-required however. The promise could be created first in a situation like the following:
+Upon fulfillment the promise `eventual.click` vanishes. Accessing `eventual.click` again would create a new,
+unfulfilled promise, waiting for `on.click` to be called.
 
-```js
-yield <button onClick={() => on.click('hello')}>Hello</button>;
-await eventual.click;
-```
+When `on.click` is called and there is no code awaiting `eventual.click`, the event simply goes ignored. You can
+change this behavior using [`important`](./important.md).
+
+Error objects are treated like any other values. You can force the rejection of a promise using
+[`throwing`](./throwing.md).
+
+Generally, you'd access a handler and then await on a promise. The handler gets created before the promise.
+While this ordering is not required, the event manager will issue an warning (if warning is turned on) as there is
+a high chance the scenario is due to a typo.
 
 ## Fulfillment Value Binding
 
@@ -95,21 +101,86 @@ yield (
 
 The example above is the exact equivalent to the one in the previous section.
 
-Strings matching the names of the [Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function) object's methods cannot to be used in this manner. These are `apply`, `bind`, `call`, `length`,
-`name`, `prototype`, and `toString`.
+Strings matching the names of the
+[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)
+object's methods cannot to be used in this manner. These are `apply`, `bind`, `call`, `length`, `name`, `prototype`,
+and `toString`.
 
 ## Promise Chaining
 
-You can use the keyword `or` and `and` to chain multiple promises together. The former uses [Promise.race](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/race) to join two promises together, while
-the latter uses [Promise.all](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all). The promise `eventual.click.or.keyPress.or.mouseOver` is equivalent to the following:
+You can use the keyword `or` and `and` to chain multiple promises together. The former uses
+[Promise.race](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/race) to join
+two promises together, while the latter uses
+[Promise.all](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all).
+
+The promise `eventual.click.or.keyPress.or.mouseOver` is equivalent to the following:
 
 ```js
-Promise.race([ Promise.race([ eventual.click, eventual.keyPress ], eventual.mouseOver ));
+Promise.race([
+  Promise.race([ eventual.click, eventual.keyPress ]),
+  eventual.mouseOver
+]);
 ```
 
-`or` and `and` are callable functions, which you can use to add promises not created by `eventual` to the chain:
+Meanwhile, `eventual.click.and.keyPress.and.mouseOver` is equivalent to:
 
 ```js
-const res = await fetch(url);
+Promise.all([
+  Promise.all([ eventual.click, eventual.keyPress ]).then(arr => arr.flat()),
+  eventual.mouseOver
+]).then(arr => arr.flat());
+```
+
+`or` and `and` are callable functions. You can use them to a promise not created by `eventual` to the chain:
+
+```js
+const res = await fetch(url, { signal });
 await eventual.click.or(res.json()).or.keyPress;
 ```
+
+`eventual` itself can be called to start a chain:
+
+```js
+const res = await fetch(url, { signal });
+await eventual(res.json()).and.click;
+```
+
+## Imposing Time Limit
+
+You can use the `for` keyword to put a limit on waiting time:
+
+```js
+await eventual.click.or.keyPress.for(3).minutes;
+```
+
+```js
+const json = await eventual(res.json()).for(1).second;
+if (json === 'timeout') {
+  /* ... */
+}
+```
+
+Valid time units are `millisecond`, `second`, `minute`, and `hour` (plus their plural forms).
+
+In the example above, the promise would resolve to "timeout" if `on.click` or `on.keyPress` are not invoked within
+three minutes.
+
+## Abandoning Promises
+
+When the component is unmounted, all outstanding promises will be rejected with an `Abort` error. To ensure that you
+code does not wait indefinitely for a promise to be fulfilled, wrap it with `eventual`:
+
+```js
+const promise = someProcess();
+await eventual(promise);
+```
+
+Promises from [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) don't need this protection
+provided they're initiated with [signal]('./signal.md').
+
+## Notes
+
+Handlers created by `bind` are invariant *in most usage scenarios*. There is a limit of 128 handlers when scalar
+arguments (i.e. not objects) are involved due to garbage accumulation concern. Handlers bounded to objects can be
+kept in a [`WeakMap`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
+hence there is no limit to their number.
