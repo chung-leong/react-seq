@@ -19,3 +19,7 @@ meanwhile(async () => {
 ## Notes
 
 Abort errors from [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) operations are silently ignored.
+
+Although `meanwhile` is an async function, it is expected that you'd call it without using `await`. It's designed for
+situation where you want some operations to occur alongside the main operation, such as preloading of remote
+resources.

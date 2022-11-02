@@ -45,3 +45,21 @@ async generator.
 ## Notes
 
 Must be called prior to any `yield` or `await` statement.
+
+`mount` expects a regular, synchronous function. Use [`meanwhile`](./meanwhile.md) If you need to perform
+asynchronous operations. Example:
+
+```js
+  mount(() => {
+    const init = meanwhile(async () => {
+      /* ... */
+    });
+    return () => {
+      meanwhile(async () => {
+        // make sure initialization is done prior to clean-up
+        await init;   
+        /* ... */
+      });
+    }
+  })
+```
