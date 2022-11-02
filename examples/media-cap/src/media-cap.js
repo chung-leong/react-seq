@@ -8,7 +8,7 @@ export function useMediaCapture(options = {}) {
     selectNewDevice = true,
     watchVolume = false,
   } = options;
-  const [ state ] = useSequentialState(async function*({ initial, manageEvents }) {
+  return useSequentialState(async function*({ initial, manageEvents }) {
     const [ on, eventual ] = manageEvents({});
     let status = 'acquiring';
     let duration;
@@ -282,30 +282,37 @@ export function useMediaCapture(options = {}) {
       }
     }
 
-    function onOrientationChange(evt) {
-      // wait for resize event to occur
-      window.addEventListener('resize', async () => {
-        if (liveVideo) {
-          const el = await createVideoElement(stream);
-          if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
-            liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
-            on.streamChange({ type: 'streamchange' });
+    mount(() => {
+      function onOrientationChange(evt) {
+        // wait for resize event to occur
+        window.addEventListener('resize', async () => {
+          if (liveVideo) {
+            const el = await createVideoElement(stream);
+            if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
+              liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
+              on.streamChange({ type: 'streamchange' });
+            }
           }
-        }
-      }, { once: true });
-    }
-    window.addEventListener('orientationchange', onOrientationChange);
-    navigator.mediaDevices.addEventListener('devicechange', on.deviceChange);
+        }, { once: true });
+      }
+      window.addEventListener('orientationchange', onOrientationChange);
+      navigator.mediaDevices.addEventListener('devicechange', on.deviceChange);
 
-    const cameraStatus = await navigator.permissions.query({ name: 'camera' });
-    const microphoneStatus = await navigator.permissions.query({ name: 'microphone' });
-    if (cameraStatus) {
-      cameraStatus.onchange = on.permissionChange;
-    }
-    if (microphoneStatus) {
-      microphoneStatus.onchange = on.permissionChange;
-    }
+      // watch for permission change
+      navigator.permissions.query({ name: 'camera' }).then((cameraStatus) => {
+        cameraStatus.onchange = on.permissionChange;
+      }, () => {});
+      navigator.permissions.query({ name: 'microphone' }).then((microphoneStatus) => {
+        microphoneStatus.onchange = on.permissionChange;
+      }, () => {});
+      on.mount(important());
+      return () => {
+        window.removeEventListener('orientationchange', onOrientationChange);
+        navigator.mediaDevices.removeEventListener('devicechange', on.deviceChange);
+      };
+    });
 
+    await eventual.mount;
     try {
       for (;;) {
         try {
@@ -402,17 +409,12 @@ export function useMediaCapture(options = {}) {
         yield currentState();
       } // end of for loop
     } finally {
-      if (mediaRecorder) {
-        mediaRecorder.stop();
-      }
-      if (stream)  {
+      mediaRecorder?.stop();
+      if (stream) {
         closeStream();
       }
-      window.removeEventListener('orientationchange', onOrientationChange);
-      navigator.mediaDevices.removeEventListener('devicechange', on.deviceChange);
     }
   }, [ video, audio, preferredDevice, selectNewDevice, watchVolume ]);
-  return state;
 }
 
 async function enumerateDevices(kind) {
