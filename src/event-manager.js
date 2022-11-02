@@ -231,6 +231,14 @@ export class EventManager {
       }
     }
     const fn = (rejecting) ? rejects[name] : resolves[name];
+    if (rejecting) {
+      if (value?.type === 'error' && 'error' in value) {
+        value = value.error;
+      }
+      if (!(value instanceof Error)) {
+        value = new Error(value);
+      }
+    }
     if (fn) {
       fn(value);
     }
@@ -265,12 +273,12 @@ export class EventManager {
   }
 }
 
-const promiseMergeMethods = { or: 'race', and: 'all' };
-
 function mergePromises(promiseList, op) {
-  const method = promiseMergeMethods[op];
-  const merge = Promise[method];
-  return merge.call(Promise, promiseList);
+  if (op === 'or') {
+    return Promise.race(promiseList);
+  } else {
+    return Promise.all(promiseList).then(arr => arr.flat());
+  }
 }
 
 function throwError() {
@@ -293,16 +301,6 @@ class ImportantValue {
 
 class ThrowableValue {
   constructor(value) {
-    if (value instanceof Object) {
-      if (value.type === 'error' && 'error' in value) {
-        value = value.error;
-      }
-      if (value instanceof Error) {
-        this.value = value;
-      }
-    }
-    if (!this.value) {
-      this.value = new Error(value);
-    }
+    this.value = value;
   }
 }

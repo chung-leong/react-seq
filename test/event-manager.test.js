@@ -121,7 +121,7 @@ describe('#EventManager', function() {
     const value4 = await Promise.race([ promise2, delay(20) ]);
     expect(value4).to.eql([ 8, undefined ]);
   })
-  it('should create filtering handler when apply() is used', async function() {
+  it('should create filtering handler when apply is used', async function() {
     const { on, eventual } = new EventManager({});
     const filter = a => `[${a}]`;
     const handler = on.click.apply(filter);
@@ -130,7 +130,7 @@ describe('#EventManager', function() {
     const value = await eventual.click;
     expect(value).to.equal('[hello]');
   })
-  it('should behave as expected apply() is called in the normal way', async function() {
+  it('should behave as expected apply is called in the normal way', async function() {
     const { on, eventual } = new EventManager({});
     setTimeout(() => on.click.apply(), 10);
     const value1 = await eventual.click;
@@ -139,7 +139,7 @@ describe('#EventManager', function() {
     const value2 = await eventual.click;
     expect(value2).to.be.equal('duck');
   })
-  it('should allow value marked by important() to be retrieved later', async function() {
+  it('should allow value marked by important to be retrieved later', async function() {
     const { on, eventual } = new EventManager({});
     const handler = on.click.apply(important);
     handler('Turkey');
@@ -148,14 +148,14 @@ describe('#EventManager', function() {
     const value2 = await eventual.click.or(delay(10));
     expect(value2).to.equal(undefined);
   })
-  it('should throw value marked by throwing()', async function() {
+  it('should throw value marked by throwing', async function() {
     const { on, eventual } = new EventManager({});
     const handler1 = on.click;
     const handler2 = on.click.apply(throwing);
     setTimeout(() => handler1(new Error), 10);
     const value1 = await eventual.click;
     expect(value1).to.be.instanceOf(Error);
-    handler2(new Error('Hello world'));
+    handler2(important(new Error('Hello world')));
     let error1;
     try {
       await eventual.click;
@@ -163,7 +163,7 @@ describe('#EventManager', function() {
       error1 = err;
     }
     expect(error1).to.be.instanceOf(Error);
-    handler2('Hello world!!!');
+    handler2(important('Hello world!!!'));
     let error2;
     try {
       await eventual.click;
@@ -172,7 +172,7 @@ describe('#EventManager', function() {
     }
     expect(error2).to.be.instanceOf(Error);
     expect(error2.message).to.equal('Hello world!!!');
-    handler2({ type: 'error', error: new Error('Hello')});
+    handler2(important({ type: 'error', error: new Error('Hello')}));
     let error3;
     try {
       await eventual.click;
@@ -221,6 +221,17 @@ describe('#EventManager', function() {
     expect(promise).to.be.a('promise');
     const value = await promise;
     expect(value).to.equal('timeout');
+  })
+  it('should flatten result from chaining multiple promises with and', async function() {
+    const { on, eventual } = new EventManager({});
+    const promise = eventual.click.and.keypress.and.scroll.and.resize;
+    expect(promise).to.be.a('promise');
+    on.click.done();
+    on.keypress.done();
+    on.scroll.done();
+    on.resize.done();
+    const value = await promise;
+    expect(value).to.eql([ 'done', 'done', 'done', 'done' ]);
   })
   it('should simply return the promise when delay is Infinity', async function() {
     const { on, eventual } = new EventManager({});
