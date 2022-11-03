@@ -28,7 +28,7 @@ export class AbortManager extends AbortController {
       this.revert = result;
     }
     this.aborting?.cancel();
-    clearTimeout(this.timer);
+    clearTimeout(this.timeout);
   }
 
   onUnmount() {
