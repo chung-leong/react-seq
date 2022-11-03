@@ -184,3 +184,6 @@ Handlers created by `bind` are invariant *in most usage scenarios*. There is a l
 arguments (i.e. not objects) are involved due to garbage accumulation concern. Handlers bounded to objects can be
 kept in a [`WeakMap`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 hence there is no limit to their number.
+
+If you're using React-seq in a library and have no need for sophisticated event handling, you can exclude the
+event manager from your build by setting the environment variable `REACT_APP_SEQ_NO_EM` to 1.
