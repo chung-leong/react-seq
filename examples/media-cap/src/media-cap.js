@@ -8,7 +8,7 @@ export function useMediaCapture(options = {}) {
     selectNewDevice = true,
     watchVolume = false,
   } = options;
-  return useSequentialState(async function*({ initial, manageEvents }) {
+  return useSequentialState(async function*({ initial, mount, manageEvents }) {
     const [ on, eventual ] = manageEvents({});
     let status = 'acquiring';
     let duration;
@@ -283,6 +283,10 @@ export function useMediaCapture(options = {}) {
     }
 
     mount(() => {
+      // let generator code know that the component has mounted
+      on.mount();
+
+      // watch for orientation change
       function onOrientationChange(evt) {
         // wait for resize event to occur
         window.addEventListener('resize', async () => {
@@ -305,7 +309,6 @@ export function useMediaCapture(options = {}) {
       navigator.permissions.query({ name: 'microphone' }).then((microphoneStatus) => {
         microphoneStatus.onchange = on.permissionChange;
       }, () => {});
-      on.mount(important());
       return () => {
         window.removeEventListener('orientationchange', onOrientationChange);
         navigator.mediaDevices.removeEventListener('devicechange', on.deviceChange);

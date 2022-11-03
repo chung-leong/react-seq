@@ -14,6 +14,7 @@ export default function VideoDialogBox({ onClose, onCapture }) {
     volume,
     selectedDeviceId,
     lastError,
+
     record,
     pause,
     resume,

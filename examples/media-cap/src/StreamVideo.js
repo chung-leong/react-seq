@@ -5,12 +5,10 @@ export default function StreamVideo(props) {
   const node = useRef();
   useEffect(() => {
     const video = node.current;
-    video.srcObject = srcObject;
-    video.play();
-    return () => {
-      video.pause();
-      video.srcObject = null;
-    };
+    if (video.srcObject !== srcObject) {
+      video.srcObject = srcObject;
+      video.play();
+    }
   }, [ srcObject ]);
   return <video ref={node} {...remaining} />;
 }
