@@ -1,4 +1,4 @@
-# limitTimeout(limit)
+# limitTimeout([limit])
 
 Set a globally applicable upper limit on how long a be component can remain suspended
 
@@ -17,7 +17,8 @@ const stream = renderToPipeableStream(element, {
 
 ## Parameters
 
-* `limit` - `<number>` Number of milliseconds
+* `limit` - `<number>` Number of milliseconds. No change if omitted
+* `return` `<number>` The current setting
 
 ## Notes
 

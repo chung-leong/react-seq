@@ -1,4 +1,4 @@
-# defer(delay)
+# defer([delay])
 
 Specify the time interval between intermediate content updates
 
@@ -29,7 +29,8 @@ function Widget({ id }) {
 
 ## Parameters
 
-* `delay` - `<number>` Duration of time in milliseconds
+* `delay` - `<number>` Duration of time in milliseconds. No change will be made if omitted.
+* return `<number>` The actual delay, taking into consideration the multiplier imposed by [`extendDelay`](./extendDelay.md). 
 
 ## Deferment Explained
 

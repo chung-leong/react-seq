@@ -43,7 +43,10 @@ export function sequentialState(cb, setState, setError) {
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
   methods.defer = (delay) => {
-    iterator.setDelay(delay);
+    if (delay !== undefined) {
+      iterator.setDelay(delay);
+    }
+    return iterator.delay;
   };
 
   // allow callback to use side effects

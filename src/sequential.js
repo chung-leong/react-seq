@@ -35,15 +35,23 @@ export function sequential(cb) {
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
   methods.defer = delay => {
-    iterator.setDelay(delay);
+    if (delay !== undefined) {
+      iterator.setDelay(delay);
+    }
+    return iterator.delay;
   };
 
   // let callback set timeout element (or its creation function), to be used when
   // we fail to retrieve the first item from the generator after time limit has been exceeded
   let timeoutEl;
   methods.timeout = (limit, el) => {
-    iterator.setLimit(limit);
-    timeoutEl = el;
+    if (limit !== undefined) {
+      iterator.setLimit(limit);
+    }
+    if (el !== undefined) {
+      timeoutEl = el;
+    }
+    return iterator.limit;
   };
 
   // allow the creation of suspending component

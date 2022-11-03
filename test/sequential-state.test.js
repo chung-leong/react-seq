@@ -143,6 +143,16 @@ describe('#sequentialState()', function() {
       expect(results).to.eql([ 'Cider drink' ]);
     });
   })
+  it('should return allow the generator function to retrieve the deferment delay', async function() {
+    const results = [];
+    const setState = value => results.push(value);
+    let error;
+    const setError = err => error = err;
+    const { initialState } = sequentialState(async function*({ defer, initial }) {
+      initial(`${defer()}`);
+    }, setState, setError);
+    expect(initialState).to.equal('0');
+  })
   it('should interrupt iteration of generator when abort controller is invoked', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();

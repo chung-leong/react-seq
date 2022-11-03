@@ -101,6 +101,16 @@ describe('#sequential()', function() {
       expect(toJSON()).to.equal('Chicken');
     });
   })
+  it('should return allow the generator function to retrieve the deferment delay and time limit', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      const steps = createSteps(), assertions = createSteps();
+      const { element: el } = sequential(async function*({ defer, timeout }) {
+        yield `${defer()} ${timeout()}`;
+      });
+      await create(el);
+      expect(toJSON()).to.equal('0 Infinity');
+    });
+  })
   it('should allow deferrment to be turned off midway', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
@@ -569,7 +579,6 @@ describe('#useSequential()', function() {
       const cats = [];
       function Test({ cat }) {
         return useSequential(async function*({ fallback, defer }) {
-          debugger;
           fallback('Cow');
           await assertions[0];
           yield 'Pig';

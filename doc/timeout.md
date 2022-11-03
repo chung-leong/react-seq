@@ -1,4 +1,4 @@
-# timeout(limit, newFallback)
+# timeout([limit, newFallback])
 
 Set the maximum amount of time the fallback content can be displayed
 (i.e. for how long the component can stay [suspended](https://reactjs.org/docs/react-api.html#reactsuspense))
@@ -35,9 +35,10 @@ function Widget({ id }) {
 ## Parameters
 
 * `limit` - `<number>` Maximum amount of time to wait for the first item from a generator before resorting to
-new fallback content (or state).
+new fallback content (or state). No change to current setting if omitted.
 * `newFallback` - `<Element>` or `<AsyncFunction>` The new fallback element. If it's a function, it'll be called
-and its returned value used as the fallback.
+and its returned value used as the fallback. No change if omitted.
+* `return` `<number>` The actual limit, taking into consideration the limit imposed by [`limitTimeout`](./limitTimeout.md)
 
 ## Timeout Explained
 

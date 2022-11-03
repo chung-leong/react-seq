@@ -1,4 +1,4 @@
-# extendDelay(multiplier)
+# extendDelay([multiplier])
 
 Make content update deferment period larger for all components
 
@@ -17,7 +17,8 @@ const stream = renderToPipeableStream(element, {
 
 ## Parameters
 
-* `multiplier` - `<number>` Factor by which to increase the delay (1 = 100%)
+* `multiplier` - `<number>` Factor by which to increase the delay (1 = 100%). No change to current setting if omitted.
+* `return` `<number>` The current setting
 
 ## Notes
 

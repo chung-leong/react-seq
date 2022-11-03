@@ -317,6 +317,10 @@ describe('#extendDelay()', function() {
     iterator.setDelay(0);
     expect(iterator.delay).to.equal(0);
   })
+  it(`should not change the delay multiplier when no argument is given`, function() {
+    extendDelay(1);
+    expect(extendDelay()).to.equal(1);
+  });
 })
 
 describe('#limitTimeout()', function() {
@@ -328,5 +332,9 @@ describe('#limitTimeout()', function() {
     limitTimeout(Infinity);
     iterator.setLimit(100000);
     expect(iterator.limit).to.equal(100000);
+  })
+  it(`should not change the limit when no argument is given`, function() {
+    limitTimeout(Infinity);
+    expect(limitTimeout()).to.equal(Infinity);
   })
 })

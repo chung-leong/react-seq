@@ -42,7 +42,6 @@ describe('#generateNext()', function() {
     ]);
   })
   it('should return values from promise of promise of an async generator', async function() {
-    debugger;
     const source = p(p(a(1, 2, 3)));
     const generator = generateNext(source);
     const list = await getList(generator);
