@@ -28,5 +28,6 @@ export {
 export {
   delay,
   meanwhile,
+  stasi,
   Abort,
 } from './src/utils.js';

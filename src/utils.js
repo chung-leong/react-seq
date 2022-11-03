@@ -42,6 +42,66 @@ export function nextTick(fn) {
   return { promise, cancel: () => cancelled = true };
 }
 
+export function stasi(generator) {
+  // see if we've already tapped the target
+  let { taps } = generator.next;
+  if (!taps) {
+    // need to install the tap
+    const { next } = generator;
+    let f;
+    generator.next = f = async function() {
+      let res, error;
+      try {
+        // get the result using the real function
+        res = await next.call(this);
+      } catch (err) {
+        // shutdown the whole operation when an error is encountered
+        res = { done: true };
+        error = err;
+      }
+      // pass the result to the taps first
+      for (const { resolve, buffer } of taps) {
+        if (resolve) {
+          // tap is waiting for data
+          resolve(res);
+        } else {
+          buffer.push(res);
+        }
+      }
+      // hand the result to the intended recipient
+      if (error) {
+        throw error;
+      } else {
+        return res;
+      }
+    };
+    generator.next.taps = taps = [];
+  }
+  const tap = { resolve: null, buffer: [] };
+  taps.push(tap);
+  async function* create() {
+    for (;;) {
+      let res;
+      if (tap.buffer.length > 0) {
+        // there's data in the buffer still, yield that
+        res = tap.buffer.shift();
+      } else {
+        // need to wait for the arrival of new information
+        res = await new Promise(resolve => tap.resolve = resolve);
+        // clear .resolve as soon as we get something
+        tap.resolve = null;
+      }
+      const { value, done } = res;
+      if (!done) {
+        yield value;
+      } else {
+        break;
+      }
+    }
+  }
+  return create();
+}
+
 export function isAsync(obj) {
   return isPromise(obj) || isGenerator(obj);
 }
