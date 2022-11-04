@@ -1,13 +1,15 @@
-import { useMemo, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 export default function BlobImage(props) {
   const { srcObject, ...remaining } = props;
-  const url = useMemo(() => URL.createObjectURL(srcObject), [ srcObject ]);
+  const node = useRef();
   useEffect(() => {
+    const image = node.current;
+    image.src = URL.createObjectURL(srcObject);
     return () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(image.src);
     };
-  }, [ url ]);
+  }, [ srcObject ]);
   // eslint-disable-next-line
-  return <img src={url} {...remaining} />;
+  return <img ref={node} {...remaining} />;
 }

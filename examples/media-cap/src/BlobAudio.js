@@ -1,12 +1,14 @@
-import { useMemo, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 export default function BlobAudio(props) {
   const { srcObject, ...remaining } = props;
-  const url = useMemo(() => URL.createObjectURL(srcObject), [ srcObject ]);
+  const node = useRef();
   useEffect(() => {
+    const audio = node.current;
+    audio.src = URL.createObjectURL(srcObject);
     return () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(audio.src);
     };
-  }, [ url ]);
-  return <audio src={url} {...remaining} />;
+  }, [ srcObject ]);
+  return <audio ref={node} {...remaining} />;
 }

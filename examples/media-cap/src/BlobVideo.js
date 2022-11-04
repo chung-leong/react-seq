@@ -1,12 +1,14 @@
-import { useMemo, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 
 export default function BlobVideo(props) {
   const { srcObject, ...remaining } = props;
-  const url = useMemo(() => URL.createObjectURL(srcObject), [ srcObject ]);
+  const node = useRef();
   useEffect(() => {
+    const video = node.current;
+    video.src = URL.createObjectURL(srcObject);
     return () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(video.src);
     };
-  }, [ url ]);
-  return <video src={url} {...remaining} />;
+  }, [ srcObject ]);
+  return <video ref={node} {...remaining} />;
 }

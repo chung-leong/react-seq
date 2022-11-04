@@ -9,9 +9,11 @@ the capturing process.
 Go to the `examples/media-cap` folder. Run `npm install` then `npm start`. A browser window should automatically
 open up.
 
-![screen shot](./img/screenshot-1.jpg)
+![screenshot](./img/screenshot-1.jpg)
 
 Click on one of the buttons to open up a dialog box that captures the specific type of media.
+
+To see the final file sizes (after gzip), run `npm run build` then `npm run analyze`.
 
 ## The hook consumer
 
@@ -317,31 +319,151 @@ the catch block, described above.
         } else ...
 ```
 
-At this point, the user is seeing the output of his camera. The number of things can happen. The user might:
+The user is now seeing the output from his camera. At this point, he might:
 
 * Click a button in the dialog (fulfilling `eventual.userRequest`)
 * Select a different device using the dropdown (also fulfilling `eventual.userRequest`)
-* Unplug the active camera (fulfilling `eventual.streamChange`)
+* Rotate the camera (fulfilling `eventual.streamChange`)
+* Unplug the active camera (also fulfilling `eventual.streamChange`)
 * Plug in a different camera (fulfilling `eventual.deviceChange`)
 * Speak into the microphone (fulfilling `eventual.volumeChange`)
 
-We explicit anticipate all these possibilities in our `await` statement.
-
-(If the statement looks strange to you, please consult the documentation of
-[`manageEvents`](../../doc/manageEvents.md))
+We explicitly anticipate all these possibilities in our `await` statement. (If the statement looks strange to you,
+please consult the documentation of [`manageEvents`](../../doc/manageEvents.md).)
 
 If the user clicks the Start button, we start the recorder then change the status to "recording".
 
-If the user clicks the Take button (in [`PhotoDialogBox`](./src/PhotoDialogBox.js)), we take a snapshot then change
+If the user clicks the Take button (in [`PhotoDialogBox`](./src/PhotoDialogBox.js)), we make a snapshot then change
 the status to "recorded".
 
 If the user chooses a different camera, we close the current stream, save the device id, and go back to "acquiring".
 
 If the user unplugs the camera, we do the same thing in hope of finding another camera.
 
-If the user plugs in a new camera, we choose it as the active device since using the camera is very likely the
+If the user plugs in a new camera, we choose it as the active device since using that camera is very likely the
 user's intention.
 
-If the volume level is different, we don't need to do anything as the variable `volume` is already updated. The
-yield statement at the bottom of the loop will deliver this new value to the hook consumer, which will update the
-volume bar.
+If the volume level is different, we don't need to do anything, as the variable `volume` has already been updated. The
+yield statement at the bottom of the loop will deliver the new value to the hook consumer, which will adjust the
+volume bar accordingly.
+
+## Status: "recording" ([line 330](./src/media-cap.js#L357))
+
+```js
+        } else if (status === 'recording') {
+          const evt = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
+          if (evt.type === 'stop') {
+            const recorded = await stopRecorder();
+            status = (recorded) ? 'recorded' : 'previewing';
+          } else if (evt.type === 'pause') {
+            mediaRecorder.pause();
+            status = 'paused';
+          } else if (evt.type === 'streamend') {
+            closeStream();
+            const recorded = await stopRecorder();
+            status = (recorded) ? 'recorded' : 'acquiring';
+          }
+        } else ...
+```
+
+The video recorder has been switched on. What can happen at this stage? Well, the same things as before plus
+continual changes to the video duration. As the user has committed to using the current camera, we elect to ignore
+device change events here.
+
+If the user clicks the Stop button we stop the recorder. Depending on whether anything has been recorded, we set
+the status to either "recorded" or "previewing".
+
+We respond the same the same way if the user unplugs the camera, except we go back to "acquiring" when there is no
+video.
+
+As before, fulfillment of `durationChange` or `volumeChange` does not require any additional action. The code just
+needs to "wake up".
+
+## Status: "paused" ([line 330](./src/media-cap.js#L370))
+
+```js
+        } else if (status === 'paused') {
+          const evt = await eventual.userRequest.or.streamChange.or.volumeChange;
+          if (evt.type === 'stop') {
+            const recorded = await stopRecorder()
+            status = (recorded) ? 'recorded' : 'previewing';
+          } else if (evt.type === 'resume') {
+            mediaRecorder.resume();
+            status = 'recording';
+          } else if (evt.type === 'streamend') {
+            closeStream();
+            const recorded = await stopRecorder();
+            status = (recorded) ? 'recorded' : 'acquiring';
+          }
+        } else ...
+```
+
+The code for the "paused" stage is nearly identical to that of the "recording" stage. The only difference is here the
+user can resume recording and we're not anticipating changes in the video duration.
+
+## Status: "recorded" ([line 383](./src/media-cap.js#L383))
+
+```js
+        } else if (status === 'recorded') {
+          unwatchAudioVolume();
+          const evt = await eventual.userRequest.or.streamChange;
+          if (evt.type === 'clear') {
+            capturedVideo = undefined;
+            capturedAudio = undefined;
+            capturedImage = undefined;
+            status = (stream) ? 'previewing' : 'acquiring';
+            if (stream) {
+              watchAudioVolume();
+              // refresh the list just in case something was plugged in
+              await getDevices();
+            }
+          } else if (evt.type === 'streamend') {
+            closeStream();
+          }
+        } else ...
+```
+
+Okay, we have recorded something. The first thing we do is turn off the volume monitoring, since showing the input
+from the mic doesn't make sense while the user is playing back the clip. At this stage, we're waiting for the user
+to either accept the result, which would result in the component being unmounted and a shutdown of the generator, or
+request a do-over. In the latter case, we clear the `capturedX` variables, reenable volume monitoring, and set the
+status to "previewing" once again--provided we still have the live stream. The user could potentially have unplugged
+the camera while reviewing the video, leading us to the "acquiring" stage once again. We also need to rescan the list
+of available devices, as we have been ignoring `eventual.deviceChange` in the prior stages.
+
+## Status: "denied" ([line 399](./src/media-cap.js#L399))
+
+```js
+        } else if (status === 'denied') {
+          const evt = await eventual.deviceChange.or.permissionChange;
+          if (evt.type === 'devicechange') {
+            await getDevices();
+            if (devices.length > 0) {
+              status = 'acquiring';
+            }
+          } else if (evt.type === 'change') {
+            status = 'acquiring';
+          }
+        }
+```
+
+Finally, we only have the "denied" status to consider. What can happen at this stage that can get us out of the
+predicament? Well, the user plugging a camera could potentially give us access to one. The user flipping the switch
+in the browser's permission panel might also do the trick:
+
+![screenshot](./img/screenshot-2.jpg)
+
+So we do an `await eventual.deviceChange.or.permissionChange`. When one of these two things happen, we go back to the
+"acquiring" stage and try again.
+
+## Groundhog Day?
+
+Whew, that's it! After looking through the code, you might be wondering, "How exactly do we exit from the for loop?"
+There's no `break` or `return` anywhere and the catch block is swallowing up all errors. There's no way out, it seems.
+
+You can find the answer to that question in the [documentation of
+`AsyncGenerator`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator/return):
+
+> The return() method of an async generator acts as if a return statement is inserted in the generator's body at the
+> current suspended position, which finishes the generator and allows the generator to perform any cleanup tasks when
+> combined with a try...finally block.
