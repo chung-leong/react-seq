@@ -11,7 +11,7 @@ open up.
 
 ![screenshot](./img/screenshot-1.jpg)
 
-Click on one of the buttons to open up a dialog box that captures the specific type of media.
+Click on one of the buttons to open up a dialog box that captures a specific type of media.
 
 To see the final file sizes (after gzip), run `npm run build` then `npm run analyze`.
 
@@ -41,7 +41,7 @@ export default function VideoDialogBox({ onClose, onCapture }) {
 ```
 
 The first thing it does is call the [`useMediaCapture`](./src/media-cap.js) hook, specifying that it wants the
-current volume monitored. From the hook it receives a number of state variables (top half) and also functions to
+mic volume monitored. From the hook it receives a number of state variables (top half) and also functions to
 call (bottom half).
 
 Going [further down](.//src/VideoDialogBox.js#L55), within the return statement we seeing the following IIFE:
@@ -77,8 +77,8 @@ This is the main content of the dialog box. At the "acquiring" stage, when the b
 permission to use the camera, we simply show an icon. If the user said no, we put a ban icon over it. At the
 "previewing" stage, when we have a live video stream, we render a [`StreamVideo`](./src/StreamVideo.js) component,
 which simply returns a `<video>` element and attaches the stream. The live video remains through the "recording" and
-"paused" stages. When we've reached the "recorded" stage, we render a [`BlobVideo`](./src/BlobVideo), another
-simple component tasked simply with managing the URL to the blob.
+"paused" stages. When we've reached the "recorded" stage, we render a [`BlobVideo`](./src/BlobVideo.js), another
+simple component.
 
 ## The hook
 
@@ -107,7 +107,7 @@ export function useMediaCapture(options = {}) {
     let selectedDeviceId;
 ```
 
-It starts out by extracting some option variables from the object given. Then it proceeds to immediately call
+It starts out by extracting some option variables from the object given. Then it immediately calls
 [`useSequentialState`](../../doc/useSequentialState.md). The async generator function is where most of the action
 happens.
 
@@ -115,7 +115,7 @@ We make use of three functions provided by `useSequentialState`: `initial` to se
 to run code during the `useEffect` phase of the component lifecycle, and `manageEvents` to manage events with the
 help of promises.
 
-The generator function begins by declaring variables that will get send to the hook consumer. [Further down](./src/media-cap.js#L24), we see the functions that the hook consumer can call:
+The generator function begins by declaring variables that will get sent to the hook consumer. [Further down](./src/media-cap.js#L24), we see the functions that the hook consumer can call:
 
 ```js
     const [ on, eventual ] = manageEvents({});
@@ -151,7 +151,7 @@ The generator function begins by declaring variables that will get send to the h
 
 As you can see, each of them will fulfill the [`eventual.userRequest`](../../doc/manageEvents.md) promise.
 
-We see next the function that packages our local variables into an object, to be delivered to the hook consumer:
+We see next the function that will package our local variables into an object, to be delivered to the hook consumer:
 
 ```js
     function currentState() {
@@ -179,7 +179,7 @@ We see next the function that packages our local variables into an object, to be
     }
 ```
 
-The function is first invoked on [line 83](./src/media-video.js) to set the initial state:
+The function is first invoked on [line 83](./src/media-cap.js#L83) to set the initial state:
 
 ```js
     initial(currentState());
@@ -226,12 +226,12 @@ What follow are functions that deal with the nitty-gritty of the capturing proce
 ```
 
 The function passed to `mount` will be invoked in a `useEffect` hook. Attachment of listeners to the DOM needs to
-happen here and not in the generator function since it is a side effect. We're taking the liberty of performing some  
-additional clean-up unrelated the removal of handlers here, to save ourselves the trouble of having to set up a
-try-finally block (how releasing of resources is normally done).
+happen here and not in the generator function since it is a side effect. We take the liberty to perform additional
+clean-up here besides removal of handlers, to save ourselves the trouble of having to set up a try-finally block in
+the generator function (how releasing of resources is normally done).
 
-As you can see, there are quite a number of events that can happen. The device could get rotated, thereby changing the
-dimensions of the video feed. A device can get plugged in or unplugged. Permission levels could be toggled. All of
+As you can see, there are quite a number of relevant events. The device can get rotated, thereby changing the
+dimensions of the video feed. A device can get plugged in or unplugged. Permission levels can be toggled. All of
 these events will cause different `eventual` promises to be fulfilled.
 
 At the top of the callback function, we call `on.mount` to let the generator function know that the component has
@@ -243,15 +243,16 @@ mounted. The awaiting on `eventual.mount` happens right below this section:
       try {
 ```
 
-The reason for we wait for the component to mount before entering the main event loop is that while, strict speaking,
-obtaining a media stream is not a side effect, it can trigger a browser permission prompt. Our code would behave
-weirdly otherwise in strict mode, due to the `useMemo` hook used by `useSequential` performing double invocation in
+The reason we wait for the component to mount before entering the main event loop is that while obtaining a media
+stream is strict speaking not a side effect, it can trigger a browser permission prompt. Our code would behave
+weirdly otherwise in strict mode, due to the `useMemo` hook used by `useSequential` performing
+[double invocation](https://reactjs.org/docs/strict-mode.html#detecting-unexpected-side-effects) in
 that mode (during development). This statement stops the second, abandoned generator from going any further. It'll be
 stuck here, waiting for a promise that never gets fulfilled, until a timer function comes and puts a kibosh
 on it.
 
 Once the generator gets past this point, it enters an infinite loop with a try-catch block inside. Let us first examine
-the catch block ([line 410](./src/media-cap.js)):
+the catch block ([line 410](./src/media-cap.js#L410)):
 
 ```js
       } catch (err) {
@@ -264,8 +265,8 @@ the catch block ([line 410](./src/media-cap.js)):
     } // end of for loop
 ```
 
-It's quite simple. The error just get saved to `lastError`. If we're in the middle of acquiring a device, the status
-gets changed to "denied".
+It's quite simple. The error just gets saved to `lastError`. If we're in the middle of acquiring a device, the status
+is changed to "denied".
 
 Below the catch block is the generator's one and only `yield` statement. So every time we go through the for loop,
 the hook consumer will receive a new state, consisting of the local variables declared at the beginning of the
@@ -321,10 +322,10 @@ the catch block, described above.
 
 The user is now seeing the output from his camera. At this point, he might:
 
-* Click a button in the dialog (fulfilling `eventual.userRequest`)
-* Select a different device using the dropdown (also fulfilling `eventual.userRequest`)
+* Click a button in the dialog box (fulfilling `eventual.userRequest`)
+* Select a different device using a dropdown (also fulfilling `eventual.userRequest`)
 * Rotate the camera (fulfilling `eventual.streamChange`)
-* Unplug the active camera (also fulfilling `eventual.streamChange`)
+* Unplug the camera (also fulfilling `eventual.streamChange`)
 * Plug in a different camera (fulfilling `eventual.deviceChange`)
 * Speak into the microphone (fulfilling `eventual.volumeChange`)
 
@@ -333,7 +334,7 @@ please consult the documentation of [`manageEvents`](../../doc/manageEvents.md).
 
 If the user clicks the Start button, we start the recorder then change the status to "recording".
 
-If the user clicks the Take button (in [`PhotoDialogBox`](./src/PhotoDialogBox.js)), we make a snapshot then change
+If the user clicks the Take button (in [`PhotoDialogBox`](./src/PhotoDialogBox.js)), we create a snapshot then change
 the status to "recorded".
 
 If the user chooses a different camera, we close the current stream, save the device id, and go back to "acquiring".
@@ -347,7 +348,7 @@ If the volume level is different, we don't need to do anything, as the variable 
 yield statement at the bottom of the loop will deliver the new value to the hook consumer, which will adjust the
 volume bar accordingly.
 
-## Status: "recording" ([line 330](./src/media-cap.js#L357))
+## Status: "recording" ([line 357](./src/media-cap.js#L357))
 
 ```js
         } else if (status === 'recording') {
@@ -373,13 +374,13 @@ device change events here.
 If the user clicks the Stop button we stop the recorder. Depending on whether anything has been recorded, we set
 the status to either "recorded" or "previewing".
 
-We respond the same the same way if the user unplugs the camera, except we go back to "acquiring" when there is no
-video.
+We respond the same the same way if the user unplugs the camera, except we go back to "acquiring" when there is
+nothing recorded.
 
-As before, fulfillment of `durationChange` or `volumeChange` does not require any additional action. The code just
-needs to "wake up".
+Fulfillment of `durationChange` or `volumeChange` does not require any additional action. The code just needs to
+"wake up" so the `yield` statement gets run.
 
-## Status: "paused" ([line 330](./src/media-cap.js#L370))
+## Status: "paused" ([line 370](./src/media-cap.js#L370))
 
 ```js
         } else if (status === 'paused') {
@@ -423,12 +424,12 @@ user can resume recording and we're not anticipating changes in the video durati
         } else ...
 ```
 
-Okay, we have recorded something. The first thing we do is turn off the volume monitoring, since showing the input
+Okay, we have recorded something. The first thing we do is turn off volume monitoring, as showing the input
 from the mic doesn't make sense while the user is playing back the clip. At this stage, we're waiting for the user
 to either accept the result, which would result in the component being unmounted and a shutdown of the generator, or
-request a do-over. In the latter case, we clear the `capturedX` variables, reenable volume monitoring, and set the
+request a do-over. In the latter case, we clear the `captured___` variables, reenable volume monitoring, and set the
 status to "previewing" once again--provided we still have the live stream. The user could potentially have unplugged
-the camera while reviewing the video, leading us to the "acquiring" stage once again. We also need to rescan the list
+the camera while reviewing the video, requiring a trip to the "acquiring" stage. We also need to rescan the list
 of available devices, as we have been ignoring `eventual.deviceChange` in the prior stages.
 
 ## Status: "denied" ([line 399](./src/media-cap.js#L399))
@@ -447,8 +448,8 @@ of available devices, as we have been ignoring `eventual.deviceChange` in the pr
         }
 ```
 
-Finally, we only have the "denied" status to consider. What can happen at this stage that can get us out of the
-predicament? Well, the user plugging a camera could potentially give us access to one. The user flipping the switch
+Finally, we only have the "denied" status to consider. What can happen at this stage that can get us out of it?
+Well, the user plugging in a camera could potentially give us access to it. The user flipping the switch
 in the browser's permission panel might also do the trick:
 
 ![screenshot](./img/screenshot-2.jpg)
@@ -459,7 +460,7 @@ So we do an `await eventual.deviceChange.or.permissionChange`. When one of these
 ## Groundhog Day?
 
 Whew, that's it! After looking through the code, you might be wondering, "How exactly do we exit from the for loop?"
-There's no `break` or `return` anywhere and the catch block is swallowing up all errors. There's no way out, it seems.
+There's no `break` or `return` anywhere and the catch block is swallowing all errors. There's no way out, it seems.
 
 You can find the answer to that question in the [documentation of
 `AsyncGenerator`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator/return):
