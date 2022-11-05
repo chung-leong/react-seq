@@ -10,6 +10,8 @@ import {
 } from '../index.js';
 import {
   isAbortError,
+  isSyncGenerator,
+  isAsyncGenerator,
 } from '../src/utils.js';
 
 describe('#delay()', function() {
@@ -92,27 +94,21 @@ describe('#stasi()', function() {
   it('should create a generator that yield data from another generator', async function() {
     async function* generate() {
       for (let i = 1; i <= 5; i++) {
-        delay(5)
+        await delay(5)
         yield i;
       }
     };
     const target = generate();
     const agent = stasi(target);
-    const list1 = [];
-    for await (const value of target) {
-      list1.push(value);
-    }
-    const list2 = [];
-    for await (const value of agent) {
-      list2.push(value);
-    }
+    const list1 = await getListRecursive(target);
+    const list2 = await getListRecursive(agent);
     expect(list1).to.eql([ 1, 2, 3, 4, 5 ]);
     expect(list2).to.eql(list1);
   })
   it('should stop tapping when an error is encountered', async function() {
     async function* generate() {
       for (let i = 1; i <= 5; i++) {
-        delay(5)
+        await delay(5)
         if (i === 3) {
           throw new Error('Thou hast reached the number three');
         }
@@ -141,7 +137,7 @@ describe('#stasi()', function() {
   it('should create generators that can be read concurrently with the target generator', async function() {
     async function* generate() {
       for (let i = 1; i <= 5; i++) {
-        delay(5)
+        await delay(5)
         yield i;
       }
     };
@@ -165,6 +161,38 @@ describe('#stasi()', function() {
       [ 5, 5, 5 ],
     ]);
   })
+  it('should work recursively', async function() {
+    async function* generate() {
+      for (let i = 1; i <= 5; i++) {
+        await delay(5)
+        yield (i % 2) ? a(1, 2, 3, 4) : g('Hello', 'world', a(456, 123));
+      }
+    };
+    const target = generate();
+    const agentA = stasi(target);
+    const agentB = stasi(target);
+    const listA = await getListRecursive(agentA);
+    const list = await getListRecursive(target);
+    const listB = await getListRecursive(agentB);
+    expect(listA).to.eql(list);
+    expect(listB).to.eql(list);
+  });
+  it('should produce the same result when called on a stasi generator', async function() {
+    async function* generate() {
+      for (let i = 1; i <= 5; i++) {
+        await delay(5)
+        yield (i % 2) ? a(1, 2, 3, 4) : g('Hello', 'world', a(456, 123));
+      }
+    };
+    const target = generate();
+    const agentA = stasi(target);
+    const agentB = stasi(agentA);
+    const listA = await getListRecursive(agentA);
+    const list = await getListRecursive(target);
+    const listB = await getListRecursive(agentB);
+    expect(listA).to.eql(list);
+    expect(listB).to.eql(list);
+  });
 })
 
 describe('#isAbortError()', function() {
@@ -181,3 +209,33 @@ describe('#isAbortError()', function() {
     expect(isAbortError(error)).to.be.true;
   })
 })
+
+async function getListRecursive(gen) {
+  if (isSyncGenerator(gen)) {
+    const list = [];
+    for (const v of gen) {
+      list.push(await getListRecursive(v));
+    }
+    return list;
+  } else if (isAsyncGenerator(gen)) {
+    const list = [];
+    for await (const v of gen) {
+      list.push(await getListRecursive(v));
+    }
+    return list;
+  } else {
+    return gen;
+  }
+}
+
+function* g(...values) {
+  for (const value of values) {
+    yield value;
+  }
+}
+
+async function* a(...values) {
+  for (const value of values) {
+    yield value;
+  }
+}

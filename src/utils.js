@@ -43,63 +43,97 @@ export function nextTick(fn) {
 }
 
 export function stasi(generator) {
-  // see if we've already tapped the target
-  let { taps } = generator.next;
-  if (!taps) {
-    // need to install the tap
-    const { next } = generator;
-    let f;
-    generator.next = f = async function() {
-      let res, error;
-      try {
-        // get the result using the real function
-        res = await next.call(this);
-      } catch (err) {
-        // shutdown the whole operation when an error is encountered
-        res = { done: true };
-        error = err;
-      }
-      // pass the result to the taps first
-      for (const { resolve, buffer } of taps) {
-        if (resolve) {
-          // tap is waiting for data
-          resolve(res);
-        } else {
-          buffer.push(res);
+  let sync;
+  if (isSyncGenerator(generator)) {
+    sync = true;
+  } else if (isAsyncGenerator(generator)) {
+    sync = false;
+  } else {
+    throw new Error('Not a generator');
+  }
+  let ctx = generator.next.stasi;
+  let nextS;
+  if (ctx) {
+    nextS = generator.next;
+  } else {
+    // target generator at index = 0
+    ctx = { generators: [ generator ], queues: [ [] ], promise: null };
+
+    // place result into all queues
+    function push(res) {
+      const q0 = ctx.queues[0];
+      if (res instanceof Error) {
+        for (const q of ctx.queues) {
+          // statsi generators don't throw
+          q.push(q === q0 ? res : { done: true, value: undefined });
+        }
+      } else if (!res.done && (isAsyncGenerator(res.value) || isSyncGenerator(res.value))) {
+        for (const q of ctx.queues) {
+          // stasi generators receive new stasi generators
+          q.push(q === q0 ? res : { done: false, value: stasi(res.value) });
+        }
+      } else {
+        // all generators receive the same value
+        for (const q of ctx.queues) {
+          q.push(res);
         }
       }
-      // hand the result to the intended recipient
-      if (error) {
-        throw error;
-      } else {
-        return res;
-      }
-    };
-    generator.next.taps = taps = [];
-  }
-  const tap = { resolve: null, buffer: [] };
-  taps.push(tap);
-  async function* create() {
-    for (;;) {
-      let res;
-      if (tap.buffer.length > 0) {
-        // there's data in the buffer still, yield that
-        res = tap.buffer.shift();
-      } else {
-        // need to wait for the arrival of new information
-        res = await new Promise(resolve => tap.resolve = resolve);
-        // clear .resolve as soon as we get something
-        tap.resolve = null;
-      }
-      const { value, done } = res;
-      if (!done) {
-        yield value;
-      } else {
-        break;
-      }
     }
+    function pull(queue) {
+      const res = queue.shift();
+      if (res instanceof Error) {
+        throw res;
+      }
+      return res;
+    }
+    // create next function that pull from the queues
+    const next0 = generator.next;
+    if (sync) {
+      nextS = function next() {
+        const index = ctx.generators.indexOf(this);
+        const queue = ctx.queues[index];
+        if (queue.length === 0) {
+          try {
+            push(next0.call(ctx.generators[0]));
+          } catch (err) {
+            push(err);
+          }
+        }
+        return pull(queue);
+      };
+    } else {
+      nextS = async function next() {
+        const index = ctx.generators.indexOf(this);
+        const queue = ctx.queues[index];
+        if (queue.length === 0) {
+          // don't do anything except to wait if a fetch has already commenced
+          let fetching = !ctx.promise;
+          if (fetching) {
+            ctx.promise = next0.call(ctx.generators[0]);
+          }
+          let res;
+          try {
+            res = await ctx.promise;
+          } catch (err) {
+            res = err;
+          }
+          if (fetching) {
+            push(res);
+            ctx.promise = null;
+          }
+        }
+        return pull(queue);
+      };
+    }
+    nextS.stasi = ctx;
+    generator.next = nextS;
   }
-  return create();
+  // create empty generator and attach .next()
+  const genS = (sync) ? (function*(){})() : (async function*(){})();
+  genS.next = nextS;
+  ctx.generators.push(genS);
+  ctx.queues.push([]);
+  return genS;
 }
 
 export function isPromise(obj) {
