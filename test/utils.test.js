@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
 import { noConsole } from './error-handling.js';
+import { EventManager } from '../src/event-manager.js';
 
 import {
   delay,
@@ -10,6 +11,7 @@ import {
 } from '../index.js';
 import {
   isAbortError,
+  isPromise,
   isSyncGenerator,
   isAsyncGenerator,
 } from '../src/utils.js';
@@ -209,6 +211,27 @@ describe('#isAbortError()', function() {
     expect(isAbortError(error)).to.be.true;
   })
 })
+
+describe('#isPromise()', function() {
+  it('should not mistakenly identify a handler from the event manager as a promise', function() {
+    const em = new EventManager({});
+    expect(isPromise(em.on.click)).to.be.false;
+  })
+});
+
+describe('#isSyncGenerator()', function() {
+  it('should not mistakenly identify a handler from the event manager as a sync generator', function() {
+    const em = new EventManager({});
+    expect(isSyncGenerator(em.on.click)).to.be.false;
+  })
+});
+
+describe('#isAsyncGenerator()', function() {
+  it('should not mistakenly identify a handler from the event manager as a async generator', function() {
+    const em = new EventManager({});
+    expect(isAsyncGenerator(em.on.click)).to.be.false;
+  });
+});
 
 async function getListRecursive(gen) {
   if (isSyncGenerator(gen)) {

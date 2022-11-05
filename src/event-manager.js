@@ -29,6 +29,9 @@ export class EventManager {
   }
 
   getHandler(name) {
+    if (typeof(name) !== 'string') {
+      return;
+    }
     const { handlers } = this;
     let handler = handlers[name];
     if (!handler) {
@@ -56,6 +59,9 @@ export class EventManager {
   }
 
   getPromise(name) {
+    if (typeof(name) !== 'string') {
+      return;
+    }
     const { promises, resolves, rejects } = this;
     let promise = promises[name];
     if (!promise) {
@@ -113,6 +119,9 @@ export class EventManager {
   }
 
   getMergedPromise(parent, name, op) {
+    if (typeof(name) !== 'string') {
+      return;
+    }
     const { eventual } = this;
     // obtain the last promise in the chain
     const promise = eventual[name];
@@ -137,6 +146,9 @@ export class EventManager {
       }
       const proxy = new Proxy({}, {
         get: (_, name) => {
+          if (typeof(name) !== 'string') {
+            return;
+          }
           const multipler = multipliers[name] ?? multipliers[name + 's'];
           if (multipler === undefined) {
             const msg = (name === 'then') ? 'No time unit selected' : `Invalid time unit: ${name}`;
@@ -166,7 +178,9 @@ export class EventManager {
       // return properties of function
       return value;
     } else {
-      return this.getValueHandler(name, handlers, key);
+      if (typeof(key) === 'string') {
+        return this.getValueHandler(name, handlers, key);
+      }
     }
   }
 

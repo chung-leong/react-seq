@@ -7,7 +7,6 @@ export async function delay(ms, options = {}) {
     return Promise.reject(new Abort('Abort'));
   }
   return new Promise((resolve, reject) => {
-    let callback;
     const timeout = setTimeout(() => {
       resolve(value);
       signal?.removeEventListener('abort', listener);
@@ -137,15 +136,15 @@ export function stasi(generator) {
 }
 
 export function isPromise(obj) {
-  return (obj instanceof Object && typeof(obj.then) === 'function');
+  return (obj instanceof Object && typeof(obj) !== 'function' && typeof(obj.then) === 'function');
 }
 
 export function isAsyncGenerator(obj) {
-  return obj instanceof Object && !!obj[Symbol.asyncIterator] && typeof(obj.next) === 'function';
+  return obj instanceof Object && !!obj[Symbol.asyncIterator] && typeof(obj) !== 'function' && typeof(obj.next) === 'function';
 }
 
 export function isSyncGenerator(obj) {
-  return obj instanceof Object && !!obj[Symbol.iterator] && typeof(obj.next) === 'function';
+  return obj instanceof Object && !!obj[Symbol.iterator] && typeof(obj) !== 'function' && typeof(obj.next) === 'function';
 }
 
 export function isAbortError(err) {

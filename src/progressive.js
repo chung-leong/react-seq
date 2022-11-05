@@ -1,4 +1,4 @@
-import { useMemo, createElement } from 'react';
+import { createElement } from 'react';
 import { sequential, useFunction } from './sequential.js';
 import { generateProps } from './prop-generator.js';
 import { isPromise } from './utils.js';

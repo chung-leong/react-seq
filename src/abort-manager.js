@@ -1,4 +1,4 @@
-import { Abort, nextTick, isPromise } from './utils.js';
+import { nextTick } from './utils.js';
 
 export class AbortManager extends AbortController {
   constructor() {

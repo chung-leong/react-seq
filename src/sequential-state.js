@@ -1,5 +1,5 @@
 import { useMemo, useEffect, useState, startTransition } from 'react';
-import { IntermittentIterator, Interruption, Timeout } from './iterator.js';
+import { IntermittentIterator, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { Abort, isAbortError } from './utils.js';
