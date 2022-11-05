@@ -34,11 +34,7 @@ export function useWordPressBase() {
       for await (const objects of generator) {
         const fetching = [];
         for (const object of objects) {
-          let ids = object[field];
-          // if field doesn't hold an array, make it one
-          if (!(ids instanceof Array)) {
-            ids = ids ? [ ids ] : [];
-          }
+          const ids = typeof(field) === 'function' ? field(object) : object[field];
           // see which ones haven't been fetched yet
           for (const id of ids) {
             if (!fetched[id]) {
@@ -119,7 +115,8 @@ export function useWordPressPosts() {
   }
 
   function fetchFeaturedMedia(generator, options)  {
-    return fetchObjectComponents('wp/v2/media', 'featured_media', generator, options);
+    const mediaId = p => p.featured ? [ p.featured_media ] : [];
+    return fetchObjectComponents('wp/v2/media', mediaId, generator, options);
   }
 
   return {

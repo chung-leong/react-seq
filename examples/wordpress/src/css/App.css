@@ -1,19 +1,84 @@
-.title {
-
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: sans-serif;
 }
 
-.excerpt {
-
+.ArticleList {
+  max-width: 50em;
+  padding-inline-start: 0;
 }
 
-.authors span {
-
+.loading {
+  display: flex;
+  height: 100vh;
+  align-items: center;
 }
 
-.categories span {
-
+.ArticleList a:link {
+  text-decoration: none;
+  color: #000;
 }
 
-.tags span {
+.ArticleList a:hover {
+  color: #933;
+}
 
+.ArticleList li {
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #999;
+  overflow: hidden;
+}
+
+.ArticleList .title {
+}
+
+.ArticleList .excerpt {
+}
+
+.ArticleList .media {
+  float: right;
+  margin: -12px 0 8px 16px;
+}
+
+.ArticleList .authors {
+  float: right;
+  clear: both;
+}
+
+.ArticleList .authors > span::after {
+  content: ', ';
+}
+
+.ArticleList .authors > span:last-child::after {
+  content: '';
+}
+
+.ArticleList .categories {
+  margin: 8px 0 2px 16px;
+  float: right;
+  font-size: 0.5em;
+}
+
+.ArticleList .categories span {
+  margin: 0 2px 0 2px;
+  padding: 2px 2px 2px 2px;
+  background-color: #eee;
+}
+
+.ArticleList .tags {
+  margin-bottom: 8px;
+  float: left;
+}
+
+.ArticleList .tags span {
+  margin: 0 8px 0 0px;
+  padding: 3px 1px 4px 5px;
+  background-color: #933;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 0.85em;
+  font-weight: bold;
 }
