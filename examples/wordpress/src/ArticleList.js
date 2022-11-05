@@ -1,16 +1,10 @@
 import { useRef, useEffect } from 'react';
-import { useProgressive, delay } from 'react-seq';
+import { useProgressive } from 'react-seq';
 import { useWordPressPosts } from './wordpress.js';
 import Content from './Content.js';
 
 export default function ArticleList() {
-  const {
-    fetchAll,
-    fetchAuthors,
-    fetchCategories,
-    fetchTags,
-    fetchFeaturedMedia,
-  } = useWordPressPosts();
+  const wp = useWordPressPosts();
   return useProgressive(async ({ fallback, defer, type, usable, manageEvents, signal }) => {
     fallback(<div className="loading">Loading...</div>)
     const [ on, eventual ] = manageEvents();
@@ -18,6 +12,13 @@ export default function ArticleList() {
     usable(0);
     usable({ articles: 1 });
     type(ArticleListUI);
+    const {
+      fetchAll,
+      fetchAuthors,
+      fetchCategories,
+      fetchTags,
+      fetchFeaturedMedia,
+    } = wp;
     const demand = (delay !== Infinity) ? () => eventual.needForMore : null;
     const options = { signal };
     const articles = fetchAll(demand, options);
@@ -26,7 +27,7 @@ export default function ArticleList() {
     const tags = fetchTags(articles, options);
     const media = fetchFeaturedMedia(articles, options);
     return { articles, authors, categories, tags, media, onBottomReached: on.needForMore };
-  }, []);
+  }, [ wp ]);
 }
 
 function ArticleListUI({ articles = [], authors = [], categories = [], tags = [], media = [], onBottomReached }) {
@@ -40,7 +41,7 @@ function ArticleListUI({ articles = [], authors = [], categories = [], tags = []
     return () => {
       observer.disconnect();
     };
-  }, []);
+  }, [ onBottomReached ]);
   return (
     <ul className="ArticleList">
       {articles.map((article) => {
@@ -66,7 +67,7 @@ function ArticleUI({ article, authors, categories, tags, media }) {
         <div className="categories">
           {categories.map(c => <span key={c.id}><Content value={c.name} /></span>)}
         </div>
-        <a href={article.link} target="_blank">
+        <a href={article.link} target="_blank" rel="noreferrer">
           <Content value={article.title} />
         </a>
       </h2>
