@@ -468,3 +468,12 @@ You can find the answer to that question in the [documentation of
 > The return() method of an async generator acts as if a return statement is inserted in the generator's body at the
 > current suspended position, which finishes the generator and allows the generator to perform any cleanup tasks when
 > combined with a try...finally block.
+
+## Final Thoughts
+
+I hope this example helped you gain some insight into what can be done with async generator and React-seq. Async
+generator is a very powerful addition to JavaScript. It's definitely far more useful than being just an array that
+you can create dynamically. This example has nothing to do with arrays. We're using async generators to help us
+make a complex process with many moving parts more manageable, more understandable. I hope you managed to follow the
+code without difficulties. If there's anything unclear, please feel free to contact me or make use of the discussion
+board.
