@@ -102,16 +102,16 @@ export function stasi(generator) {
   return create();
 }
 
-export function isAsync(obj) {
-  return isPromise(obj) || isGenerator(obj);
-}
-
 export function isPromise(obj) {
   return (obj instanceof Object && typeof(obj.then) === 'function');
 }
 
-export function isGenerator(obj) {
-  return (obj instanceof Object && typeof(obj.next) === 'function');
+export function isAsyncGenerator(obj) {
+  return obj instanceof Object && !!obj[Symbol.asyncIterator] && typeof(obj.next) === 'function';
+}
+
+export function isSyncGenerator(obj) {
+  return obj instanceof Object && !!obj[Symbol.iterator] && typeof(obj.next) === 'function';
 }
 
 export function isAbortError(err) {

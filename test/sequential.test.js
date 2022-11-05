@@ -1237,7 +1237,7 @@ describe('#useSequential()', function() {
       await steps[4];
       expect(node.textContent).to.equal('Chicken');
       // wait for timeout to occur
-      await delay(75);
+      await delay(300);
       expect(call).to.equal(2);
       expect(finalized).to.equal(call);
     })

@@ -9,7 +9,7 @@ export class AbortManager extends AbortController {
     this.timeout = 0;
   }
 
-  setTimeout(delay = 50) {
+  setTimeout(delay = 250) {
     // force abort
     this.timeout = setTimeout(() => this.abort(), delay);
   }

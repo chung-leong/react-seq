@@ -1,4 +1,4 @@
-import { isPromise, isGenerator, isAsync } from './utils.js';
+import { isPromise, isAsyncGenerator, isSyncGenerator } from './utils.js';
 
 export async function* generateProps(asyncProps, usables) {
   const propSet = [];
@@ -6,7 +6,7 @@ export async function* generateProps(asyncProps, usables) {
     // see which props need to be handled asynchronously
     for (const [ name, value ] of Object.entries(asyncProps)) {
       const usable = usables[name];
-      if (isAsync(value)) {
+      if (isComplex(value)) {
         // create a generator that yield the value of this prop as time progresses
         // (i.e. an array becomes bigger as values are retrieved from generator)
         propSet.push({
@@ -123,77 +123,120 @@ export async function* generateProps(asyncProps, usables) {
   }
 }
 
-export async function* generateNext(source, current = undefined, sent = false) {
-  function add(next) {
-    if (current instanceof Array) {
-      if (sent) {
-        // create a new array as the current one has been sent
-        // to the caller already and we don't want to change it
-        current = [ ...current ];
-        sent = false;
+function isAsync(value) {
+  return isPromise(value) || isAsyncGenerator(value);
+}
+
+function isComplex(value) {
+  return isPromise(value) || isAsyncGenerator(value) || isSyncGenerator(value);
+}
+
+export async function* generateNext(source) {
+  const stack = [];
+  let exhausted = false;
+  let current = false;
+  let pending = false;
+  let appending = false;
+  let count = 0;
+  try {
+    for (;;) {
+      if (exhausted) {
+        // no more data from the current source, see if there's anything on the stack
+        if (stack.length > 0) {
+          source = stack.pop();
+          exhausted = false;
+        } else {
+          source = null;
+          if (pending) {
+            yield current;
+          }
+          // we're done
+          break;
+        }
       }
-      current.push(next);
-    } else {
-      current = next;
-    }
-  }
-
-  function result() {
-    // remember that we've sent the result to the caller
-    sent = true;
-    return current;
-  }
-
-  if (isGenerator(source)) {
-    // loop through the values returned by the generator
-    let stop = false;
-    if (current === undefined) {
-      current = [];
-    }
-    try {
-      do {
-        const ret = source.next();
-        // using await if we have an async generator
-        const { value: next, done } = isPromise(ret) ? await ret : ret;
-        if (!done) {
-          if (isAsync(next)) {
-            // a promise or a generator, handle it recursively, with
-            // values appended to the array
-            for await (current of generateNext(next, current, sent)) {
-              yield result();
-            }
-          } else {
-            // add the value to the array, sending it to the caller
-            // if this is an async generator
-            add(next);
-            if (isPromise(ret)) {
-              yield result();
-            }
+      if (isAsync(source)) {
+        // the next addition will take time, yield pending value if any
+        if (pending) {
+          yield current;
+          pending = false;
+        }
+      }
+      let value, retrieved = false;
+      if (isSyncGenerator(source)) {
+        const res = source.next();
+        if (res.done) {
+          exhausted = true;
+          if (typeof(source.return) === 'function') {
+            source.return();
           }
         } else {
-          stop = true;
+          value = res.value;
+          retrieved = true;
         }
-      } while (!stop);
-      // if this is a sync generator, send the updated array now
-      if (!sent) {
-        yield result();
+        appending = true;
+      } if (isAsyncGenerator(source)) {
+        const res = await source.next();
+        if (res.done) {
+          exhausted = true;
+          if (typeof(source.return) === 'function') {
+            await source.return();
+          }
+        } else {
+          value = res.value;
+          retrieved = true;
+        }
+        appending = true;
+      } else if (isPromise(source)) {
+        value = await source;
+        exhausted = true;
+        retrieved = true;
       }
-    } finally {
-      // run finally section
-      if (source.return) {
-        await source.return();
+      if (retrieved) {
+        // got something
+        if (isComplex(value)) {
+          if (!exhausted) {
+            // push the current source onto the stack
+            stack.push(source);
+          }
+          source = value;
+          exhausted = false;
+        } else {
+          if (count === 0) {
+            if (appending) {
+              current = [ value ];
+            } else {
+              current = value;
+            }
+          } else {
+            // create a duplicate if the current one was yielded previously
+            if (!pending) {
+              current = [ ...current ];
+            }
+            current.push(value);
+          }
+          pending = true;
+          count++;
+        }
       }
     }
-  } else if (isPromise(source)) {
-    const next = await source;
-    if (isAsync(next)) {
-      // we've probably just resolved a promise of a generator
-      for await (current of generateNext(next, current, sent)) {
-        yield result();
+  } catch (err) {
+    if (pending) {
+      yield current;
+    }
+    throw err;
+  } finally {
+    while (source) {
+      // shutdown source prematurelly
+      if (isSyncGenerator(source)) {
+        if (typeof(source.return) === 'function') {
+          source.return();
+        }
+      } else if (isAsyncGenerator(source)) {
+        if (typeof(source.return) === 'function') {
+          await source.return();
+        }
       }
-    } else {
-      add(next);
-      yield result();
+      source = stack.pop();
     }
   }
 }

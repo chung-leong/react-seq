@@ -71,8 +71,9 @@ describe('#generateNext()', function() {
     const source = p(a(
       a(1, p(2)),
       a(3, 4),
-      g(p(5), 6), // the promise will cause a break here between the two numbers
+      g(5, p(6)), // the promise will cause a break here between the two numbers
     ));
+    debugger;
     const generator = generateNext(source);
     const list = await getList(generator);
     expect(list).to.eql([
@@ -411,7 +412,7 @@ describe('#generateProps()', function() {
       animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, { world: true, animals: true });
+      const generator = generateProps(props, { world: 0, animals: 0 });
       const list = [];
       let error;
       try {
@@ -425,6 +426,7 @@ describe('#generateProps()', function() {
         { hello: 'Hello', world: undefined, animals: undefined },
         { hello: 'Hello', world: undefined, animals: [ 1, 2, 3 ] },
         { hello: 'Hello', world: 'World', animals: [ 1, 2, 3 ] },
+        { hello: 'Hello', world: 'World', animals: [ 1, 2, 3, 4, 5 ] },
       ]);
       expect(error).to.be.an('error');
     });
