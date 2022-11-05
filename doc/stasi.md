@@ -33,3 +33,35 @@ generator.
 
 Any error emitted by the source generator will be ignored. Shadow generators created by `stasi` will simply end in
 such a situation.
+
+`stasi` should not be used in an async generator function, since its code would start running when the first item is
+retrieved from the generator and not when the function is called. By then some items could have been removed from
+the target already.
+
+Instead of doing this:
+
+```js
+// async generator function
+async function* fetchAuthors(articleGenerator) {
+  for await (const article of stasi(articleGenerator)) {
+    /* ... */
+  }
+}
+```
+
+Do this:
+
+```js
+// function returning an async generator
+function fetchAuthors(articleGenerator) {
+  articleGenerator = stasi(articleGenerator);
+  async function *generate() {
+    for await (const article of articleGenerator) {
+      /* ...*/
+    }
+  }
+  return generate();
+}
+```
+
+Or leave it to the caller to call `stasi`.
