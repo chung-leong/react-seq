@@ -28,9 +28,8 @@ function Widget({ id }) {
 function Widget({ id }) {
   return useSequential(async function*({ mount }) {
     mount(() => {
-      return (evt) => {
-        evt.preventDefault();
-      };
+      // delay abort on unmount by 1 second
+      return ({ keepFor }) => keepFor(1000);
     });
   }, [ id ]);
 }
@@ -39,8 +38,16 @@ function Widget({ id }) {
 ## Parameters
 
 * `fn` - `<Function>` Function to be called. It can return an optional clean-up function. This clean-up function will
-receive an object containing the method `preventDefault`. Calling it stops the default action of shutting down the
-async generator.
+receive an object containing methods for controlling when the generator will be terminated.
+
+## Control Methods
+
+* `keep()` - Prevent abort from happening
+* `keepFor(delay)` - Delay abort by specified number of milliseconds
+* `keepUntil(promise)` - Delay abort until the supplied promise is fulfilled
+
+Remounting of the component will cancel a deferred abort. The default behavior is to abort on the next tick. You don't
+need to use any of the `keep` functions if you unmount and immediately remount a component.
 
 ## Notes
 

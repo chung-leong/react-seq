@@ -14,6 +14,9 @@ import {
   isPromise,
   isSyncGenerator,
   isAsyncGenerator,
+  until,
+  timeout,
+  interval,
 } from '../src/utils.js';
 
 describe('#delay()', function() {
@@ -195,6 +198,26 @@ describe('#stasi()', function() {
     expect(listA).to.eql(list);
     expect(listB).to.eql(list);
   });
+  it('should throw when given a non-generator', function() {
+    expect(() => stasi([])).to.throw();
+  })
+  it('should not throw when source generator throws', function() {
+    function* generate() {
+      for (let i = 1; i <= 10; i++) {
+        if (i >= 4) {
+          throw new Error('Thou shalst not count to four');
+        }
+        yield i;
+      }
+    }
+    const target = generate();
+    const agent = stasi(target);
+    const list = [];
+    for (const item of agent) {
+      list.push(item);
+    }
+    expect(list).to.eql([ 1, 2, 3 ]);
+  })
 })
 
 describe('#isAbortError()', function() {
@@ -232,6 +255,57 @@ describe('#isAsyncGenerator()', function() {
     expect(isAsyncGenerator(em.on.click)).to.be.false;
   });
 });
+
+describe('#until', function() {
+  it('should run a function when a promise is fulfilled', async function() {
+    let count = 0;
+    until(delay(10), () => count++);
+    await delay(20);
+    expect(count).to.equal(1);
+  })
+  it('should return null when promise is null', function() {
+    const op1 = until(null, () => {});
+    const op2 = until(null, () => {});
+    const op3 = until(null, () => {});
+    expect(op1).to.be.null;
+    expect(op2).to.be.null;
+    expect(op3).to.be.null;
+  })
+})
+
+describe('#timeout', function() {
+  it('should run a function when time expires', async function() {
+    let count = 0;
+    timeout(10, () => count++);
+    await delay(20);
+    expect(count).to.equal(1);
+  })
+  it('should return null when timeout is not possible', function() {
+    const op1 = timeout(0, () => {});
+    const op2 = timeout(-5, () => {});
+    const op3 = timeout(Infinity, () => {});
+    expect(op1).to.be.null;
+    expect(op2).to.be.null;
+    expect(op3).to.be.null;
+  })
+})
+
+describe('#interval', function() {
+  it('should run a function when time expires', async function() {
+    let count = 0;
+    interval(10, () => count++);
+    await delay(50);
+    expect(count).to.be.at.least(2);
+  })
+  it('should return null when interval is not possible', function() {
+    const op1 = interval(0, () => {});
+    const op2 = interval(-5, () => {});
+    const op3 = interval(Infinity, () => {});
+    expect(op1).to.be.null;
+    expect(op2).to.be.null;
+    expect(op3).to.be.null;
+  })
+})
 
 async function getListRecursive(gen) {
   if (isSyncGenerator(gen)) {

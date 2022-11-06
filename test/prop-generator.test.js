@@ -138,7 +138,7 @@ describe('#generateNext()', function() {
   it('should throw an error when a the generate encounters one', async function() {
     const source = p(a(
       a(1, p(2)),
-      a(3, Promise.reject(new Error)),
+      a(3, e(4)),
       g(p(5), 6), // the promise will cause a break here between the two numbers
     ));
     const generator = generateNext(source);
@@ -188,6 +188,30 @@ describe('#generateNext()', function() {
     expect(list[0]).to.have.property('length', 3);
     expect(list[1]).to.have.property('length', 7);
     expect(list[2]).to.have.property('length', 10);
+  })
+  it('should yield last available result before throwing', async function() {
+    function *generate() {
+      for (let i = 1; i <= 10; i++) {
+        if (i >= 4) {
+          throw new Error('Thou shalst not count to four');
+        }
+        yield i;
+      }
+    }
+    const source = generate();
+    const list = [];
+    let error;
+    const generator = generateNext(source);
+    try {
+      for await (const value of generator) {
+        list.push(value);
+      }
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.an('error');
+    expect(list).to.have.lengthOf(1);
+    expect(list[0]).to.eql([ 1, 2, 3 ]);
   })
 })
 
@@ -452,7 +476,7 @@ describe('#generateProps()', function() {
       await steps[0];
       yield [ 1, 2, 3 ].values();
       await steps[2];
-      yield [ 4, 5, Promise.reject(new Error) ].values();
+      yield [ 4, 5, e(6) ].values();
       await steps[3];
       yield [ 7, 8, 9 ].values();
     };
@@ -531,6 +555,10 @@ async function getList(generator) {
 
 function p(value) {
   return Promise.resolve(value);
+}
+
+function e(value) {
+  return Promise.reject(new Error(`Error encountered retrieving ${value}`))
 }
 
 function* g(...values) {

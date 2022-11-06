@@ -289,4 +289,17 @@ describe('#EventManager', function() {
     });
     expect(warn).to.be.a('string');
   })
+  it('should yield undefined when symbols are used to access properties', async function() {
+    const { on, eventual } = new EventManager({});
+    const handler1 = on[Symbol.iterator];
+    const handler2 = on.click[Symbol.iterator];
+    const promise1 = eventual[Symbol.iterator];
+    const promise2 = eventual.click.and[Symbol.iterator];
+    const promise3 = eventual.click.for(5)[Symbol.iterator];
+    expect(handler1).to.be.undefined;
+    expect(handler2).to.be.undefined;
+    expect(promise1).to.be.undefined;
+    expect(promise2).to.be.undefined;
+    expect(promise3).to.be.undefined;
+  })
 })

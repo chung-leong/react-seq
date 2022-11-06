@@ -1,4 +1,4 @@
-import { Abort } from './utils.js';
+import { Abort, timeout, interval } from './utils.js';
 
 let delayMultiplier = 1;
 let delayLimit = Infinity;
@@ -26,10 +26,10 @@ export class IntermittentIterator {
     this.promise = null;
     this.delay = 0;
     this.limit = delayLimit;
-    this.interval = 0;
-    this.timeout = 0;
-    this.expired = false;
+    this.interval = null;
+    this.timeout = null;
     this.started = false;
+    this.pending = true;
     this.tick = null;
     this.reject = null;
     this.error = null;
@@ -41,8 +41,8 @@ export class IntermittentIterator {
     if (actualDelay !== this.delay) {
       this.delay = actualDelay;
       if (this.started) {
-        this.stopInterval();
-        this.startInterval();
+        this.interval?.cancel();
+        this.interval = interval(this.delay, () => this.interrupt());
       }
     }
   }
@@ -51,9 +51,9 @@ export class IntermittentIterator {
     const actualLimit = Math.min(limit, delayLimit);
     if (actualLimit !== this.limit) {
       this.limit = actualLimit;
-      if (this.started) {
-        this.stopTimeout();
-        this.startTimeout();
+      if (this.started && this.pending) {
+        this.timeout?.cancel();
+        this.timeout = timeout(this.limit, () => this.throw(new Timeout()));
       }
     }
   }
@@ -61,8 +61,8 @@ export class IntermittentIterator {
   start(generator) {
     this.generator = generator;
     this.started = true;
-    this.startInterval();
-    this.startTimeout();
+    this.interval = interval(this.delay, () => this.interrupt());
+    this.timeout = timeout(this.limit, () => this.throw(new Timeout()));
   }
 
   next() {
@@ -84,47 +84,11 @@ export class IntermittentIterator {
 
   async return() {
     const { generator } = this;
-    this.stopInterval();
-    this.stopTimeout();
+    this.interval?.cancel();
+    this.timeout?.cancel();
     // just in case we're returning prior to next() getting called
     this.promise?.catch(err => {});
-    this.generator = null;
-    this.promise = null;
-    this.tick = null;
-    this.reject = null;
-    this.started = false;
-    this.expired = false;
     return generator.return();
-  }
-
-  startInterval() {
-    if (this.delay > 0 && this.delay !== Infinity) {
-      this.interval = setInterval(() => this.interrupt(), this.delay);
-    }
-  }
-
-  startTimeout() {
-    if (this.limit > 0 && this.limit !== Infinity && !this.expired) {
-      this.timeout = setTimeout(() => {
-        this.throw(new Timeout());
-        this.timeout = 0;
-        this.expired = true;
-      }, this.limit);
-    }
-  }
-
-  stopInterval() {
-    if (this.interval) {
-      clearInterval(this.interval);
-      this.interval = 0;
-    }
-  }
-
-  stopTimeout() {
-    if (this.timeout) {
-      clearTimeout(this.timeout);
-      this.timeout = 0;
-    }
   }
 
   fetch() {
@@ -132,10 +96,11 @@ export class IntermittentIterator {
       this.promise = this.generator.next()
       this.promise.then(() => {
         this.promise = null;
+        this.pending = false;
         if (this.timeout) {
           // we got something, turn off the timeout
-          this.stopTimeout();
-          this.expired = true;
+          this.timeout.cancel();
+          this.timeout = null;
         }
       }, err => {});
     }

@@ -32,13 +32,32 @@ export async function meanwhile(fn) {
 }
 
 export function nextTick(fn) {
+  return until(Promise.resolve(), fn);
+}
+
+export function timeout(delay, fn) {
+  if (delay <= 0 || delay === Infinity) {
+    return null;
+  }
+  const id = setTimeout(fn, delay);
+  return { cancel: () => clearTimeout(id) };
+}
+
+export function interval(delay, fn) {
+  if (delay <= 0 || delay === Infinity) {
+    return null;
+  }
+  const id = setInterval(fn, delay);
+  return { cancel: () => clearInterval(id) };
+}
+
+export function until(promise, fn) {
+  if (!promise) {
+    return null;
+  }
   let cancelled = false;
-  const promise = Promise.resolve().then(() => {
-    if (!cancelled) {
-      return fn();
-    }
-  });
-  return { promise, cancel: () => cancelled = true };
+  promise.then(() => !cancelled && fn(), () => {});
+  return { cancel: () => cancelled = true };
 }
 
 export function stasi(generator) {

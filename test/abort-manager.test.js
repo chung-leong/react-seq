@@ -1,5 +1,6 @@
 import { expect } from 'chai';
 import { delay } from '../index.js';
+import { createSteps } from './step.js';
 
 import {
   AbortManager,
@@ -35,17 +36,52 @@ describe('#AbortManager', function() {
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.have.property('type', 'abort');
   })
-  it('should not trigger abort when callback calls preventDefault', async function() {
+  it('should not trigger abort when callback calls keep', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
+    manager.setEffect(() => ({ keep }) => keep());
     manager.onMount();
-    manager.setEffect(() => {
-      return (evt) => evt.preventDefault();
-    });
     manager.onUnmount();
     const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
-    const result = await Promise.race([ promise, delay(50, { value: 'timeout' }) ]);
-    expect(result).to.not.equal('timeout');
+    const result = await Promise.race([ promise, delay(30, { value: 'timeout' }) ]);
+    expect(result).to.equal('timeout');
+  })
+  it('should delay abort when callback calls keepFor', async function() {
+    const manager = new AbortManager();
+    const { signal } = manager;
+    manager.setEffect(() => ({ keepFor }) => keepFor(50));
+    manager.onMount();
+    manager.onUnmount();
+    const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
+    const result1 = await Promise.race([ promise, delay(30, { value: 'timeout' }) ]);
+    expect(result1).to.equal('timeout');
+    const result2 = await Promise.race([ promise, delay(30, { value: 'timeout' }) ]);
+    expect(result2).to.not.equal('timeout');
+  })
+  it('should delay abort until promise is filfilled when callback calls keepUntil', async function() {
+    const steps = createSteps();
+    const manager = new AbortManager();
+    const { signal } = manager;
+    manager.setEffect(() => ({ keepUntil }) => keepUntil(steps[0]));
+    manager.onMount();
+    manager.onUnmount();
+    const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
+    const result1 = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
+    expect(result1).to.equal('timeout');
+    steps[0].done();
+    const result2 = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
+    expect(result2).to.not.equal('timeout');
+  })
+  it('should throw when callback calls both keepUntil and keep', async function() {
+    const steps = createSteps();
+    const manager = new AbortManager();
+    const { signal } = manager;
+    manager.setEffect(() => ({ keepUntil, keep }) => {
+      keepUntil(steps[0]);
+      keep();
+    });
+    manager.onMount();
+    expect(() => manager.onUnmount()).to.throw();
   })
   it('should cancel timeout when onMount is called', async function() {
     const manager = new AbortManager();

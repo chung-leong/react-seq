@@ -1,4 +1,4 @@
-import { nextTick } from './utils.js';
+import { nextTick, timeout, until } from './utils.js';
 
 export class AbortManager extends AbortController {
   constructor() {
@@ -6,12 +6,11 @@ export class AbortManager extends AbortController {
     this.aborting = null;
     this.revert = null;
     this.apply = null;
-    this.timeout = 0;
   }
 
   setTimeout(delay = 250) {
     // force abort
-    this.timeout = setTimeout(() => this.abort(), delay);
+    this.aborting = timeout(delay, () => this.abort());
   }
 
   setEffect(fn) {
@@ -28,13 +27,36 @@ export class AbortManager extends AbortController {
       this.revert = result;
     }
     this.aborting?.cancel();
-    clearTimeout(this.timeout);
   }
 
   onUnmount() {
-    let abort = true;
-    this.revert?.call(null, { preventDefault: () => abort = false });
-    if (abort) {
+    let abortDelay, abortPromise, abortCanceled = false, abortCount = 0;
+    function check() {
+      if (abortCount > 0) {
+        throw new Error('keep(), keepFor(), and keepUntil() cannot be used at the same time');
+      }
+      abortCount++;
+    }
+    debugger;
+    this.revert?.call(null, {
+      keep() {
+        check();
+        abortCanceled = true;
+      },
+      keepFor(delay) {
+        check();
+        abortDelay = delay;
+      },
+      keepUntil(promise) {
+        check();
+        abortPromise = promise;
+      },
+    });
+    if (abortDelay) {
+      this.aborting = timeout(abortDelay, () => this.abort());
+    } else if (abortPromise) {
+      this.aborting = until(abortPromise, () => this.abort());
+    } else if (!abortCanceled) {
       this.aborting = nextTick(() => this.abort());
     }
   }
