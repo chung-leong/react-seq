@@ -73,7 +73,6 @@ describe('#generateNext()', function() {
       a(3, 4),
       g(5, p(6)), // the promise will cause a break here between the two numbers
     ));
-    debugger;
     const generator = generateNext(source);
     const list = await getList(generator);
     expect(list).to.eql([
@@ -136,7 +135,7 @@ describe('#generateNext()', function() {
     expect(gFinal).to.equal(gStart);
     expect(aFinal).to.equal(aStart);
   })
-  it ('should throw an error when a the generate encounters one', async function() {
+  it('should throw an error when a the generate encounters one', async function() {
     const source = p(a(
       a(1, p(2)),
       a(3, Promise.reject(new Error)),
@@ -158,6 +157,37 @@ describe('#generateNext()', function() {
       [ 1, 2, 3 ],
     ]);
     expect(error).to.be.an('error');
+  })
+  it('should copy properties attached to generator over onto array', async function() {
+    const source = g(1, 2, 3, p(4), 5, 6, 7, p(8), 9, 10);
+    source.total = 10;
+    Object.defineProperty(source, 'fraction', {
+      get: function() { return this.length / this.total },
+      enumerable: true
+    });
+    const generator = generateNext(source);
+    const list = await getList(generator);
+    expect(list).to.have.lengthOf(3);
+    expect(list[0]).to.have.property('total', 10);
+    expect(list[0]).to.have.property('fraction', 0.3);
+    expect(list[1]).to.have.property('total', 10);
+    expect(list[1]).to.have.property('fraction', 0.7);
+    expect(list[2]).to.have.property('total', 10);
+    expect(list[2]).to.have.property('fraction', 1);
+  })
+  it('should not overwrite existing properties of array', async function() {
+    const source = g(1, 2, 3, p(4), 5, 6, 7, p(8), 9, 10);
+    source.total = 10;
+    Object.defineProperty(source, 'length', {
+      get: function() { return 0 },
+      enumerable: true
+    });
+    const generator = generateNext(source);
+    const list = await getList(generator);
+    expect(list).to.have.lengthOf(3);
+    expect(list[0]).to.have.property('length', 3);
+    expect(list[1]).to.have.property('length', 7);
+    expect(list[2]).to.have.property('length', 10);
   })
 })
 
@@ -203,6 +233,26 @@ describe('#generateProps()', function() {
       const list = await getList(generator);
       expect(list).to.have.lengthOf(1);
       expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
+    });
+  })
+  it('should transfer properties from generators onto arrays', async function() {
+    const steps = createSteps();
+    const createAnimals = async function*() {
+      await steps[0];
+      yield 'Cow';
+      await steps[2];
+      yield 'Pig';
+      await steps[3];
+      yield 'Chicken';
+    };
+    const animals = createAnimals();
+    animals.total = 3;
+    const props = { animals };
+    await loopThrough(steps, 5, async () => {
+      const generator = generateProps(props, {});
+      const list = await getList(generator);
+      const { animals } = list[0];
+      expect(animals).to.have.property('total', 3);
     });
   })
   it('should retrieve items from sync generator', async function() {

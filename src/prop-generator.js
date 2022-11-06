@@ -214,6 +214,14 @@ export async function* generateNext(source) {
             }
             current.push(value);
           }
+          if (appending) {
+            for (const key of Object.keys(source)) {
+              if (!(key in current)) {
+                const descriptor = Object.getOwnPropertyDescriptor(source, key);
+                Object.defineProperty(current, key, descriptor);
+              }
+            }
+          }
           pending = true;
           count++;
         }
