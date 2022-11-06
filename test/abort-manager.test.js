@@ -105,8 +105,7 @@ describe('#AbortManager', function() {
   it('should cancel timeout when onMount is called', async function() {
     const manager = new AbortManager();
     const { signal } = manager;
-    manager.setTimeout(25);
-    await delay(10);
+    manager.setSelfDestruct();
     manager.onMount();
     const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
     const result = await Promise.race([ promise, delay(30, { value: 'timeout' }) ]);

@@ -63,9 +63,9 @@ export function until(promise, fn) {
   if (!promise) {
     return null;
   }
-  let cancelled = false;
-  promise.then(() => !cancelled && fn(), () => {});
-  return { cancel: () => cancelled = true };
+  let canceled = false;
+  promise.then(() => !canceled && fn(), () => {});
+  return { cancel: () => canceled = true };
 }
 
 export function stasi(generator) {

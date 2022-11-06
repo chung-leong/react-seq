@@ -30,10 +30,11 @@ export class IntermittentIterator {
     this.timeout = null;
     this.started = false;
     this.pending = true;
+    this.retrieving = false;
     this.tick = null;
     this.reject = null;
     this.error = null;
-    signal?.addEventListener('abort', () => this.throw(new Abort()), { once: true });
+    signal?.addEventListener('abort', () => this.abort(), { once: true });
   }
 
   setDelay(delay) {
@@ -67,6 +68,7 @@ export class IntermittentIterator {
 
   next() {
     this.fetch();
+    this.retrieving = true;
     return Promise.race([ this.promise, this.tick ]);
   }
 
@@ -75,6 +77,16 @@ export class IntermittentIterator {
       this.reject(err);
     } else {
       this.error = err;
+    }
+  }
+
+  abort() {
+    if (this.retrieving) {
+      // next() has been called--terminate the loop
+      this.throw(new Abort());
+    } else {
+      // next() has not been called
+      this.return().catch(() => {});
     }
   }
 

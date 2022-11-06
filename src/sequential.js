@@ -9,13 +9,8 @@ export function useSequential(cb, deps) {
 }
 
 export function useFunction(fn, cb, deps) {
-  const { element, abortManager } = useMemo(() => {
-    const s = fn(cb);
-    // deal with StrictMode double invocation by shutting down one of the
-    // two generators on a timer
-    s.abortManager.setTimeout();
-    return s;
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { element, abortManager } = useMemo(() => fn(cb, true), deps);
   useEffect(() => {
     abortManager.onMount();
     return () => {
@@ -25,7 +20,7 @@ export function useFunction(fn, cb, deps) {
   return element;
 }
 
-export function sequential(cb) {
+export function sequential(cb, selfDestruct = false) {
   const abortManager = new AbortManager();
   const { signal } = abortManager;
 
@@ -118,25 +113,18 @@ export function sequential(cb) {
   iterator.fetch();
   sync = false;
 
-  // stop iterator when abort is signaled
-  let lazyCalled = false;
-  signal.addEventListener('abort', () => {
-    if (lazyCalled) {
-      // createLazyComponent() will call iterator.return() at the end if
-      // it gets an Abort error
-      iterator.throw(new Abort());
-    } else {
-      // createLazyComponent() hasn't been called, probably because this is a bogus call
-      // made by StrictMode; just terminate the iterator
-      iterator.return().catch(() => {});
+  if (suspensionKey) {
+    // suspensio is used, see if there's prior results
+    const priorResult = findPrior(suspensionKey);
+    if (priorResult) {
+      // blow away the unnecessary generator
+      abortManager.abort();
+      return priorResult;
     }
-  }, { once: true });
+  }
 
   // define lazy component Sequence
-  const Lazy = createLazyComponent(suspensionKey, async () => {
-    // indicate that the lazy component is being created
-    lazyCalled = true;
-
+  const Lazy = lazy(async () => {
     let pendingContent;
     let pendingError;
     let unusedSlot = false;
@@ -277,51 +265,45 @@ export function sequential(cb) {
     }
   });
 
+  if (Lazy.reused) {
+    // shutdown the generator if we're using the
+    iterator.return().catch(() => {});
+  }
+
   // create the component
   const lazyEl = createElement(Lazy);
   // wrap it in a Suspense if not suspending
   const element = (suspending) ? lazyEl : createElement(Suspense, { fallback: placeholder }, lazyEl);
-  return { element, abortManager };
+  const result = { element, abortManager };
+  if (suspensionKey) {
+    // save the result so we can find it again when we unsuspend
+    saveForLater(suspensionKey, result);
+  } else if (selfDestruct) {
+    // set self-destruct to real with extra generator created by strict mode double invocatopn
+    abortManager.setSelfDestruct();
+  }
+  return result;
 }
 
-const lazyComponents = {};
-const lazyComponentTickCounts = {};
+const savedResults = {};
+const savedResultsTickCounts = {};
 let tickCount = 0;
 
-function createLazyComponent(key, fn) {
-  if (typeof(key) === 'string') {
-    let c = lazyComponents[key];
-    // deal with issues caused by both StrictMode and Suspense here:
-    // StrictMode will cause the function to get executed twice
-    // combine that with suspension means the function get called
-    // four times.
-    //
-    // We want the function to be executed once, with same lazy
-    // component returned each time, then promptly removed.
-    //
-    // Call #1 creates the lazy component
-    // Call #2 find the existing component, sees that its tick count matches the current, does nothing
-    // Call #3 find the existing component, sees that its tick count is differernt, schedule a removal
-    // on the next tick
-    // Call #4 find the existing component, sees that its tick count is differernt, schedule a removal
-    // on the next tick too, which does nothing
-    if (c) {
-      if (lazyComponentTickCounts[key] !== tickCount) {
-        // remove it on the next tick
-        nextTick(() => {
-          delete lazyComponents[key];
-          delete lazyComponentTickCounts[key];
-        });
-      }
-    } else {
-      c = lazy(fn);
-      lazyComponents[key] = c;
-      lazyComponentTickCounts[key] = tickCount;
-      // increase the tick count on the next tick
-      nextTick(() => tickCount++);
-    }
-    return c;
-  } else {
-    return lazy(fn);
+function saveForLater(key, result) {
+  savedResults[key] = result;
+  savedResultsTickCounts[key] = tickCount;
+  // increase the tick count on the next tick
+  nextTick(() => tickCount++);
+}
+
+function findPrior(key) {
+  const result = savedResults[key];
+  if (result && savedResultsTickCounts[key] !== tickCount) {
+    // remove it on the next tick
+    nextTick(() => {
+      delete savedResults[key];
+      delete savedResultsTickCounts[key];
+    });
   }
+  return result;
 }

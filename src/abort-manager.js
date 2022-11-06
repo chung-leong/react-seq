@@ -11,9 +11,8 @@ export class AbortManager extends AbortController {
     this.mounted = createTrigger()
   }
 
-  setTimeout(delay = 250) {
-    // force abort
-    this.aborting = timeout(delay, () => this.abort());
+  setSelfDestruct() {
+    this.aborting = nextTick(() => this.abort());
   }
 
   setEffect(fn) {

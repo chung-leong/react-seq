@@ -12,13 +12,8 @@ export function useFunctionState(fn, cb, deps) {
   if (!deps) {
     throw new Error('No dependencies specified');
   }
-  const { initialState, abortManager } = useMemo(() => {
-    const s = fn(cb, state => setState(state), err => setError(err));
-    // deal with StrictMode double invocation by shutting down one of the
-    // two generators on a timer
-    s.abortManager.setTimeout();
-    return s;
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const { initialState, abortManager } = useMemo(() => fn(cb, s => setState(s), e => setError(e), true), deps);
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
   useEffect(() => {
@@ -33,7 +28,7 @@ export function useFunctionState(fn, cb, deps) {
   return state;
 }
 
-export function sequentialState(cb, setState, setError) {
+export function sequentialState(cb, setState, setError, selfDestruct = false) {
   const abortManager = new AbortManager();
   const { signal } = abortManager;
 
@@ -103,6 +98,9 @@ export function sequentialState(cb, setState, setError) {
   let unusedSlot = false;
   retrieveRemaining();
 
+  if (selfDestruct) {
+    abortManager.setSelfDestruct();
+  }
   return { initialState, abortManager };
 
   function updateState({ conditional = false, reusable = false }) {

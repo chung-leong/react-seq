@@ -6,7 +6,7 @@ export function useProgressiveState(cb, deps) {
   return useFunctionState(progressiveState, cb, deps);
 }
 
-export function progressiveState(cb, setState, setError) {
+export function progressiveState(cb, setState, setError, selfDestruct) {
   return sequentialState(async function* (methods) {
     let usableDefault = false;
     let usables = {};
@@ -25,5 +25,5 @@ export function progressiveState(cb, setState, setError) {
     for await (const props of generateProps(asyncProps, usables)) {
       yield props;
     }
-  }, setState, setError);
+  }, setState, setError, selfDestruct);
 }

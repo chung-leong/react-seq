@@ -1198,6 +1198,7 @@ describe('#useSequential()', function() {
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should run all finally sections under strict mode', async function() {
     await withReactDOM(async ({ render, act, node }) => {
+      debugger;
       const steps = createSteps(), assertions = createSteps(act);
       let call = 0, finalized = 0;
       function Test() {
@@ -1237,7 +1238,7 @@ describe('#useSequential()', function() {
       await steps[4];
       expect(node.textContent).to.equal('Chicken');
       // wait for timeout to occur
-      await delay(300);
+      await delay(10);
       expect(call).to.equal(2);
       expect(finalized).to.equal(call);
     })
