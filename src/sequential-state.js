@@ -1,7 +1,8 @@
-import { useMemo, useEffect, useState, startTransition } from 'react';
+import { useMemo, useEffect, useState, useContext, startTransition } from 'react';
 import { IntermittentIterator, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
+import { InspectorContext } from './inspector.js';
 import { Abort, isAbortError } from './utils.js';
 
 export function useSequentialState(cb, deps) {
@@ -12,8 +13,11 @@ export function useFunctionState(fn, cb, deps) {
   if (!deps) {
     throw new Error('No dependencies specified');
   }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const { initialState, abortManager } = useMemo(() => fn(cb, s => setState(s), e => setError(e), true), deps);
+  const inspector = useContext(InspectorContext);
+  const { initialState, abortManager } = useMemo(() => {
+    const options = { inspector, selfDestruct: true };
+    return fn(cb, s => setState(s), e => setError(e), options);
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
   useEffect(() => {
@@ -28,7 +32,11 @@ export function useFunctionState(fn, cb, deps) {
   return state;
 }
 
-export function sequentialState(cb, setState, setError, selfDestruct = false) {
+export function sequentialState(cb, setState, setError, options = {}) {
+  const {
+    inspector,
+    selfDestruct = false,
+  } = options;
   const abortManager = new AbortManager();
   const { signal } = abortManager;
 

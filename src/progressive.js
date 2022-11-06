@@ -7,7 +7,7 @@ export function useProgressive(cb, deps) {
   return useFunction(progressive, cb, deps);
 }
 
-export function progressive(cb, selfDestruct = false) {
+export function progressive(cb, options = {}) {
   return sequential(async function* (methods) {
     let elementType;
     methods.type = (type) => {
@@ -63,7 +63,7 @@ export function progressive(cb, selfDestruct = false) {
     for await (const props of generateProps(asyncProps, usables)) {
       yield elementFn(props);
     }
-  }, selfDestruct);
+  }, options);
 }
 
 export function checkAsyncProps(asyncProps, usables, usableDefault) {

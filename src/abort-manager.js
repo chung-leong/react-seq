@@ -30,7 +30,7 @@ export class AbortManager extends AbortController {
     this.mounting = nextTick(() => this.mounted.resolve());
 
     // call effect function if there's one
-    const result = this.apply?.call(null);
+    const result = this.apply?.();
     if (typeof(result) === 'function') {
       this.revert = result;
     }
@@ -49,7 +49,7 @@ export class AbortManager extends AbortController {
       }
       abortCount++;
     }
-    this.revert?.call(null, {
+    this.revert?.({
       keep() {
         check();
         abortCanceled = true;

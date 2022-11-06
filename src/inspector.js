@@ -9,7 +9,7 @@ export class Inspector {
 
   dispatch(evt) {
     const fired = [];
-    for (const [ index, listener ] of this.listeners) {
+    for (const [ index, listener ] of this.listeners.entries()) {
       try {
         if (listener.match(evt)) {
           listener.resolve(evt);
@@ -24,7 +24,7 @@ export class Inspector {
       this.listeners.splice(index, 1);
     }
     try {
-      return this.onEvent();
+      return this.onEvent(evt);
     } catch (err) {
       this.onError(err);
     }
@@ -52,16 +52,15 @@ export class Inspector {
 }
 
 function createPredicate(obj) {
+  if (obj && !(obj instanceof Object)) {
+    throw new TypeError('Invalid argument');
+  }
   return (evt) => {
-    if (obj instanceof Object) {
-      for (const [ name, value ] of Object.entries(obj)) {
-        if (evt[name] !== value) {
-          return false;
-        }
+    for (const [ name, value ] of Object.entries(obj || {})) {
+      if (evt[name] !== value) {
+        return false;
       }
-      return true;
-    } else {
-      return true;
     }
+    return true;
   };
 }

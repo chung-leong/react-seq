@@ -1,7 +1,8 @@
-import { useMemo, useEffect, useReducer, startTransition, createElement, lazy, Suspense } from 'react';
+import { useMemo, useEffect, useReducer, useContext, startTransition, createElement, lazy, Suspense } from 'react';
 import { IntermittentIterator, Timeout, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
+import { InspectorContext } from './inspector.js';
 import { Abort, nextTick, isAbortError } from './utils.js';
 
 export function useSequential(cb, deps) {
@@ -10,7 +11,11 @@ export function useSequential(cb, deps) {
 
 export function useFunction(fn, cb, deps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const { element, abortManager } = useMemo(() => fn(cb, true), deps);
+  const inspector = useContext(InspectorContext);
+  const { element, abortManager } = useMemo(() => {
+    const options = { inspector, selfDestruct: true };
+    return fn(cb, options);
+  }, deps);
   useEffect(() => {
     abortManager.onMount();
     return () => {
@@ -20,7 +25,11 @@ export function useFunction(fn, cb, deps) {
   return element;
 }
 
-export function sequential(cb, selfDestruct = false) {
+export function sequential(cb, options = {}) {
+  const {
+    inspector,
+    selfDestruct = false,
+  } = options;
   const abortManager = new AbortManager();
   const { signal } = abortManager;
 
@@ -28,7 +37,7 @@ export function sequential(cb, selfDestruct = false) {
   const methods = { signal };
 
   // let callback set content update delay
-  const iterator = new IntermittentIterator({ signal });
+  const iterator = new IntermittentIterator({ signal, inspector });
   methods.defer = delay => {
     if (delay !== undefined) {
       iterator.setDelay(delay);
@@ -77,7 +86,7 @@ export function sequential(cb, selfDestruct = false) {
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
     methods.manageEvents = (options = {}) => {
-      const { on, eventual } = new EventManager({ ...options, signal });
+      const { on, eventual } = new EventManager({ ...options, signal, inspector });
       return [ on, eventual ];
     };
   }
@@ -264,11 +273,6 @@ export function sequential(cb, selfDestruct = false) {
       await iterator.return().catch(err => console.error(err));
     }
   });
-
-  if (Lazy.reused) {
-    // shutdown the generator if we're using the
-    iterator.return().catch(() => {});
-  }
 
   // create the component
   const lazyEl = createElement(Lazy);

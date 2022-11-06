@@ -26,6 +26,10 @@ export {
   throwing,
 } from './src/event-manager.js';
 export {
+  Inspector,
+  InspectorContext,
+} from './src/inspector.js';
+export {
   delay,
   meanwhile,
   stasi,
