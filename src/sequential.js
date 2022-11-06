@@ -67,13 +67,16 @@ export function sequential(cb) {
 
   // allow callback to use side effects
   methods.mount = (fn) => {
-    if (!sync) {
-      throw new Error('Function must be set prior to any yield or await statement');
+    if (fn !== undefined) {
+      if (!sync) {
+        throw new Error('Function must be set prior to any yield or await statement');
+      }
+      if (typeof(fn) !== 'function') {
+        throw new TypeError('Invalid argument');
+      }
+      abortManager.setEffect(fn);
     }
-    if (typeof(fn) !== 'function') {
-      throw new TypeError('Invalid argument');
-    }
-    abortManager.setEffect(fn);
+    return abortManager.mounted;
   };
 
   if (!process.env.REACT_APP_SEQ_NO_EM) {

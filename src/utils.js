@@ -31,6 +31,14 @@ export async function meanwhile(fn) {
   }
 }
 
+export function createTrigger() {
+  let pair;
+  const promise = new Promise((...args) => pair = args)
+  promise.resolve = pair[0];
+  promise.reject = pair[1];
+  return promise;
+}
+
 export function nextTick(fn) {
   return until(Promise.resolve(), fn);
 }

@@ -36,6 +36,25 @@ describe('#AbortManager', function() {
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.have.property('type', 'abort');
   })
+  it('should fulfill mounted promise when after onMount is called', async function() {
+    const manager = new AbortManager();
+    const { signal } = manager;
+    const promise = manager.mounted;
+    manager.onMount();
+    const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
+    expect(result).to.not.equal('timeout');
+  })
+  it('should not fulfill mounted promise when onUnmount is immediate called after onMount', async function() {
+    const manager = new AbortManager();
+    const { signal } = manager;
+    const promise = manager.mounted;
+    manager.onMount();
+    manager.onUnmount();
+    manager.onMount();
+    manager.onUnmount();
+    const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
+    expect(result).to.equal('timeout');
+  })
   it('should not trigger abort when callback calls keep', async function() {
     const manager = new AbortManager();
     const { signal } = manager;

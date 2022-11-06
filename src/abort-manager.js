@@ -1,11 +1,14 @@
-import { nextTick, timeout, until } from './utils.js';
+import { nextTick, timeout, until, createTrigger } from './utils.js';
 
 export class AbortManager extends AbortController {
   constructor() {
     super();
     this.aborting = null;
+    this.mounting = null;
+    this.unmounting = null;
     this.revert = null;
     this.apply = null;
+    this.mounted = createTrigger()
   }
 
   setTimeout(delay = 250) {
@@ -22,14 +25,24 @@ export class AbortManager extends AbortController {
   // schedule the operation on the next tick instead so there's a window of opportunity
   // to cancel it
   onMount() {
+    // cancel abort (if any)
+    this.aborting?.cancel();
+    this.unmounting?.cancel();
+    this.mounting = nextTick(() => this.mounted.resolve());
+
+    // call effect function if there's one
     const result = this.apply?.call(null);
     if (typeof(result) === 'function') {
       this.revert = result;
     }
-    this.aborting?.cancel();
   }
 
   onUnmount() {
+    // cancel mounting
+    this.mounting?.cancel();
+    this.unmounting = nextTick(() => this.mounted = createTrigger());
+
+    // run clean-up function
     let abortDelay, abortPromise, abortCanceled = false, abortCount = 0;
     function check() {
       if (abortCount > 0) {
@@ -37,7 +50,6 @@ export class AbortManager extends AbortController {
       }
       abortCount++;
     }
-    debugger;
     this.revert?.call(null, {
       keep() {
         check();

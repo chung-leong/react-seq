@@ -402,7 +402,7 @@ describe('#useSequentialState()', function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       function Test() {
         const state = useSequentialState(async function*({ mount }) {
-          mount();
+          mount(1);
         }, []);
         return state;
       }

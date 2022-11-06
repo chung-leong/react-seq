@@ -1,4 +1,4 @@
-# mount(fn)
+# mount([fn])
 
 Provide a callback function that is invoked when the component mounts or when dependencies of the hook change
 
@@ -35,10 +35,20 @@ function Widget({ id }) {
 }
 ```
 
+```js
+function Widget({ id }) {
+  return useSequential(async function*({ mount }) {
+    await mount();
+    /* ... */
+  }, [ id ]);
+}
+```
+
 ## Parameters
 
 * `fn` - `<Function>` Function to be called. It can return an optional clean-up function. This clean-up function will
 receive an object containing methods for controlling when the generator will be terminated.
+* `return` `<Promise>` A promise that will be fulfilled when the component is mounted
 
 ## Control Methods
 
@@ -51,7 +61,7 @@ need to use any of the `keep` functions if you unmount and immediately remount a
 
 ## Notes
 
-Must be called prior to any `yield` or `await` statement.
+Must be called prior to any `yield` or `await` statement when used with an argument.
 
 `mount` expects a regular, synchronous function. Use [`meanwhile`](./meanwhile.md) If you need to perform
 asynchronous operations. Example:
