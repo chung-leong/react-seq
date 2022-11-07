@@ -1,30 +1,35 @@
 import { expect } from 'chai';
 import { noConsole } from './error-handling.js';
-import { delay, throwing } from '../index.js';
 import { EventManager } from '../src/event-manager.js';
+import { withTestRenderer } from './test-renderer.js';
+import { createElement } from 'react';
+import { createSteps } from './step.js';
+import { createErrorBoundary } from './error-handling.js';
+import { delay, throwing, useSequential, useSequentialState } from '../index.js';
 
 import {
   Inspector,
-  Logger,
+  InspectorContext,
+  PromiseLogger,
 } from '../index.js';
 
 describe('#Inspector', function() {
   it('should call onEvent', async function() {
     let event;
-    class TestLogger extends Inspector {
+    class TestPromiseLogger extends Inspector {
       onEvent(evt) {
         event = evt;
       }
     }
-    const inspector = new TestLogger();
+    const inspector = new TestPromiseLogger();
     inspector.dispatch({ type: 'resolve' });
     expect(event).to.have.property('type', 'resolve');
   })
 })
 
-describe('#Logger', function() {
+describe('#PromiseLogger', function() {
   it('should yield a promise that is fulfilled when a matching event shows up', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const promise = inspector.event(evt => evt.type === 'update');
     inspector.dispatch({ type: 'resolve' });
     const result1 = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
@@ -34,7 +39,7 @@ describe('#Logger', function() {
     expect(result2).to.have.property('type', 'update');
   })
   it('should allow use of an object as the predicate', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const promise = inspector.event({ type: 'update' });
     inspector.dispatch({ type: 'resolve' });
     const result1 = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
@@ -44,13 +49,13 @@ describe('#Logger', function() {
     expect(result2).to.have.property('type', 'update');
   })
   it('should reject with error from predicate function', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const promise = inspector.event(evt => { throw new Error('Error') });
     inspector.dispatch({ type: 'resolve' });
     await expect(promise).to.eventually.be.rejected;
   })
   it('should match every event use when oldEvents called no parameter', async function() {
-     const inspector = new Logger();
+     const inspector = new PromiseLogger();
      inspector.dispatch({ type: 'resolve' });
      inspector.dispatch({ type: 'update' });
      inspector.dispatch({ type: 'explode' });
@@ -58,18 +63,18 @@ describe('#Logger', function() {
      expect(list.map(e => e.type)).to.eql([ 'resolve', 'update', 'explode' ]);
    })
   it('should throw when event is given invalid argument', function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     expect(() => inspector.event(5)).to.throw();
   })
   it('should ignore old events when newEvent is called', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     inspector.dispatch({ type: 'update' });
     const promise = inspector.newEvent(evt => evt.type === 'update');
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.equal('timeout');
   })
   it('should return old events when oldEvents is called', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     inspector.dispatch({ type: 'update' });
     inspector.dispatch({ type: 'await' });
     inspector.dispatch({ type: 'update' });
@@ -80,30 +85,30 @@ describe('#Logger', function() {
   })
   it('should dump errors encountered in onEvent to console', async function() {
     const { error } = await noConsole(async () => {
-      class TestLogger extends Logger {
+      class TestPromiseLogger extends PromiseLogger {
         onEvent(evt) {
           throw new Error('error');
         }
       }
-      const inspector = new TestLogger();
+      const inspector = new TestPromiseLogger();
       inspector.dispatch({ type: 'resolve' });
     });
     expect(error).to.be.an('error');
   })
   it('should quit waiting for event after some time', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const promise = inspector.event({ type: 'await' }, 10);
     await expect(promise).to.eventually.be.rejected;
   })
   it('should receive notification from event manage when an await occurs', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const { on, eventual } = new EventManager({ inspector });
     await eventual.click.for(10).milliseconds;
     const evt = await inspector.event({ type: 'await' }, 100);
     expect(evt).to.have.property('type', 'await');
   })
   it('should receive notification from event manage when awaiting multiple events', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const { on, eventual } = new EventManager({ inspector });
     await eventual.click.or.keyPress.for(10).milliseconds;
     const list = inspector.oldEvents({ type: 'await' });
@@ -111,7 +116,7 @@ describe('#Logger', function() {
     expect(list.map(e => e.name)).to.eql([ 'click', 'keyPress' ]);
   })
   it('should receive notification from event manage when an handler is called', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const { on, eventual } = new EventManager({ inspector });
     on.click('hello');
     setTimeout(async () => {
@@ -129,7 +134,7 @@ describe('#Logger', function() {
     expect(evt2).to.have.property('handled', true);
   })
   it('should be able to trigger fulfillment of promise', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const { on, eventual } = new EventManager({ inspector });
     const promise = eventual.click;
     promise.then(() => {});
@@ -139,7 +144,7 @@ describe('#Logger', function() {
     expect(result).to.equal('Hello');
   })
   it('should be able to trigger rejection of promise', async function() {
-    const inspector = new Logger();
+    const inspector = new PromiseLogger();
     const { on, eventual } = new EventManager({ inspector });
     const promise = eventual.click;
     // this is done mostly for code coverage purpose as await doesn't call catch()
@@ -152,5 +157,205 @@ describe('#Logger', function() {
     evt.reject(new Error('Error'));
     await expect(promise).to.eventually.be.rejected;
     expect(error).to.be.an('error');
+  })
+  it('should pick up content update events from useSequential', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      const inspector = new PromiseLogger();
+      const { oldEvents } = inspector;
+      const steps = createSteps(), assertions = createSteps();
+      function Test() {
+        return useSequential(async function*({ fallback }) {
+          fallback('Cow');
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+          await assertions[1];
+          yield 'Chicken';
+          steps[2].done();
+          await assertions[2];
+          yield 'Monkey';
+          steps[3].done();
+        }, []);
+      }
+      const el = createElement(Test);
+      const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+      create(cp);
+      assertions[0].done();
+      await steps[1];
+      expect(oldEvents({ type: 'content' })).to.have.lengthOf(1);
+      expect(toJSON()).to.equal('Pig');
+      assertions[1].done();
+      await steps[2];
+      expect(toJSON()).to.equal('Chicken');
+      expect(oldEvents({ type: 'content' })).to.have.lengthOf(2);
+      assertions[2].done();
+      await steps[3];
+      expect(toJSON()).to.equal('Monkey');
+      expect(oldEvents({ type: 'content' })).to.have.lengthOf(3);
+    });
+  })
+  it('should pick up timeout events from useSequential', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      const inspector = new PromiseLogger();
+      const { oldEvent } = inspector;
+      const steps = createSteps(), assertions = createSteps();
+      function Test() {
+        return useSequential(async function*({ fallback, timeout }) {
+          fallback('Cow');
+          timeout(20, async () => 'Tortoise');
+          await assertions[0];
+          yield 'Pig';
+        }, []);
+      }
+      const el = createElement(Test);
+      const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+      create(cp);
+      await delay(30);
+      expect(oldEvent({ type: 'timeout' })).to.have.property('content', 'Tortoise');
+      expect(toJSON()).to.equal('Tortoise');
+    });
+  })
+  it('should pick up error events from useSequential', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      await noConsole(async () => {
+        const inspector = new PromiseLogger();
+        const { oldEvents } = inspector;
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback }) {
+            fallback('Cow');
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+            await assertions[1];
+            yield 'Chicken';
+            steps[2].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        const boundary = createErrorBoundary(cp);
+        create(boundary);
+        expect(toJSON()).to.equal('Cow');
+        assertions[0].done();
+        await steps[1];
+        expect(toJSON()).to.equal('Pig');
+        assertions[1].fail(new Error('ERROR'))
+        await delay(0);
+        expect(oldEvents({ type: 'error' })).to.have.lengthOf(1);
+      });
+    });
+  })
+  it('should pick up abort event from useSequential', async function() {
+    await withTestRenderer(async ({ create, unmount, toJSON }) => {
+      const inspector = new PromiseLogger();
+      const { oldEvents } = inspector;
+      const steps = createSteps(), assertions = createSteps();
+      function Test() {
+        return useSequential(async function*({ fallback }) {
+          fallback('Cow');
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+        }, []);
+      }
+      const el = createElement(Test);
+      const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+      create(cp);
+      unmount();
+      await delay(0);
+      expect(oldEvents({ type: 'abort' })).to.have.lengthOf(1);
+    });
+  })
+  it('should pick up content update events from useSequentialState', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      const inspector = new PromiseLogger();
+      const { oldEvents } = inspector;
+      const steps = createSteps(), assertions = createSteps();
+      function Test() {
+        const state = useSequentialState(async function*({ initial }) {
+          initial('Cow');
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+          await assertions[1];
+          yield 'Chicken';
+          steps[2].done();
+          await assertions[2];
+          yield 'Monkey';
+          steps[3].done();
+        }, []);
+        return state;
+      }
+      const el = createElement(Test);
+      const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+      create(cp);
+      expect(oldEvents({ type: 'state' })).to.have.lengthOf(1);
+      assertions[0].done();
+      await steps[1];
+      expect(oldEvents({ type: 'state' })).to.have.lengthOf(2);
+      expect(toJSON()).to.equal('Pig');
+      assertions[1].done();
+      await steps[2];
+      expect(toJSON()).to.equal('Chicken');
+      expect(oldEvents({ type: 'state' })).to.have.lengthOf(3);
+      assertions[2].done();
+      await steps[3];
+      expect(toJSON()).to.equal('Monkey');
+      expect(oldEvents({ type: 'state' })).to.have.lengthOf(4);
+      const results = oldEvents().map(e => e.state);
+      expect(results).to.eql([ 'Cow', 'Pig', 'Chicken', 'Monkey' ]);
+    });
+  })
+  it('should pick up error events from useSequentialState', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      await noConsole(async () => {
+        const inspector = new PromiseLogger();
+        const { oldEvents } = inspector;
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          const state = useSequentialState(async function*({ initial }) {
+            initial('Cow');
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+            await assertions[1];
+            yield 'Chicken';
+            steps[2].done();
+          }, []);
+          return state;
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        const boundary = createErrorBoundary(cp);
+        create(boundary);
+        assertions[0].done();
+        await steps[1];
+        assertions[1].fail(new Error('ERROR'))
+        await delay(0);
+        expect(oldEvents({ type: 'error' })).to.have.lengthOf(1);
+      });
+    });
+  })
+  it('should pick up abort event from useSequentialState', async function() {
+    await withTestRenderer(async ({ create, unmount, toJSON }) => {
+      const inspector = new PromiseLogger();
+      const steps = createSteps(), assertions = createSteps();
+      function Test() {
+        const state = useSequentialState(async function*({ initial }) {
+          initial('Cow');
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+        }, []);
+        return state;
+      }
+      const el = createElement(Test);
+      const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+      create(cp);
+      unmount();
+      await delay(0);
+      expect(inspector.oldEvents({ type: 'abort' })).to.have.lengthOf(1);
+    });
   })
 })

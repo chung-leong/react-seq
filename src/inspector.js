@@ -17,7 +17,46 @@ export class Inspector {
   }
 }
 
-export class Logger extends Inspector {
+export class ConsoleLogger extends Inspector {
+  startTime = new Date;
+
+  onEvent(evt) {
+    const l = (s) => {
+      const now = new Date;
+      const elapsed = ((now - this.startTime)).toFixed(3).padStart(8, ' ');
+      console.log(`[${elapse}s] ` + s);
+    }
+    switch (evt.type) {
+      case 'await':
+        l(`Awaiting eventual ${evt.name}`);
+        break;
+      case 'fulfill':
+        l(`Fulfillment of ${evt.name} with ${evt.value}`);
+        break;
+      case 'reject':
+        l(`Rejection of ${evt.name} with ${evt.value.name}`);
+        break;
+      case 'state':
+        l(`State update`);
+        break;
+      case 'content':
+        l(`Content update`);
+        break;
+      case 'error':
+        l(`Error thrown (${evt.error.name})`);
+        break;
+      case 'abort':
+        l(`Generator aborted`);
+        break;
+      case 'timeout':
+        l(`Timeout after ${evt.duration} milliseconds`);
+        break;
+      default:
+    }
+  }
+}
+
+export class PromiseLogger extends Inspector {
   listeners = [];
   eventLog = [];
 

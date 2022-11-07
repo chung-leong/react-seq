@@ -28,7 +28,8 @@ export {
 export {
   InspectorContext,
   Inspector,
-  Logger,
+  PromiseLogger,
+  ConsoleLogger,
 } from './src/inspector.js';
 export {
   delay,
