@@ -285,11 +285,8 @@ export function useMediaCapture(options = {}) {
       }
     }
 
-    mount(() => {
-      // let generator code know that the component has mounted
-      on.mount();
-
-      // watch for orientation change
+    // set up effects and wait for mount to occur
+    await mount(() => {
       function onOrientationChange(evt) {
         // wait for resize event to occur
         window.addEventListener('resize', async () => {
@@ -320,7 +317,6 @@ export function useMediaCapture(options = {}) {
       };
     });
 
-    await eventual.mount;
     for (;;) {
       try {
         if (status === 'acquiring') {

@@ -189,8 +189,7 @@ What follow are functions that deal with the nitty-gritty of the capturing proce
 [line 288](./src/media-cap.js#L288) where [`mount`](../../doc/mount.md) is called:
 
 ```js
-    mount(() => {
-      // let generator code know that the component has mounted
+    await mount(() => {
       on.mount();
 
       // watch for orientation change
@@ -234,25 +233,22 @@ As you can see, there are quite a number of relevant events. The device can get 
 dimensions of the video feed. A device can get plugged in or unplugged. Permission levels can be toggled. All of
 these events will cause different `eventual` promises to be fulfilled.
 
-At the top of the callback function, we call `on.mount` to let the generator function know that the component has
-mounted. The awaiting on `eventual.mount` happens right below this section:
+Note the use of `await`. In addition to setting the callback function, `mount` returns a promise is fulfilled when
+the component mounts. Until that happens we don't want to enter the main event loop, sitting immediately below:
 
 ```js
-    await eventual.mount;
     for (;;) {
       try {
 ```
 
-The reason we wait for the component to mount before entering the main event loop is that while obtaining a media
-stream is strict speaking not a side effect, it can trigger a browser permission prompt. Our code would behave
-weirdly otherwise in strict mode, due to the `useMemo` hook used by `useSequential` performing
-[double invocation](https://reactjs.org/docs/strict-mode.html#detecting-unexpected-side-effects) in
-that mode (during development). This statement stops the second, abandoned generator from going any further. It'll be
-stuck here, waiting for a promise that never gets fulfilled, until a timer function comes and puts a kibosh
-on it.
+The reason for this is that while obtaining a media stream is conceptually not a side effect, in practice it is,
+since a browser permission prompt can appear. Our code would behave weirdly otherwise in strict mode, due to
+[double invocation](https://reactjs.org/docs/strict-mode.html#detecting-unexpected-side-effects) during development.
+This statement stops the second, abandoned generator from going any further. It'll be stuck waiting for a promise
+that never gets fulfilled, until a timer function comes and puts a kibosh on it.
 
 Once the generator gets past this point, it enters an infinite loop with a try-catch block inside. Let us first examine
-the catch block ([line 410](./src/media-cap.js#L410)):
+the catch block ([line 406](./src/media-cap.js#L406)):
 
 ```js
       } catch (err) {
@@ -268,13 +264,13 @@ the catch block ([line 410](./src/media-cap.js#L410)):
 It's quite simple. The error just gets saved to `lastError`. If we're in the middle of acquiring a device, the status
 is changed to "denied".
 
-Below the catch block is the generator's one and only `yield` statement. So every time we go through the for loop,
+Below the catch block is the generator's one and only `yield` statement. Every time we go through the `for` loop,
 the hook consumer will receive a new state, consisting of the local variables declared at the beginning of the
 generator function. The UI will get updated to reflect the changes that have occurred.
 
 Now, let us look at what our event loop does in each of the possible statuses.
 
-## Status: "acquiring" ([line 326](./src/media-cap.js#L326))
+## Status: "acquiring" ([line 322](./src/media-cap.js#L322))
 
 ```js
         if (status === 'acquiring') {
@@ -287,7 +283,7 @@ Now, let us look at what our event loop does in each of the possible statuses.
 We try opening a media stream. If the operation succeeds, the status is changed to "previewing". If not, we end up in
 the catch block, described above.
 
-## Status: "previewing" ([line 330](./src/media-cap.js#L330))
+## Status: "previewing" ([line 326](./src/media-cap.js#L326))
 
 ```js
         } else if (status === 'previewing') {
@@ -348,7 +344,7 @@ If the volume level is different, we don't need to do anything, as the variable 
 yield statement at the bottom of the loop will deliver the new value to the hook consumer, which will adjust the
 volume bar accordingly.
 
-## Status: "recording" ([line 357](./src/media-cap.js#L357))
+## Status: "recording" ([line 353](./src/media-cap.js#L353))
 
 ```js
         } else if (status === 'recording') {
@@ -380,7 +376,7 @@ nothing recorded.
 Fulfillment of `durationChange` or `volumeChange` does not require any additional action. The code just needs to
 "wake up" so the `yield` statement gets run.
 
-## Status: "paused" ([line 370](./src/media-cap.js#L370))
+## Status: "paused" ([line 366](./src/media-cap.js#L366))
 
 ```js
         } else if (status === 'paused') {
@@ -402,7 +398,7 @@ Fulfillment of `durationChange` or `volumeChange` does not require any additiona
 The code for the "paused" stage is nearly identical to that of the "recording" stage. The only difference is here the
 user can resume recording and we're not anticipating changes in the video duration.
 
-## Status: "recorded" ([line 383](./src/media-cap.js#L383))
+## Status: "recorded" ([line 379](./src/media-cap.js#L379))
 
 ```js
         } else if (status === 'recorded') {
@@ -432,7 +428,7 @@ status to "previewing" once again--provided we still have the live stream. The u
 the camera while reviewing the video, requiring a trip to the "acquiring" stage. We also need to rescan the list
 of available devices, as we have been ignoring `eventual.deviceChange` in the prior stages.
 
-## Status: "denied" ([line 399](./src/media-cap.js#L399))
+## Status: "denied" ([line 395](./src/media-cap.js#L395))
 
 ```js
         } else if (status === 'denied') {
@@ -449,7 +445,7 @@ of available devices, as we have been ignoring `eventual.deviceChange` in the pr
 ```
 
 Finally, we only have the "denied" status to consider. What can happen at this stage that can get us out of it?
-Well, the user plugging in a camera could potentially give us access to it. The user flipping the switch
+Well, the user plugging in a camera could potentially give us access to one. The user flipping the switch
 in the browser's permission panel might also do the trick:
 
 ![screenshot](./img/screenshot-2.jpg)
@@ -473,7 +469,7 @@ You can find the answer to that question in the [documentation of
 
 I hope this example helped you gain some insight into what can be done with async generator and React-seq. Async
 generator is a very powerful addition to JavaScript. It's definitely far more useful than being just an array that
-you can create dynamically. This example has nothing to do with arrays. We're using async generators to help us
+you create dynamically. This example has nothing to do with arrays. We're using async generators to help us
 make a complex process with many moving parts more manageable, more understandable. I hope you managed to follow the
 code without difficulties. If there's anything unclear, please feel free to contact me or make use of the discussion
 board.

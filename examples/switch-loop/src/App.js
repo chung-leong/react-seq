@@ -6,7 +6,7 @@ export default function App() {
     const [ on, eventual ] = manageEvents();
     const cancellationError = new Error('Cancelling');
     const cancel = () => throwing(cancellationError);
-    const hashChangeError = new Error('hashChange');
+    const hashChangeError = new Error('Hash was changeed');
     let step = window.location.hash.substr(1);
     function at(name) {
       step = name;
@@ -19,84 +19,84 @@ export default function App() {
         on.hashChange(throwing(hashChangeError));
       }
     }
-    await 0;
-    window.addEventListener('hashchange', onHashChange);
-    try {
-      let finished = false, lastError;
-      while (!finished) {
-        try {
-          switch (step) {
-            case 'alfa': {
-              at('alfa');
-              yield <Alfa onNext={on.click} />;
-              await eventual.click.or.hashChange;
-            } // fallthrough
-            case 'bravo': {
-              at('bravo');
-              yield <Bravo onPrev={on.click.prev} onNext={on.click.next} />;
-              const button = await eventual.click.or.hashChange;
-              if (button === 'prev') {
-                step = 'alfa';
-                continue;
-              }
-            } // fallthrough
-            case 'charlie': {
-              at('charlie');
-              yield <Charlie onCancel={on.click.apply(cancel)} onNext={on.click} />;
-              await eventual.click.or.hashChange;
-            } // fallthrough
-            case 'delta': {
-              at('delta');
-              yield <Delta onNext={on.click} />;
-              await eventual.click.or.hashChange;
-              if (Math.random() > 0.75) {
-                throw new Error('Random Error');
-              }
-              yield <Delta />;
-              const transaction = startTransaction();
-              try {
-                await eventual.hashChange.or(transaction);
-              } catch (err) {
-                console.log('Cancelling transaction');
-                transaction.cancel();
-                throw err;
-              }
-            } // fallthrough
-            case 'final': {
-              at('final');
-              yield <Final />;
-              finished = true;
-              break;
-            }
-            case 'error': {
-              at('error');
-              if (!lastError) {
-                 lastError = new Error('An error occurred');
-              }
-              yield <ErrorDisplay error={lastError} onContinue={on.click} />;
-              await eventual.click.or.hashChange.for(5).seconds;
+    mount(() => {
+      window.addEventListener('hashchange', onHashChange);
+      return () => {
+        window.removeEventListener('hashchange', onHashChange);
+      };
+    });
+    let finished = false, lastError;
+    while (!finished) {
+      try {
+        switch (step) {
+          case 'alfa': {
+            at('alfa');
+            yield <Alfa onNext={on.click} />;
+            await eventual.click.or.hashChange;
+          } // fallthrough
+          case 'bravo': {
+            at('bravo');
+            yield <Bravo onPrev={on.click.prev} onNext={on.click.next} />;
+            const button = await eventual.click.or.hashChange;
+            if (button === 'prev') {
               step = 'alfa';
-              break;
+              continue;
             }
-            default:
-              if (step) {
-                throw new Error(`Unrecognized step ${step}`);
-              }
-              step = 'alfa';
+          } // fallthrough
+          case 'charlie': {
+            at('charlie');
+            yield <Charlie onCancel={on.click.apply(cancel)} onNext={on.click} />;
+            await eventual.click.or.hashChange;
+          } // fallthrough
+          case 'delta': {
+            at('delta');
+            yield <Delta onNext={on.click} />;
+            await eventual.click.or.hashChange;
+            if (Math.random() > 0.75) {
+              throw new Error('Random Error');
+            }
+            yield <Delta />;
+            const transaction = startTransaction();
+            try {
+              await eventual.hashChange.or(transaction);
+            } catch (err) {
+              console.log('Cancelling transaction');
+              transaction.cancel();
+              throw err;
+            }
+          } // fallthrough
+          case 'final': {
+            at('final');
+            yield <Final />;
+            finished = true;
+            break;
           }
-        } catch (err) {
-          if (err === cancellationError) {
+          case 'error': {
+            at('error');
+            if (!lastError) {
+               lastError = new Error('An error occurred');
+            }
+            yield <ErrorDisplay error={lastError} onContinue={on.click} />;
+            await eventual.click.or.hashChange.for(5).seconds;
             step = 'alfa';
-          } else if (err === hashChangeError) {
-            step = window.location.hash.substr(1);
-          } else {
-            step = 'error';
-            lastError = err;
+            break;
           }
+          default:
+            if (step) {
+              throw new Error(`Unrecognized step ${step}`);
+            }
+            step = 'alfa';
+        }
+      } catch (err) {
+        if (err === cancellationError) {
+          step = 'alfa';
+        } else if (err === hashChangeError) {
+          step = window.location.hash.substr(1);
+        } else {
+          step = 'error';
+          lastError = err;
         }
       }
-    } finally {
-      window.removeEventListener('hashchange', onHashChange);
     }
   }, []);
   return (

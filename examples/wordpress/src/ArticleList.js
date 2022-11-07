@@ -42,8 +42,10 @@ function ArticleListUI({ articles = [], authors = [], categories = [], tags = []
       observer.disconnect();
     };
   }, [ onBottomReached ]);
+  const { length, total } = articles;
   return (
     <ul className="ArticleList">
+      <div className="count">{length} of {total} articles</div>
       {articles.map((article) => {
         const props = {
           key: article.id,

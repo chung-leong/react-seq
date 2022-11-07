@@ -16,6 +16,15 @@
   align-items: center;
 }
 
+.ArticleList .count {
+  position: fixed;
+  top: 0;
+  right: 0;
+  padding: 4px 8px 4px 8px;
+  background-color: #000;
+  color: #fff;
+}
+
 .ArticleList a:link {
   text-decoration: none;
   color: #000;
