@@ -27,8 +27,10 @@ export function useFunctionState(fn, cb, deps) {
     return () => abortManager.onUnmount();
   }, [ initialState, abortManager ]);
   if (error) {
+    inspector?.disptach({ type: 'error', error });
     throw error;
   }
+  inspector?.disptach({ type: 'update', state });
   return state;
 }
 
@@ -148,6 +150,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
         if (err instanceof Interruption) {
           updateState({ reusable: true });
         } else if (err instanceof Abort) {
+          inspector?.disptach({ type: 'abort', error: err });
           stop = aborted = true;
         } else if (isAbortError(err)) {
           // quietly ignore error

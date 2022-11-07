@@ -168,6 +168,7 @@ export function sequential(cb, options = {}) {
               timeoutEl = await timeoutEl({ limit, abort });
             }
             pendingContent = (timeoutEl !== undefined) ? timeoutEl : null;
+            inspector?.disptach({ type: 'timeout', content: pendingContent });
           }
           stop = true;
         } else if (err instanceof Interruption) {
@@ -179,6 +180,7 @@ export function sequential(cb, options = {}) {
             unusedSlot = true;
           }
         } else if (err instanceof Abort) {
+          inspector?.disptach({ type: 'abort', error: err });
           stop = aborted = true;
         } else if (isAbortError(err)) {
           // quietly ignore error
@@ -209,8 +211,10 @@ export function sequential(cb, options = {}) {
       // trigger rerendering using useReducer()
       redrawComponent = useReducer(c => c + 1, 0)[1];
       if (currentError) {
+        inspector?.disptach({ type: 'error', error: currentError });
         throw currentError;
       }
+      inspector?.disptach({ type: 'update', content: currentContent });
       return currentContent;
     }
 
@@ -257,6 +261,7 @@ export function sequential(cb, options = {}) {
           if (err instanceof Interruption) {
             updateContent({ resuable: true });
           } else if (err instanceof Abort) {
+            inspector?.disptach({ type: 'abort', error: err });
             stop = aborted = true;
           } else if (isAbortError(err)) {
             // quietly ignore error

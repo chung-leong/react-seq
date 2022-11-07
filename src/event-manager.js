@@ -5,6 +5,7 @@ export class EventManager {
     const {
       warning = false,
       signal,
+      inspector,
     } = options;
     // whether to output a warning when no promises are fulfilled
     this.warning = warning;
@@ -25,6 +26,9 @@ export class EventManager {
     // proxy yielding promises, which is callable itself
     const fn = (promise) => this.wrapExternalPromise(promise);
     this.eventual = new Proxy(fn, { get: (_, name) => this.getPromise(name), set: throwError });
+    // inspector used to log events
+    this.inspector = inspector;
+    // attach listen to abort signal
     signal?.addEventListener('abort', () => this.abortAll(), { once: true });
   }
 
@@ -65,10 +69,24 @@ export class EventManager {
     const { promises, resolves, rejects } = this;
     let promise = promises[name];
     if (!promise) {
-      promises[name] = promise = new Promise((resolve, reject) => {
+      promise = new Promise((resolve, reject) => {
         resolves[name] = resolve;
         rejects[name] = reject;
       });
+      if (this.inspector) {
+        promise = interceptAwait(promise, () => {
+          const resolve = resolves[name];
+          const reject = rejects[name];
+          this.inspector.dispatch({ type: 'await', name, promise, resolve, reject });
+        });
+      } else if (this.warning && process.env.NODE_ENV === 'development') {
+        promise = interceptAwait(promise, () => {
+          if (!(name in this.handlers)) {
+            console.warn(`Awaiting eventual.${name} without prior use of on.${name}`);
+          }
+        });
+      }
+      promises[name] = promise;
       // allow multiple promises to be chained together
       // promise from an 'or' chain fulfills when the quickest one fulfills
       // promise from an 'add' chain fulfills when all promises do
@@ -76,15 +94,6 @@ export class EventManager {
       // allow attachment of a timer using the syntax
       // await eventual.click.for(4).seconds
       this.enableTimeout(promise);
-      if (this.warning && process.env.NODE_ENV === 'development') {
-        promise.then = (thenFn, catchFn) => {
-          if (!(name in this.handlers)) {
-            console.warn(`Awaiting eventual.${name} without prior use of on.${name}`);
-          }
-          delete promise.then;
-          promise.then(thenFn, catchFn);
-        };
-      }
     } else {
       if (!(name in resolves)) {
         // an important value has just been picked up
@@ -271,7 +280,10 @@ export class EventManager {
     delete resolves[name];
     delete rejects[name];
 
-    if (!handled && warning && process.env.NODE_ENV === 'development') {
+    if (this.inspector) {
+      const type = (rejecting) ? 'reject' : 'fulfill';
+      this.inspector.dispatch({ type, name, value, handled });
+    } else if (!handled && warning && process.env.NODE_ENV === 'development') {
       console.warn(`No promise was fulfilled by call to on.${name}()`);
     }
   }
@@ -297,6 +309,18 @@ function mergePromises(promiseList, op) {
 
 function throwError() {
   throw new Error('Property is read-only');
+}
+
+function interceptAwait(promise, cb) {
+  return {
+    then: (thenFn, catchFn) => {
+      cb();
+      return promise.then(thenFn, catchFn);
+    },
+    catch: (catchFn) => {
+      return promise.then(null, catchFn);
+    }
+  };
 }
 
 export function important(value) {

@@ -26,8 +26,9 @@ export {
   throwing,
 } from './src/event-manager.js';
 export {
-  Inspector,
   InspectorContext,
+  Inspector,
+  Logger,
 } from './src/inspector.js';
 export {
   delay,
