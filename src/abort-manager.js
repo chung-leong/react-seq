@@ -1,15 +1,18 @@
 import { nextTick, timeout, until, createTrigger } from './utils.js';
 
 export class AbortManager extends AbortController {
-  constructor() {
-    super();
-    this.aborting = null;
-    this.mounting = null;
-    this.unmounting = null;
-    this.revert = null;
-    this.apply = null;
-    this.mounted = createTrigger()
-  }
+  // scheduled abort
+  aborting = null;
+  // scheduled fulfillment of promise mounted
+  mounting = null;
+  // scheduled resetting of mounting
+  unmounting = null;
+  // promise that the component is mounted
+  mounted = createTrigger();
+  // effect function
+  apply = null;
+  // clean-up function returned by apply
+  revert = null;
 
   setSelfDestruct() {
     this.aborting = nextTick(() => this.abort());

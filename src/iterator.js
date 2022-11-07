@@ -18,22 +18,23 @@ export function limitTimeout(limit) {
 }
 
 export class IntermittentIterator {
+  generator = null;
+  promise = null;
+  delay = 0;
+  limit = delayLimit;
+  interval = null;
+  timeout = null;
+  started = false;
+  pending = true;
+  retrieving = false;
+  tick = null;
+  reject = null;
+  error = null;
+
   constructor(options) {
     const {
       signal
     } = options;
-    this.generator = null;
-    this.promise = null;
-    this.delay = 0;
-    this.limit = delayLimit;
-    this.interval = null;
-    this.timeout = null;
-    this.started = false;
-    this.pending = true;
-    this.retrieving = false;
-    this.tick = null;
-    this.reject = null;
-    this.error = null;
     signal?.addEventListener('abort', () => this.abort(), { once: true });
   }
 

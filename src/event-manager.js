@@ -1,32 +1,37 @@
 import { Abort } from './utils.js';
 
 export class EventManager {
+  // whether to output a warning when no promises are fulfilled
+  warning = false;
+  // event handlers
+  handlers = {};
+  // promises that get triggered by handlers
+  promises = {};
+  // resolve functions of promises
+  resolves = {};
+  // reject functions of promises
+  rejects = {};
+  // promise that external promises will race against
+  abortPromise = null;
+  // rejection function of promise above
+  abortReject = null;
+  // proxy yielding handler-creating functions
+  on = new Proxy({}, { get: (_, name) => this.getHandler(name), set: throwError });
+  // proxy yielding promises, which is callable itself
+  eventual = new Proxy(
+    (promise) => this.wrapExternalPromise(promise),
+    { get: (_, name) => this.getPromise(name), set: throwError }
+  );
+  // inspector used to log events
+  inspector = null;
+
   constructor(options) {
     const {
       warning = false,
       signal,
       inspector,
     } = options;
-    // whether to output a warning when no promises are fulfilled
     this.warning = warning;
-    // event handlers
-    this.handlers = {};
-    // promises that get triggered by handlers
-    this.promises = {};
-    // resolve functions of promises
-    this.resolves = {};
-    // reject functions of promises
-    this.rejects = {};
-    // promise that external promises will race against
-    this.abortPromise = null;
-    // rejection function of promise above
-    this.abortReject = null;
-    // proxy yielding handler-creating functions
-    this.on = new Proxy({}, { get: (_, name) => this.getHandler(name), set: throwError });
-    // proxy yielding promises, which is callable itself
-    const fn = (promise) => this.wrapExternalPromise(promise);
-    this.eventual = new Proxy(fn, { get: (_, name) => this.getPromise(name), set: throwError });
-    // inspector used to log events
     this.inspector = inspector;
     // attach listen to abort signal
     signal?.addEventListener('abort', () => this.abortAll(), { once: true });
