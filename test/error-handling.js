@@ -16,6 +16,21 @@ export async function noConsole(fn) {
   return results;
 }
 
+export async function noConsoleArray(fn) {
+  const results = { log: [], error: [], warn: [] };
+  sinon.stub(console, 'log').callsFake(arg => results.log.push(arg));
+  sinon.stub(console, 'error').callsFake(arg => results.error.push(arg));
+  sinon.stub(console, 'warn').callsFake(arg => results.warn.push(arg));
+  try {
+    await fn();
+  } finally {
+    console.log.restore();
+    console.error.restore();
+    console.warn.restore();
+  }
+  return results;
+}
+
 const errorMap = new WeakMap();
 
 export function createErrorBoundary(children) {

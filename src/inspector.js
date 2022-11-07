@@ -19,22 +19,29 @@ export class Inspector {
 
 export class ConsoleLogger extends Inspector {
   startTime = new Date;
+  stopped = false;
+
+  stop = () => {
+    this.stopped = true;
+  }
 
   onEvent(evt) {
     const l = (s) => {
-      const now = new Date;
-      const elapsed = ((now - this.startTime)).toFixed(3).padStart(8, ' ');
-      console.log(`[${elapse}s] ` + s);
+      if (!this.stopped) {
+        const now = new Date;
+        const elapsed = ((now - this.startTime) / 1000).toFixed(3).padStart(8, ' ');
+        console.log(`[${elapsed}s] ` + s);
+      }
     }
     switch (evt.type) {
       case 'await':
         l(`Awaiting eventual ${evt.name}`);
         break;
       case 'fulfill':
-        l(`Fulfillment of ${evt.name} with ${evt.value}`);
+        l(`Fulfillment of ${evt.name} with ${evt.value}` + (evt.handled ? '' : ' (no one cared)'));
         break;
       case 'reject':
-        l(`Rejection of ${evt.name} with ${evt.value.name}`);
+        l(`Rejection of ${evt.name} with ${evt.value.name}` + (evt.handled ? '' : ' (no one cared)'));
         break;
       case 'state':
         l(`State update`);
@@ -43,7 +50,7 @@ export class ConsoleLogger extends Inspector {
         l(`Content update`);
         break;
       case 'error':
-        l(`Error thrown (${evt.error.name})`);
+        l(`Error encountered (${evt.error.name})`);
         break;
       case 'abort':
         l(`Generator aborted`);
@@ -52,6 +59,7 @@ export class ConsoleLogger extends Inspector {
         l(`Timeout after ${evt.duration} milliseconds`);
         break;
       default:
+        l(`Unknown event: ${evt.type}`);
     }
   }
 }

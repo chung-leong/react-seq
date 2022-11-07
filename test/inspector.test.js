@@ -1,16 +1,17 @@
 import { expect } from 'chai';
-import { noConsole } from './error-handling.js';
+import { noConsole, noConsoleArray } from './error-handling.js';
 import { EventManager } from '../src/event-manager.js';
 import { withTestRenderer } from './test-renderer.js';
 import { createElement } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary } from './error-handling.js';
-import { delay, throwing, useSequential, useSequentialState } from '../index.js';
+import { delay, throwing, important, useSequential, useSequentialState } from '../index.js';
 
 import {
   Inspector,
   InspectorContext,
   PromiseLogger,
+  ConsoleLogger,
 } from '../index.js';
 
 describe('#Inspector', function() {
@@ -357,5 +358,254 @@ describe('#PromiseLogger', function() {
       await delay(0);
       expect(inspector.oldEvents({ type: 'abort' })).to.have.lengthOf(1);
     });
+  })
+})
+
+describe('#ConsoleLogger', function() {
+  it('should handle content update events', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback }) {
+            fallback('Cow');
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        assertions[0].done();
+        await steps[1];
+        inspector.stop();
+      })
+      expect(log).to.include('Content update');
+    });
+  })
+  it('should handle state update events', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          const state = useSequentialState(async function*({ initial }) {
+            initial('Cow');
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        inspector.stop();
+      })
+      expect(log).to.include('State update');
+    });
+  })
+  it('should handle timeout events', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsoleArray(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback, timeout }) {
+            fallback('Cow');
+            timeout(20, async () => 'Tortoise');
+            await assertions[0];
+            yield 'Pig';
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        await delay(30);
+        inspector.stop();
+      });
+      expect(log[0]).to.include('Timeout');
+      expect(log[1]).to.include('Content update');
+    });
+  })
+  it('should handle error events', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          const state = useSequentialState(async function*({ initial }) {
+            initial('Cow');
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+            await assertions[1];
+            yield 'Chicken';
+            steps[2].done();
+          }, []);
+          return state;
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        const boundary = createErrorBoundary(cp);
+        await create(boundary);
+        assertions[0].done();
+        await steps[1];
+        assertions[1].fail(new Error('ERROR'))
+        await delay(0);
+        inspector.stop();
+      });
+      expect(log).to.include('Error');
+    });
+  })
+  it('should handle abort event', async function() {
+    await withTestRenderer(async ({ create, unmount }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          const state = useSequentialState(async function*({ initial }) {
+            initial('Cow');
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+          return state;
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        await unmount();
+        inspector.stop();
+      });
+      expect(log).to.include('aborted');
+    });
+  })
+  it('should handle promise await events', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback, manageEvents }) {
+            fallback('Cow');
+            const [ on, eventual ] = manageEvents();
+            await eventual.click.or(assertions[0]);
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        inspector.stop();
+      })
+      expect(log).to.include('Awaiting');
+    });
+  })
+  it('should handle fulfillment events with no listener', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback, manageEvents }) {
+            fallback('Cow');
+            const [ on, eventual ] = manageEvents();
+            on.click('Hello');
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        inspector.stop();
+      })
+      expect(log).to.include('Fulfillment');
+      expect(log).to.include('no one cared');
+    });
+  })
+  it('should handle fulfillment events with important value', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback, manageEvents }) {
+            fallback('Cow');
+            const [ on, eventual ] = manageEvents();
+            on.click(important('Hello'));
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        inspector.stop();
+      })
+      expect(log).to.include('Fulfillment');
+      expect(log).to.not.include('no one cared');
+    });
+  })
+  it('should handle rejection events with no listener', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback, manageEvents }) {
+            fallback('Cow');
+            const [ on, eventual ] = manageEvents();
+            on.click(throwing('Hello'));
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        inspector.stop();
+      })
+      expect(log).to.include('Rejection');
+      expect(log).to.include('no one cared');
+    });
+  })
+  it('should handle rejection events with important error', async function() {
+    await withTestRenderer(async ({ create }) => {
+      const { log } = await noConsole(async () => {
+        const inspector = new ConsoleLogger();
+        const steps = createSteps(), assertions = createSteps();
+        function Test() {
+          return useSequential(async function*({ fallback, manageEvents }) {
+            fallback('Cow');
+            const [ on, eventual ] = manageEvents();
+            on.click(throwing(important('Hello')));
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        inspector.stop();
+      })
+      expect(log).to.include('Rejection');
+      expect(log).to.not.include('no one cared');
+    });
+  })
+  it('should handle unrecognized events', async function() {
+    const { log } = await noConsole(async () => {
+      const inspector = new ConsoleLogger();
+      inspector.dispatch({ type: 'dingo' });
+      inspector.stop();
+    })
+    expect(log).to.include('Unknown');
   })
 })
