@@ -15,7 +15,7 @@ export class AbortManager extends AbortController {
   revert = null;
 
   setSelfDestruct() {
-    this.aborting = nextTick(() => this.abort());
+    //this.aborting = nextTick(() => this.abort());
   }
 
   setEffect(fn) {

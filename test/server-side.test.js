@@ -1,10 +1,10 @@
 import { expect } from 'chai';
 import { createElement, Suspense, lazy } from 'react';
+import ReactDOM from 'react-dom/client';
+import { act } from 'react-dom/test-utils';
 import { createSteps } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
 import { createWriteStream } from 'fs';
-import { Readable } from 'stream';
-import { renderToPipeableStream } from 'react-dom/server';
 import { delay, Abort } from '../index.js';
 import { isAbortError, createTrigger } from '../src/utils.js';
 
@@ -12,6 +12,14 @@ import {
   useSequential,
   extendDelay,
 } from '../index.js';
+import {
+  renderToReadableStream,
+} from '../server/index.js';
+import {
+  hydrateRoot,
+  unsuspendRoot,
+  hasSuspended,
+} from '../client/index.js';
 
 describe('Server-side rendering', function() {
   it('should render correctly to a stream', async function() {
@@ -28,44 +36,72 @@ describe('Server-side rendering', function() {
       }, []);
     }
     const el = createElement(TestComponent);
-    const stream = await new Promise((resolve, reject) => {
-      const s = renderToPipeableStream(el, {
-        onShellError: reject,
-        onError: reject,
-        onAllReady: () => resolve(s),
-      });
-    });
-    const text = await readStream(stream);
-    expect(text).to.contain('<div>Rocky</div>')
+    const stream = renderToReadableStream(el);
+    const html = await readStream(stream);
+    expect(html).to.contain('<div>Rocky</div>');
+  })
+  it('should allow correct hydration of a component', async function() {
+    const steps = createSteps(), assertions = createSteps(act);
+    function TestComponent() {
+      return useSequential(async function*({ fallback, defer }) {
+        fallback(createElement('div', {}, 'Cow'));
+        defer(25);
+        await assertions[0];
+        yield createElement('div', {}, 'Pig');
+        await assertions[1];
+        yield createElement('div', {}, 'Chicken');
+        await assertions[2];
+        yield createElement('div', {}, 'Rocky');
+      }, []);
+    }
+    const el = createElement(TestComponent);
+    const stream = renderToReadableStream(el);
+    await assertions[0].done();
+    await assertions[1].done();
+    await assertions[2].done();
+    const html = await readStream(stream);
+    expect(html).to.contain('<div>Rocky</div>');
+    assertions.splice(0);
+    const container = document.getElementById('root');
+    container.innerHTML = html;
+    let root;
+    root = hydrateRoot(container, el);
+    await assertions[0].done();
+    expect(hasSuspended(root)).to.be.true;
+    expect(container.innerHTML).to.contain('<div>Rocky</div>');
+    await assertions[1].done();
+    expect(hasSuspended(root)).to.be.true;
+    expect(container.innerHTML).to.contain('<div>Rocky</div>');
+    await assertions[2].done();
+    expect(hasSuspended(root)).to.be.false;
+    expect(container.innerHTML).to.contain('<div>Rocky</div>');
   })
   skip.entirely.if(!global.gc).
   it('should not leak memory', async function() {
-    this.timeout(5000);
+    this.timeout(60000);
     async function step() {
-      const { element: el } = sequential(async function*({ fallback }) {
-        fallback(createElement('div', {}, 'Cow'));
-        await delay(0);
-        yield createElement('div', {}, 'Pig');
-        await delay(10);
-        yield createElement('div', {}, 'Chicken');
-        await delay(10);
-        yield createElement('div', {}, 'Rocky');
-      });
-      const stream = await new Promise((resolve, reject) => {
-        const stream = renderToPipeableStream(el, {
-          onShellError: reject,
-          onError: reject,
-          onAllReady: () => resolve(stream),
-        });
-      });
-      const outStream = createWriteStream('/dev/null');
-      stream.pipe(outStream);
-      await new Promise(resolve => outStream.on('finish', resolve));
+      function TestComponent() {
+        return useSequential(async function*({ fallback, defer }) {
+          fallback(createElement('div', {}, 'Cow'));
+          defer(100);
+          await delay(0);
+          yield createElement('div', {}, 'Pig');
+          await delay(0);
+          yield createElement('div', {}, 'Chicken');
+          await delay(0);
+          yield createElement('div', {}, 'Rocky');
+        }, []);
+      }
+      const el = createElement(TestComponent);
+      const stream = renderToReadableStream();
+      await readStream(stream);
     }
     async function test() {
-      for (let i = 0; i < 500; i++) {
+      for (let i = 0; i < 5000; i++) {
         await step();
       }
+      // a bit of time for timers to finish
+      await delay(500);
     }
 
     // establish base-line memory usage first
@@ -73,62 +109,22 @@ describe('Server-side rendering', function() {
     // perform garbage collection
     gc();
     const before = process.memoryUsage().heapUsed;
-    await test();
-    // a bit of time for timer to finish
-    await delay(100);
-    // perform initiate garbage collection again
+    // run the test multiple times
+    for (let i = 0; i < 40; i++) {
+      await test();
+    }
+    // perform garbage collection again
     gc();
     const after = process.memoryUsage().heapUsed;
-    const diff = Math.round((after - before) / 1024);
+    const diff = Math.round(after - before);
     expect(diff).to.not.be.above(0);
   })
 })
 
 async function readStream(stream) {
-  const readable = createReadableStream(stream);
   const buffers = [];
-  for await (const chunk of readable) {
+  for await (const chunk of stream) {
     buffers.push(chunk);
   }
   return Buffer.concat(buffers).toString();
-}
-
-function createReadableStream(input) {
-  async function* generate() {
-    const buffer = [];
-    let started = false, ended = false;
-    let dataReady;
-    const writable = {
-      write(data) {
-        buffer.push(Buffer.from(data));
-        dataReady.resolve(true);
-        return true;
-      },
-      end(data) {
-        if (data) {
-          buffer.push(Buffer.from(data));
-        }
-        ended = true;
-        dataReady.resolve(false);
-        return this;
-      },
-      on(name, cb) {
-        if (name === 'drain' || name === 'close') {
-          cb();
-        }
-      }
-    };
-    do {
-      dataReady = createTrigger();
-      if (!started) {
-        input.pipe(writable);
-        started = true;
-      }
-      await dataReady;
-      while (buffer.length > 0) {
-        yield buffer.shift();
-      }
-    } while (!ended);
-  }
-  return Readable.from(generate());
 }

@@ -4,17 +4,19 @@ let delayMultiplier = 1;
 let delayLimit = Infinity;
 
 export function extendDelay(multiplier) {
+  const before = delayMultiplier;
   if (multiplier !== undefined) {
     delayMultiplier = multiplier;
   }
-  return delayMultiplier;
+  return before;
 }
 
 export function limitTimeout(limit) {
+  const before = delayLimit;
   if (limit !== undefined) {
     delayLimit = limit;
   }
-  return delayLimit;
+  return before;
 }
 
 export class IntermittentIterator {

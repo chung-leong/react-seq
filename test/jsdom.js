@@ -1,7 +1,7 @@
 import { JSDOM } from 'jsdom';
 
 // set up JSDOM unless we're doing coverage test
-const jsdom = new JSDOM('<!doctype html><html><body></body></html>');
+const jsdom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>');
 const { window } = jsdom;
 
 function copyProps(src, target) {
