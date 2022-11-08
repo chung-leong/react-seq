@@ -1,12 +1,9 @@
 import { expect } from 'chai';
 import { withTestRenderer } from './test-renderer.js';
 import { withReactDOM } from './dom-renderer.js';
-import { createElement, Suspense, Component, StrictMode } from 'react';
+import { createElement, Suspense, StrictMode } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
-import { createWriteStream } from 'fs';
-import MemoryStream from 'memorystream';
-import { renderToPipeableStream } from 'react-dom/server';
 import { delay, Abort } from '../index.js';
 import { isAbortError } from '../src/utils.js';
 
@@ -502,73 +499,6 @@ describe('#sequential()', function() {
       await steps[2];
       expect(toJSON()).to.equal('Chicken');
     });
-  })
-  it('should render correctly to a stream', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const { element: el } = sequential(async function*({ fallback, defer }) {
-        fallback(createElement('div', {}, 'Cow'));
-        defer(100);
-        await delay(5);
-        yield createElement('div', {}, 'Pig');
-        await delay(5);
-        yield createElement('div', {}, 'Chicken');
-        await delay(5);
-        yield createElement('div', {}, 'Rocky');
-      });
-      const stream = await new Promise((resolve, reject) => {
-        const stream = renderToPipeableStream(el, {
-          onShellError: reject,
-          onError: reject,
-          onAllReady: () => resolve(stream),
-        });
-      });
-      const text = await readStream(stream);
-      expect(text).to.contain('<div>Rocky</div>')
-    });
-  })
-  skip.entirely.if(!global.gc).
-  it('should not leak memory', async function() {
-    this.timeout(5000);
-    async function step() {
-      const { element: el } = sequential(async function*({ fallback }) {
-        fallback(createElement('div', {}, 'Cow'));
-        await delay(0);
-        yield createElement('div', {}, 'Pig');
-        await delay(10);
-        yield createElement('div', {}, 'Chicken');
-        await delay(10);
-        yield createElement('div', {}, 'Rocky');
-      });
-      const stream = await new Promise((resolve, reject) => {
-        const stream = renderToPipeableStream(el, {
-          onShellError: reject,
-          onError: reject,
-          onAllReady: () => resolve(stream),
-        });
-      });
-      const outStream = createWriteStream('/dev/null');
-      stream.pipe(outStream);
-      await new Promise(resolve => outStream.on('finish', resolve));
-    }
-    async function test() {
-      for (let i = 0; i < 500; i++) {
-        await step();
-      }
-    }
-
-    // establish base-line memory usage first
-    await test();
-    // perform garbage collection
-    gc();
-    const before = process.memoryUsage().heapUsed;
-    await test();
-    // a bit of time for timer to finish
-    await delay(100);
-    // perform initiate garbage collection again
-    gc();
-    const after = process.memoryUsage().heapUsed;
-    const diff = Math.round((after - before) / 1024);
-    expect(diff).to.not.be.above(0);
   })
 })
 
@@ -1198,7 +1128,6 @@ describe('#useSequential()', function() {
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should run all finally sections under strict mode', async function() {
     await withReactDOM(async ({ render, act, node }) => {
-      debugger;
       const steps = createSteps(), assertions = createSteps(act);
       let call = 0, finalized = 0;
       function Test() {
@@ -1338,14 +1267,14 @@ describe('#useSequential()', function() {
       expect(unmounted).to.be.true;
     });
   })
-  it('should allow generator to keep running when preventDefault is used', async function() {
+  it('should allow generator to keep running when keep is used', async function() {
     await withTestRenderer(async ({ create, unmount, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
       function Test() {
         return useSequential(async function*({ fallback, mount }) {
           fallback('Cow');
           mount(() => {
-            return (evt) => evt.preventDefault();
+            return ({ keep }) => keep();
           });
           try {
             await assertions[0];
@@ -1377,13 +1306,3 @@ describe('#useSequential()', function() {
     });
   })
 })
-
-async function readStream(stream) {
-  const memStream = new MemoryStream;
-  stream.pipe(memStream);
-  await new Promise(resolve => memStream.once('finish', resolve));
-  const data = memStream.read(Infinity);
-  const string = data.toString();
-  memStream.destroy();
-  return string;
-}
