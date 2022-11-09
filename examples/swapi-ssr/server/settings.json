@@ -1,0 +1,6 @@
+{
+  "ssl": true,
+  "keyPath": "./keys/server.key",
+  "certPath": "./keys/server.crt",
+  "listen": "localhost:8443"
+}

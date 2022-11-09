@@ -1,0 +1,80 @@
+body {
+	font-family: sans-serif;
+	margin: 0;
+}
+
+.contents {
+  margin: 0.5em;
+}
+
+a:link, a:visited {
+  text-decoration: none;
+  color: #000;
+}
+
+a:hover {
+  text-decoration: underline;
+  color: #f11;
+}
+
+.nav-bar {
+  background-color: #000;
+  color: #fff;
+  font-size: 1.1em;
+  font-weight: bold;
+}
+
+.nav-bar a {
+  display: inline-block;
+  padding: 0.35em 0.5em 0.2em 0.5em;
+  border-right: 1px solid #fff;
+}
+
+.nav-bar a:link, .nav-bar a:visited {
+  color: #fff;
+}
+
+.nav-bar a:hover {
+  text-decoration: none;
+  color: #f11;
+}
+.nav-bar .fa-empire {
+  font-weight: normal;
+}
+
+.pending {
+  color: #aaa;
+  cursor: wait;
+}
+
+.empty {
+  color: #999;
+}
+
+.loading {
+  position: fixed;
+  left: 2em;
+  right: 2em;
+  top: 2em;
+  bottom: 2em;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  color: #999;
+  animation: fadein 1s;
+}
+
+.error {
+	color: #f00;
+	text-align: center;
+}
+
+@keyframes fadein {
+  from {
+	  opacity: 0;
+	}
+  to {
+	  opacity: 1;
+	}
+}
