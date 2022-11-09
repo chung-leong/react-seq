@@ -4,6 +4,7 @@ import Etag from '@fastify/etag';
 import Static from '@fastify/static';
 import Caching from '@fastify/caching';
 import Compression from '@fastify/compress';
+import { generateHTML } from './page-generation.mjs';
 
 export async function startServer() {
   const { ssl, keyPath, certPath, listen } = await loadSettings();
@@ -20,6 +21,16 @@ export async function startServer() {
   // handle static files
   await fastify.register(Static, { root: resolve('../build'), prefix: '/build/' });
   // register routes
+  fastify.get('/*', async (req, reply) => {
+    const path = req.params['*'];
+    if (path.includes('.')) {
+      // it's a request for a file at the root-level probably, or a file in css/js folder
+      return reply.sendFile(path);
+    } else {
+      const location = new URL(`${req.protocol}://${req.hostname}/${path}`);
+      return generateHTML({ location, buildPath: resolve('../build') });
+    }
+  });
   fastify.get('/api/:table/', async (req) => {
     const host = `${req.protocol}://${req.hostname}`;
     const { table } = req.params, { page = '1' } = req.query;
@@ -38,18 +49,6 @@ export async function startServer() {
     const result = attachURLs(host, table, object);
     return result;
   })
-  fastify.get('/static/:folder/:file', async (req, reply) => {
-    const { folder, file } = req.params;
-    return reply.sendFile(`static/${folder}/${file}`);
-  });
-  fastify.get('/*', async (req, reply) => {
-    const path = req.params['*'];
-    if (path.includes('.')) {
-      // it's a file at the root-level probably
-      return reply.sendFile(path);
-    }
-    return path;
-  });
   // start listening for requests
   const address = parseBindAddress(listen)
   await fastify.listen(address);
