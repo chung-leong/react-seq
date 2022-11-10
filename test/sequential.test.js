@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { withTestRenderer } from './test-renderer.js';
-import { withReactDOM } from './dom-renderer.js';
+import { withReactDOM, withReactStrictMode } from './dom-renderer.js';
 import { createElement, Suspense, StrictMode } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
@@ -10,7 +10,6 @@ import { isAbortError } from '../src/utils.js';
 import {
   sequential,
   useSequential,
-  extendDelay,
 } from '../index.js';
 
 describe('#sequential()', function() {
@@ -96,16 +95,6 @@ describe('#sequential()', function() {
       assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Chicken');
-    });
-  })
-  it('should return allow the generator function to retrieve the deferment delay and time limit', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
-      const { element: el } = sequential(async function*({ defer, timeout }) {
-        yield `${defer()} ${timeout()}`;
-      });
-      await create(el);
-      expect(toJSON()).to.equal('0 Infinity');
     });
   })
   it('should allow deferrment to be turned off midway', async function() {
@@ -473,31 +462,6 @@ describe('#sequential()', function() {
         await delay(0);
         expect(caughtAt(boundary)).to.be.an('error');
       });
-    });
-  })
-  it('should use delay multiplier', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
-      extendDelay(10);
-      const { element: el } = sequential(async function*({ defer }) {
-        defer(10);
-        await assertions[0];
-        yield 'Duck';
-        steps[1].done();
-        await assertions[1];
-        yield 'Chicken';
-        steps[2].done();
-      })
-      extendDelay(1);
-      create(el);
-      expect(toJSON()).to.equal(null);
-      assertions[0].done();
-      await steps[1];
-      expect(toJSON()).to.equal(null);
-      await delay(25);
-      assertions[1].done();
-      await steps[2];
-      expect(toJSON()).to.equal('Chicken');
     });
   })
 })
@@ -1084,7 +1048,7 @@ describe('#useSequential()', function() {
   })
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should work under strict mode', async function() {
-    await withReactDOM(async ({ render, act, node }) => {
+    await withReactStrictMode(async ({ render, act, node }) => {
       // need to wrap calls to promise fulfilling calls to prevent
       // act() warnings; updates are caused by completion of assertions
       // so those are the steps where .done() uses act()
@@ -1123,11 +1087,11 @@ describe('#useSequential()', function() {
       await assertions[3].done();
       await steps[4];
       expect(node.textContent).to.equal('Chicken');
-    })
+    });
   })
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should run all finally sections under strict mode', async function() {
-    await withReactDOM(async ({ render, act, node }) => {
+    await withReactStrictMode(async ({ render, act, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
       let call = 0, finalized = 0;
       function Test() {
@@ -1170,11 +1134,11 @@ describe('#useSequential()', function() {
       await delay(10);
       expect(call).to.equal(2);
       expect(finalized).to.equal(call);
-    })
+    });
   })
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should allow a container component to return a suspending component when a real DOM is involved', async function() {
-    await withReactDOM(async ({ render, act, node }) => {
+    await withReactStrictMode(async ({ render, act, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
       let call = 0;
       function Test() {

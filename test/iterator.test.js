@@ -3,8 +3,6 @@ import { createSteps, loopThrough } from './step.js';
 import { delay, Abort } from '../index.js';
 
 import {
-  extendDelay,
-  limitTimeout,
   IntermittentIterator,
   Interruption,
   Timeout,
@@ -13,7 +11,7 @@ import {
 describe('#IntermittentIterator()', function() {
   it('should throw interruption intermittently', async function() {
     const iterator = new IntermittentIterator({});
-    iterator.setDelay(25);
+    iterator.setInterruption(25);
     const create = async function*() {
       await delay(20);
       yield 'Whiskey drink';    // 20ms
@@ -53,7 +51,7 @@ describe('#IntermittentIterator()', function() {
   })
   it('should allow alteration of delay interval half way', async function() {
     const iterator = new IntermittentIterator({});
-    iterator.setDelay(25);
+    iterator.setInterruption(25);
     const create = async function*() {
       await delay(15);
       yield 'Whiskey drink';    // 15ms
@@ -63,7 +61,7 @@ describe('#IntermittentIterator()', function() {
       yield 'Lager drink';      // 65ms
       await delay(20);          // 75ms interruption
       yield 'Cider drink';      // 85ms
-      iterator.setDelay(40);
+      iterator.setInterruption(40);
       await delay(10);
       yield 'Whiskey drink';    // 10ms
       await delay(10);
@@ -107,14 +105,14 @@ describe('#IntermittentIterator()', function() {
   })
   it('should allow alteration of limit half way', async function() {
     const iterator = new IntermittentIterator({});
-    iterator.setDelay(35);
-    iterator.setLimit(100);
+    iterator.setInterruption(35);
+    iterator.setTimeLimit(100);
     const create = async function*() {
       await delay(100);
     };
     setTimeout(() => {
-      iterator.setDelay(80);
-      iterator.setLimit(20);
+      iterator.setInterruption(80);
+      iterator.setTimeLimit(20);
     }, 10);
     const results = [];
     iterator.start(create());
@@ -140,8 +138,8 @@ describe('#IntermittentIterator()', function() {
 
   it('should invoke finally section of generator', async function() {
     const iterator = new IntermittentIterator({});
-    iterator.setDelay(25);
-    iterator.setLimit(1000);
+    iterator.setInterruption(25);
+    iterator.setTimeLimit(1000);
     let finalized = false;
     const create = async function*() {
       try {
@@ -174,8 +172,8 @@ describe('#IntermittentIterator()', function() {
   })
   it('should emit Timeout error when limit is exceeded', async function() {
     const iterator = new IntermittentIterator({});
-    iterator.setDelay(30);
-    iterator.setLimit(40);
+    iterator.setInterruption(30);
+    iterator.setTimeLimit(40);
     let finalized = false;
     const create = async function*() {
       try {
@@ -225,7 +223,7 @@ describe('#IntermittentIterator()', function() {
     const abortController = new AbortController();
     const { signal } = abortController;
     const iterator = new IntermittentIterator({ signal });
-    iterator.setDelay(25);
+    iterator.setInterruption(25);
     let finalized = false;
     const create = async function*() {
       try {
@@ -266,7 +264,7 @@ describe('#IntermittentIterator()', function() {
   })
   it('should not swallow errors from generator', async function() {
     const iterator = new IntermittentIterator({});
-    iterator.setDelay(25);
+    iterator.setInterruption(25);
     let finalized = false;
     const create = async function*() {
       try {
@@ -298,43 +296,5 @@ describe('#IntermittentIterator()', function() {
     await iterator.return();
     expect(finalized).to.be.true;
     expect(error).to.be.instanceOf(Error);
-  })
-})
-
-describe('#extendDelay()', function() {
-  it('should set the delay multiplier', function() {
-    extendDelay(10);
-    const iterator = new IntermittentIterator({});
-    iterator.setDelay(3);
-    expect(iterator.delay).to.equal(3 * 10);
-    extendDelay(1);
-    iterator.setDelay(3);
-    expect(iterator.delay).to.equal(3);
-  })
-  it('should interpret 0 x Infinity as zero', function() {
-    extendDelay(Infinity);
-    const iterator = new IntermittentIterator({});
-    iterator.setDelay(0);
-    expect(iterator.delay).to.equal(0);
-  })
-  it(`should not change the delay multiplier when no argument is given`, function() {
-    extendDelay(1);
-    expect(extendDelay()).to.equal(1);
-  });
-})
-
-describe('#limitTimeout()', function() {
-  it('should limit the time limit for the first item', function() {
-    limitTimeout(999);
-    const iterator = new IntermittentIterator({});
-    iterator.setLimit(Infinity);
-    expect(iterator.limit).to.equal(999);
-    limitTimeout(Infinity);
-    iterator.setLimit(100000);
-    expect(iterator.limit).to.equal(100000);
-  })
-  it(`should not change the limit when no argument is given`, function() {
-    limitTimeout(Infinity);
-    expect(limitTimeout()).to.equal(Infinity);
   })
 })

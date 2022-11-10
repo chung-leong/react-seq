@@ -1,29 +1,10 @@
 import { Abort, timeout, interval } from './utils.js';
 
-let delayMultiplier = 1;
-let delayLimit = Infinity;
-
-export function extendDelay(multiplier) {
-  const before = delayMultiplier;
-  if (multiplier !== undefined) {
-    delayMultiplier = multiplier;
-  }
-  return before;
-}
-
-export function limitTimeout(limit) {
-  const before = delayLimit;
-  if (limit !== undefined) {
-    delayLimit = limit;
-  }
-  return before;
-}
-
 export class IntermittentIterator {
   generator = null;
   promise = null;
   delay = 0;
-  limit = delayLimit;
+  limit = Infinity;
   interval = null;
   timeout = null;
   started = false;
@@ -40,10 +21,9 @@ export class IntermittentIterator {
     signal?.addEventListener('abort', () => this.abort(), { once: true });
   }
 
-  setDelay(delay) {
-    const actualDelay = (delay === 0) ? 0 : delay * delayMultiplier;
-    if (actualDelay !== this.delay) {
-      this.delay = actualDelay;
+  setInterruption(delay) {
+    if (delay !== this.delay) {
+      this.delay = delay;
       if (this.started) {
         this.interval?.cancel();
         this.interval = interval(this.delay, () => this.interrupt());
@@ -51,10 +31,9 @@ export class IntermittentIterator {
     }
   }
 
-  setLimit(limit) {
-    const actualLimit = Math.min(limit, delayLimit);
-    if (actualLimit !== this.limit) {
-      this.limit = actualLimit;
+  setTimeLimit(limit) {
+    if (limit !== this.limit) {
+      this.limit = limit;
       if (this.started && this.pending) {
         this.timeout?.cancel();
         this.timeout = timeout(this.limit, () => this.throw(new Timeout()));
@@ -112,11 +91,6 @@ export class IntermittentIterator {
       this.promise.then(() => {
         this.promise = null;
         this.pending = false;
-        if (this.timeout) {
-          // we got something, turn off the timeout
-          this.timeout.cancel();
-          this.timeout = null;
-        }
       }, err => {});
     }
     if (!this.tick && this.generator) {

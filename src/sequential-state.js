@@ -15,7 +15,7 @@ export function useFunctionState(fn, cb, deps) {
   }
   const inspector = useContext(InspectorContext);
   const { initialState, abortManager } = useMemo(() => {
-    const options = { inspector, selfDestruct: true };
+    const options = { inspector, selfDestruct: !!process.env.REACT_STRICT_MODE };
     return fn(cb, s => setState(s), e => setError(e), options);
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
@@ -49,11 +49,10 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
-  methods.defer = (delay) => {
-    if (delay !== undefined) {
-      iterator.setDelay(delay);
-    }
-    return iterator.delay;
+  let updateDelay = 0;
+  methods.defer = (ms) => {
+    updateDelay = ms;
+    iterator.setInterruption(updateDelay);
   };
 
   // allow callback to use side effects
@@ -106,13 +105,20 @@ export function sequentialState(cb, setState, setError, options = {}) {
   iterator.fetch();
   sync = false;
 
-  let pendingState;
-  let unusedSlot = false;
-  retrieveRemaining();
+  const ssr = parseInt(process.env.REACT_SEQ_SSR);
+
+  if (typeof(window) === 'object' || !ssr) {
+    retrieveRemaining();
+  } else {
+    // state hooks don't run on server-side
+    iterator.return().catch(err => console.error(err));
+  }
 
   if (selfDestruct) {
     abortManager.setSelfDestruct();
   }
+  let pendingState;
+  let unusedSlot = false;
   return { initialState, abortManager };
 
   function updateState({ conditional = false, reusable = false }) {

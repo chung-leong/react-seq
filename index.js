@@ -18,10 +18,6 @@ export {
   generateProps,
 } from './src/prop-generator.js';
 export {
-  extendDelay,
-  limitTimeout,
-} from './src/iterator.js';
-export {
   important,
   throwing,
 } from './src/event-manager.js';

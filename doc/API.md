@@ -21,12 +21,6 @@
 * [type](type.md) <sup>`useProgressive`</sup>
 * [usable](usable.md) <sup>`useProgressive`, `useProgressiveState`</sup>
 
-## Global Configuration Functions
-
-* [abortStateHooks](abortStateHooks.md)
-* [extendDelay](extendDelay.md)
-* [limitTimeout](limitTimeout.md)
-
 ## Hook Internal Functions
 
 * [generateProps](generateProps.md)

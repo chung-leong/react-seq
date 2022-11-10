@@ -13,7 +13,7 @@ export function useFunction(fn, cb, deps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const inspector = useContext(InspectorContext);
   const { element, abortManager } = useMemo(() => {
-    const options = { inspector, selfDestruct: true };
+    const options = { inspector, selfDestruct: !!process.env.REACT_STRICT_MODE };
     return fn(cb, options);
   }, deps);
   useEffect(() => {
@@ -38,24 +38,19 @@ export function sequential(cb, options = {}) {
 
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal, inspector });
-  methods.defer = delay => {
-    if (delay !== undefined) {
-      iterator.setDelay(delay);
-    }
-    return iterator.delay;
+  let updateDelay = 0;
+  methods.defer = (ms) => {
+    updateDelay = ms;
+    iterator.setInterruption(updateDelay);
   };
 
   // let callback set timeout element (or its creation function), to be used when
   // we fail to retrieve the first item from the generator after time limit has been exceeded
-  let timeoutEl;
-  methods.timeout = (limit, el) => {
-    if (limit !== undefined) {
-      iterator.setLimit(limit);
-    }
-    if (el !== undefined) {
-      timeoutEl = el;
-    }
-    return iterator.limit;
+  let timeLimit = Infinity, timeoutEl;
+  methods.timeout = (ms, el) => {
+    timeLimit = ms;
+    timeoutEl = el;
+    iterator.setTimeLimit(timeLimit);
   };
 
   // allow the creation of suspending component
@@ -115,12 +110,24 @@ export function sequential(cb, options = {}) {
     }
   };
 
+
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
   const generator = cb(methods);
   iterator.start(generator);
   iterator.fetch();
   sync = false;
+
+  // time limit due to server-side rendering, apply them now, after the generator function
+  // has a chance to call defer() and timeout()
+  const ssr = parseInt(process.env.REACT_SEQ_SSR);
+  if (ssr) {
+    if (updateDelay > 0) {
+      // infinity deferment during SSR
+      iterator.setInterruption(Infinity);
+    }
+    iterator.setTimeLimit(Math.min(timeLimit, ssr));
+  }
 
   if (suspensionKey) {
     // suspensio is used, see if there's prior results
@@ -139,7 +146,7 @@ export function sequential(cb, options = {}) {
     let unusedSlot = false;
 
     // retrieve initial contents
-    let stop = false, empty = false, aborted = false;
+    let stop = false, finished = false, aborted = false;
     flushFn = () => {
       if (pendingContent !== undefined) {
         iterator.interrupt();
@@ -155,7 +162,7 @@ export function sequential(cb, options = {}) {
             stop = true;
           }
         } else {
-          stop = empty = true;
+          stop = finished = true;
         }
       } catch (err) {
         if (err instanceof Timeout) {
@@ -197,9 +204,19 @@ export function sequential(cb, options = {}) {
     let currentError = pendingError;
     let redrawComponent;
 
+    if (ssr) {
+      if (typeof(window) === 'object') {
+        // set the interruption period back to normal and continue
+        iterator.setInterruption(updateDelay);
+      } else {
+        // no need to keep going
+        finished = true;
+      }
+    }
+
     // retrieve the remaining items from the generator unless an error was encountered
-    // or it's empty already
-    if (!empty && !pendingError && !aborted) {
+    // or we've finished iterating through the generator already
+    if (!finished && !pendingError && !aborted) {
       retrieveRemaining();
     } else {
       // don't wait for return()
