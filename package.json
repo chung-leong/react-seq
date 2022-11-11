@@ -1,6 +1,6 @@
 {
   "name": "react-seq",
-  "version": "0.4.0",
+  "version": "0.4.2",
   "description": "React hooks for working with async generators and promises",
   "main": "index.js",
   "type": "module",
@@ -20,9 +20,15 @@
     "async",
     "generator"
   ],
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./server": "./server.js"
+  },
   "files": [
     "src/",
-    "index.js"
+    "index.js",
+    "server.js"
   ],
   "author": "Chung Leong",
   "license": "MIT",

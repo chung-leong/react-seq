@@ -16,7 +16,7 @@ import {
 import {
   renderToReadableStream,
   loadCRACode,
-} from '../server/index.js';
+} from '../server.js';
 
 describe('Server-side rendering', function() {
   it('should render correctly to a stream', async function() {
