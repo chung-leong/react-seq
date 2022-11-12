@@ -15,9 +15,6 @@ async function render(buildPath, location, additionalFile) {
   const consoleEntries = [];
   const reporting = [ 'info', 'log', 'debug', 'warn', 'error' ];
   Object.keys(console).forEach(type => {
-    if (type === 'log') {
-      return;
-    }
     console[type] = (...args) => {
       if (reporting.includes(type)) {
         consoleEntries.push({ type, args });
@@ -63,19 +60,22 @@ async function render(buildPath, location, additionalFile) {
   const jsPath = findJSPath(html);
   const wrapper = findRootNode(html);
 
-  // function to be called by client-side code to return the web stream
-  // created by renderToReadableStream()
-  let stream;
-  global.send = async (s) => stream = s;
+  // function to be called by client-side code, giving us promise of web stream
+  // renderToReadableStream()
+  let streamPromise;
+  process.send = async (p) => streamPromise = p;
 
   // run the script
   try {
     await runJSFile(buildPath, jsPath);
     process.stdout.write(wrapper.before);
     try {
-      if (!stream) {
-        throw new Error('Did not receive a stream from client-side code');
+      if (!streamPromise) {
+        throw new Error('Did not receive a promise from client-side code');
       }
+      const stream = await streamPromise;
+      // wait for components to all be not suspended
+      await stream.allReady;
       for await (const chunk of stream) {
         process.stdout.write(chunk);
       }

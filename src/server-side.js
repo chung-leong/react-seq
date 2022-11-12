@@ -6,15 +6,16 @@ export function renderInChildProc(location, buildPath, options = {}) {
     timeout = 5000,
     type = 'cra',
     polyfill = '',
+    onMessages,
   } = options;
   // spawn a child instance of Node.js to run the code
   const modulePath = (new URL(`${type}-runner.js`, import.meta.url)).pathname;
   const args = [ buildPath, location, polyfill ];
   const child = fork(modulePath, args, { timeout, stdio: 'pipe' });
-  let sent = 0;
   // generator function reading from pipes
   async function* retrieve() {
     // read stdout first
+    let sent = 0;
     for await (const chunk of child.stdout) {
       yield chunk;
       sent += chunk.length;
@@ -26,16 +27,17 @@ export function renderInChildProc(location, buildPath, options = {}) {
         chunks.push(chunk);
       }
       const text = Buffer.concat(chunks).toString().trim();
-      const messages = (text) ? text.split('\n').map(l => JSON.parse(l)) : [];
+      const entries = (text) ? text.split('\n').map(l => JSON.parse(l)) : [];
       if (sent > 0) {
-        // the HTML has been sent; redirect messages to client-side
+        // the HTML has been sent; redirect entries to client-side
         let fnSent = false;
-        for (const msg of messages) {
+        const reporting = [ 'info', 'log', 'debug', 'warn', 'error' ];
+        for (const entry of entries.filter(e => reporting.includes(e.type))) {
           if (!fnSent) {
-            // output function for outputting messages to console
-            function __relay_ssr_msg(msg) {
-              let type = msg.type;
-              let args = msg.args.map(arg => {
+            // output function for outputting entries to console
+            function __relay_ssr_msg(e) {
+              let type = e.type;
+              let args = e.args.map(arg => {
                 if (arg && arg.error) {
                   let msg = arg.error + ' encountered during SSR; ' + arg.message;
                   if (arg.stack) {
@@ -49,15 +51,18 @@ export function renderInChildProc(location, buildPath, options = {}) {
               });
               console[type].apply(null, args);
             }
-            yield `<script>${__relay_ssr_msg.toString()}</script>\n`;
+            yield `\n<script>\n${__relay_ssr_msg.toString()}\n</script>\n`;
             fnSent = true;
           }
-          yield `<script>__relay_ssr_msg(${JSON.stringify(msg)})</script>\n`;
+          yield `<script>__relay_ssr_msg(${JSON.stringify(entry)})</script>\n`;
         }
       } else {
         // just throw up a 500 internal error
-        const err = messages.find(m => m.type === 'error' && m.args[0]?.error);
+        const err = entries.find(e => e.type === 'error' && e.args[0]?.error);
         throw new Error(err?.args[0].message ?? 'Error encountered during SSR');
+      }
+      if (onMessages) {
+        onMessages(entries);
       }
     } catch (err) {
       console.error(err);
