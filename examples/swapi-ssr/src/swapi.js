@@ -1,7 +1,9 @@
-const baseURL = new URL('/api/', window.location.href);
+const location = typeof(window) === 'object' ? window.location : global.location;
+const dev = (process.env.NODE_ENV === 'development');
+const baseURL = new URL('/api/', (dev) ? 'http://localhost:8080' : location.href);
 
 export function trimURL(url) {
-  return url.substr(baseURL.length - 1);
+  return url.substr(baseURL.href.length - 1);
 }
 
 export async function fetchOne(url, options) {

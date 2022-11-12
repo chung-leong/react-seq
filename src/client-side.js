@@ -5,7 +5,7 @@ import { settings } from './settings.js';
 export function hydrateRootReactSeq(container, element) {
   try {
     settings({ ssr: 'hydrate' });
-    hydrateRoot(container, element);
+    return hydrateRoot(container, element);
   } finally {
     settings({ ssr: false });
   }

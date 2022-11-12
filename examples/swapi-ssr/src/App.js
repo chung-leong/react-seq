@@ -1,5 +1,5 @@
 import './css/App.css';
-import { useState, useMemo, useEffect, lazy, Suspense } from 'react';
+import { useState, useMemo, useEffect, lazy, Suspense, startTransition } from 'react';
 import NavBar from './NavBar.js';
 import Loading from './Loading.js';
 import Welcome from './Welcome.js';
@@ -20,34 +20,39 @@ const VehicleList = lazy(() => import('./VehicleList.js'));
 const NotFound = lazy(() => import('./NotFound.js'));
 
 export default function App() {
-  const [ url, setURL ] = useState(() => new URL(window.location));
+  const location = typeof(window) === 'object' ? window.location : global.location;
+  const [ url, setURL ] = useState(() => new URL(location));
   const parts = useMemo(() => url.pathname.substr(1).split('/'), [ url ]);
 
   useEffect(() => {
-    const onLinkClick = (evt) => {
-      const { target, button, defaultPrevented } = evt;
-      if (button === 0 && !defaultPrevented) {
-        const link = target.closest('A');
-        if (link && link.origin === window.location.origin) {
-          if (!link.target && !link.download) {
-            setURL(new URL(link));
-            evt.preventDefault();
-            evt.stopPropagation();
+    if (typeof(window) === 'object') {
+      const onLinkClick = (evt) => {
+        const { target, button, defaultPrevented } = evt;
+        if (button === 0 && !defaultPrevented) {
+          const link = target.closest('A');
+          if (link && link.origin === window.location.origin) {
+            if (!link.target && !link.download) {
+              const url = new URL(link);
+              startTransition(() => setURL(url));
+              window.history.pushState({}, undefined, url);
+              evt.preventDefault();
+              evt.stopPropagation();
+            }
           }
         }
-      }
-    };
-    const onPopState = (evt) => {
-      setURL(new URL(window.location));
-      evt.preventDefault();
-      evt.stopPropagation();
-    };
-    window.addEventListener('click', onLinkClick);
-    window.addEventListener('popstate', onPopState);
-    return () => {
-      window.removeEventListener('click', onLinkClick);
-      window.removeEventListener('popstate', onPopState);
-    };
+      };
+      const onPopState = (evt) => {
+        startTransition(() => setURL(new URL(window.location)));
+        evt.preventDefault();
+        evt.stopPropagation();
+      };
+      window.addEventListener('click', onLinkClick);
+      window.addEventListener('popstate', onPopState);
+      return () => {
+        window.removeEventListener('click', onLinkClick);
+        window.removeEventListener('popstate', onPopState);
+      };
+    }
   });
 
   return (
