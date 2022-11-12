@@ -4,6 +4,7 @@ import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { InspectorContext } from './inspector.js';
 import { Abort, isAbortError } from './utils.js';
+import { setting } from './settings.js';
 
 export function useSequentialState(cb, deps) {
   return useFunctionState(sequentialState, cb, deps);
@@ -15,8 +16,7 @@ export function useFunctionState(fn, cb, deps) {
   }
   const inspector = useContext(InspectorContext);
   const { initialState, abortManager } = useMemo(() => {
-    const options = { inspector, selfDestruct: !!process.env.REACT_STRICT_MODE };
-    return fn(cb, s => setState(s), e => setError(e), options);
+    return fn(cb, s => setState(s), e => setError(e), { inspector });
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
@@ -39,7 +39,6 @@ export function useFunctionState(fn, cb, deps) {
 export function sequentialState(cb, setState, setError, options = {}) {
   const {
     inspector,
-    selfDestruct = false,
   } = options;
   const abortManager = new AbortManager();
   const { signal } = abortManager;
@@ -105,18 +104,19 @@ export function sequentialState(cb, setState, setError, options = {}) {
   iterator.fetch();
   sync = false;
 
-  const ssr = parseInt(process.env.REACT_SEQ_SSR);
-
-  if (typeof(window) === 'object' || !ssr) {
+  if (setting('ssr') !== 'server') {
     retrieveRemaining();
   } else {
     // state hooks don't run on server-side
     iterator.return().catch(err => console.error(err));
   }
 
-  if (selfDestruct) {
+  if (setting('strict_mode_clean_up') && process.env.NODE_ENV === 'development') {
+    // deal with double invocatopn in strict mode during development by self-destructing
+    // when not immediately mounted
     abortManager.setSelfDestruct();
   }
+
   let pendingState;
   let unusedSlot = false;
   return { initialState, abortManager };

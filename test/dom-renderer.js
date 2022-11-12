@@ -1,4 +1,5 @@
 import { createTrigger } from '../src/utils.js';
+import { settings } from '../src/settings.js';
 
 // test that works with JSDOM can't run at the same time
 let locked = false;
@@ -45,10 +46,10 @@ export async function withReactDOM(cb) {
 export async function withReactStrictMode(cb) {
   acquireLock();
   try {
-    process.env.REACT_STRICT_MODE = 1;
+    settings({ strict_mode_clean_up: true });
     await withReactDOM(cb);
   } finally {
-    delete process.env.REACT_STRICT_MODE;
+    settings({ strict_mode_clean_up: false });
     releaseLock();
   }
 }
@@ -61,6 +62,7 @@ export async function withReactHydration(html, el, cb, timeout = 1000) {
   node.innerHTML = html;
   let root;
   try {
+    settings({ ssr: 'hydrate', ssr_time_limit: timeout });
     process.env.REACT_SEQ_SSR = timeout;
     await act(() => root = hydrateRoot(node, el));
     await cb({
@@ -72,7 +74,7 @@ export async function withReactHydration(html, el, cb, timeout = 1000) {
   } finally {
     await act(() => root.unmount());
     node.remove();
-    delete process.env.REACT_SEQ_SSR;
+    settings({ ssr: false });
     releaseLock();
   }
 }
@@ -81,12 +83,12 @@ export async function withServerSideRendering(cb, timeout = 1000) {
   acquireLock();
   let window;
   try {
-    process.env.REACT_SEQ_SSR = timeout;
+    settings({ ssr: 'server', ssr_time_limit: timeout });
     window = global.window;
     delete global.window;
     await cb();
   } finally {
-    delete process.env.REACT_SEQ_SSR;
+    settings({ ssr: false });
     global.window = window;
     releaseLock();
   }

@@ -4,6 +4,7 @@ import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { InspectorContext } from './inspector.js';
 import { Abort, nextTick, isAbortError } from './utils.js';
+import { setting } from './settings.js';
 
 export function useSequential(cb, deps) {
   return useFunction(sequential, cb, deps);
@@ -13,8 +14,7 @@ export function useFunction(fn, cb, deps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const inspector = useContext(InspectorContext);
   const { element, abortManager } = useMemo(() => {
-    const options = { inspector, selfDestruct: !!process.env.REACT_STRICT_MODE };
-    return fn(cb, options);
+    return fn(cb, { inspector });
   }, deps);
   useEffect(() => {
     abortManager.onMount();
@@ -28,7 +28,6 @@ export function useFunction(fn, cb, deps) {
 export function sequential(cb, options = {}) {
   const {
     inspector,
-    selfDestruct = false,
   } = options;
   const abortManager = new AbortManager();
   const { signal } = abortManager;
@@ -120,13 +119,14 @@ export function sequential(cb, options = {}) {
 
   // time limit due to server-side rendering, apply them now, after the generator function
   // has a chance to call defer() and timeout()
-  const ssr = parseInt(process.env.REACT_SEQ_SSR);
+  const ssr = setting('ssr');
   if (ssr) {
     if (updateDelay > 0) {
       // infinity deferment during SSR
       iterator.setInterruption(Infinity);
     }
-    iterator.setTimeLimit(Math.min(timeLimit, ssr));
+    const ssrTimeLimit = setting('ssr_time_limit');
+    iterator.setTimeLimit(Math.min(timeLimit, ssrTimeLimit));
   }
 
   if (suspensionKey) {
@@ -205,12 +205,12 @@ export function sequential(cb, options = {}) {
     let redrawComponent;
 
     if (ssr) {
-      if (typeof(window) === 'object') {
-        // set the interruption period back to normal and continue
-        iterator.setInterruption(updateDelay);
-      } else {
+      if (ssr === 'server') {
         // no need to keep going
         finished = true;
+      } else {
+        // set the interruption period back to normal and continue
+        iterator.setInterruption(updateDelay);
       }
     }
 
@@ -304,8 +304,9 @@ export function sequential(cb, options = {}) {
   if (suspensionKey) {
     // save the result so we can find it again when we unsuspend
     saveForLater(suspensionKey, result);
-  } else if (selfDestruct) {
-    // set self-destruct to real with extra generator created by strict mode double invocatopn
+  } else if (setting('strict_mode_clean_up') && process.env.NODE_ENV === 'development') {
+    // deal with double invocatopn in strict mode during development by self-destructing
+    // when not immediately mounted
     abortManager.setSelfDestruct();
   }
   return result;

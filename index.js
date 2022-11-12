@@ -22,6 +22,12 @@ export {
   throwing,
 } from './src/event-manager.js';
 export {
+  setting,
+  settings,
+  ssr,
+  csr,
+} from './src/settings.js';
+export {
   InspectorContext,
   Inspector,
   PromiseLogger,
