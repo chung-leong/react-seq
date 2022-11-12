@@ -44,15 +44,18 @@ export async function renderToInnerHTML(element, node) {
   }
 }
 
-export async function renderToServer(element) {
-  try {
-    settings({ ssr: 'server' });
-    const stream = await renderToReadableStream(element);
-    await stream.allReady;
-    global?.send(stream);
-  } finally {
-    settings({ ssr: false });
-  }
+export function renderToServer(element) {
+  (async () => {
+    try {
+      settings({ ssr: 'server' });
+      const promise = renderToReadableStream(element);
+      process.send(promise);
+      const stream = await promise;
+      await stream.allReady;
+    } finally {
+      settings({ ssr: false });
+    }
+  })();
 }
 
 export function hasSuspended(root) {
