@@ -1,6 +1,6 @@
 {
   "name": "react-seq",
-  "version": "0.4.4",
+  "version": "0.4.8",
   "description": "React hooks for working with async generators and promises",
   "main": "index.js",
   "type": "module",
@@ -27,6 +27,7 @@
   },
   "files": [
     "src/",
+    "client.js",
     "index.js",
     "server.js"
   ],

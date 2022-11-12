@@ -7,7 +7,7 @@ export function hydrateRootReactSeq(container, element) {
     settings({ ssr: 'hydrate' });
     hydrateRoot(container, element);
   } finally {
-    settings({ ssr: 'false' });
+    settings({ ssr: false });
   }
 }
 

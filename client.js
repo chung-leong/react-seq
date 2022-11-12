@@ -1,4 +1,5 @@
 export {
   renderToInnerHTML,
   renderToServer,
-} from './src/server-side.js';
+  hydrateRoot,
+} from './src/client-side.js';
