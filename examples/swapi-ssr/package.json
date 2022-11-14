@@ -12,6 +12,7 @@
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
     "abort-controller": "^3.0.0",
+    "array-router": "^0.1.0",
     "fastify": "^4.9.2",
     "node-fetch": "^3.2.10",
     "opener": "^1.5.2",

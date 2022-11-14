@@ -7,11 +7,13 @@ export function useSWAPI(type, params = {}, options = {}) {
     delay = 100,
     refresh = Infinity,
   } = options;
+  let onUpdateRequest;
   const { id } = params;
-  const [ state, on ] = useSequentialState(async function*({ initial, defer, flush, manageEvents, signal }) {
+  const state = useSequentialState(async function*({ initial, defer, flush, manageEvents, signal }) {
     initial({});
-    const [ , eventual ] = manageEvents();
+    const [ on, eventual ] = manageEvents();
     const opts = { signal };
+    onUpdateRequest = on.updateRequest;
     for (let i = 0;; i++) {
       defer(i === 0 ? delay : Infinity);
       try {
@@ -122,7 +124,7 @@ export function useSWAPI(type, params = {}, options = {}) {
       }
     }
   }, [ delay, id, refresh, type ]);
-  return [ state, () => on.updateRequest() ];
+  return [ state, onUpdateRequest ];
 }
 
 export function trimURL(url) {
