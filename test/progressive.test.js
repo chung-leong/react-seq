@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { createElement } from 'react';
 import { withTestRenderer } from './test-renderer.js';
 import { createSteps } from './step.js';
-import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
+import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
 
 import {
@@ -135,7 +135,7 @@ describe('#progressive', function() {
       function TestComponent({ animals = [] }) {
         return animals.join(', ');
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const { element: el } = progressive(async ({ fallback, usable, type }) => {
           fallback('None');
           type(TestComponent);
@@ -266,7 +266,7 @@ describe('#progressive', function() {
   it('should throw if an element type is not given', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const { element: el } = progressive(async () => {
           return {};
         });
@@ -278,7 +278,7 @@ describe('#progressive', function() {
   })
   it('should throw if both type and element are used', async function() {
     await withTestRenderer(async ({ create, unmount, toJSON }) => {
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const { element: el1 } = progressive(async ({ element, type }) => {
           type('div');
           element('Hello');
@@ -302,7 +302,7 @@ describe('#progressive', function() {
   })
   it('should throw if usable is given a non-object', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const { element: el } = progressive(async ({ usable }) => {
           usable('cow', 1);
           return {};
@@ -315,7 +315,7 @@ describe('#progressive', function() {
   })
   it('should throw if function returns a non-object', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const { element: el } = progressive(async ({ element }) => {
           element((props) => 'Hello');
           return 123;
@@ -515,13 +515,14 @@ describe('#useProgressive()', function() {
         }, []);
       }
       const el = createElement(ContainerComponent);
-      const result = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
         assertions[0].done();
         await steps[1];
-      });
-      expect(result.warn).to.contain('default');
+      }, console);
+      expect(console.warn).to.contain('default');
     });
   })
   it('should warn when type is given a promise', async function () {
@@ -536,13 +537,14 @@ describe('#useProgressive()', function() {
         }, []);
       }
       const el = createElement(ContainerComponent);
-      const result = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
         assertions[0].done();
         await steps[1];
-      });
-      expect(result.warn).to.contain('await');
+      }, console);
+      expect(console.warn).to.contain('await');
     });
   })
   it('should warn when usability is specified for a prop that does not appear in the return object', async function () {
@@ -558,13 +560,14 @@ describe('#useProgressive()', function() {
         }, []);
       }
       const el = createElement(ContainerComponent);
-      const result = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
         assertions[0].done();
         await steps[1];
-      });
-      expect(result.warn).to.contain('prop');
+      }, console);
+      expect(console.warn).to.contain('prop');
     });
   })
 })

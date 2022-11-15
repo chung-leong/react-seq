@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import { delay } from '../index.js';
 import React from 'react';
-import { noConsole } from './error-handling.js';
+import { withSilentConsole } from './error-handling.js';
 
 import {
   EventManager,
@@ -274,20 +274,22 @@ describe('#EventManager', function() {
     expect(() => eventual.click = null).to.throw();
   })
   it('should issue warning about lack of action when warning is set to true', async function() {
-    const { warn } = await noConsole(async () => {
+    const console = {};
+    await withSilentConsole(async () => {
       const { on, eventual } = new EventManager({ warning: true });
       const handler = on.click;
       handler();
-    });
-    expect(warn).to.be.a('string');
+    }, console);
+    expect(console.warn).to.be.a('string');
   })
   it('should issue warning about awaiting promise without corresponding handler', async function() {
-    const { warn } = await noConsole(async () => {
+    const console = {};
+    await withSilentConsole(async () => {
       const { on, eventual } = new EventManager({ warning: true });
       const promise = eventual.click;
       await Promise.race([ promise, Promise.resolve() ]);
-    });
-    expect(warn).to.be.a('string');
+    }, console);
+    expect(console.warn).to.be.a('string');
   })
   it('should yield undefined when symbols are used to access properties', async function() {
     const { on, eventual } = new EventManager({});

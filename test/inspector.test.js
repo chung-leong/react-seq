@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { noConsole, noConsoleArray } from './error-handling.js';
+import { withSilentConsole } from './error-handling.js';
 import { EventManager } from '../src/event-manager.js';
 import { withTestRenderer } from './test-renderer.js';
 import { createElement } from 'react';
@@ -85,7 +85,8 @@ describe('#PromiseLogger', function() {
     expect(result.map(e => e.type)).to.eql([ 'update', 'update' ]);
   })
   it('should dump errors encountered in onEvent to console', async function() {
-    const { error } = await noConsole(async () => {
+    const console = {};
+    await withSilentConsole(async () => {
       class TestPromiseLogger extends PromiseLogger {
         onEvent(evt) {
           throw new Error('error');
@@ -93,8 +94,8 @@ describe('#PromiseLogger', function() {
       }
       const inspector = new TestPromiseLogger();
       inspector.dispatch({ type: 'resolve' });
-    });
-    expect(error).to.be.an('error');
+    }, console);
+    expect(console.error).to.be.an('error');
   })
   it('should quit waiting for event after some time', async function() {
     const inspector = new PromiseLogger();
@@ -218,7 +219,7 @@ describe('#PromiseLogger', function() {
   })
   it('should pick up error events from useSequential', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const inspector = new PromiseLogger();
         const { oldEvents } = inspector;
         const steps = createSteps(), assertions = createSteps();
@@ -310,7 +311,7 @@ describe('#PromiseLogger', function() {
   })
   it('should pick up error events from useSequentialState', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const inspector = new PromiseLogger();
         const { oldEvents } = inspector;
         const steps = createSteps(), assertions = createSteps();
@@ -364,7 +365,8 @@ describe('#PromiseLogger', function() {
 describe('#ConsoleLogger', function() {
   it('should handle content update events', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -381,13 +383,14 @@ describe('#ConsoleLogger', function() {
         assertions[0].done();
         await steps[1];
         inspector.stop();
-      })
-      expect(log).to.include('Content update');
+      }, console);
+      expect(console.log).to.include('Content update');
     });
   })
   it('should handle state update events', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -402,13 +405,14 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      })
-      expect(log).to.include('State update');
+      }, console);
+      expect(console.log).to.include('State update');
     });
   })
   it('should handle timeout events', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsoleArray(async () => {
+      const console = { log: [] };
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -424,14 +428,15 @@ describe('#ConsoleLogger', function() {
         await create(cp);
         await delay(30);
         inspector.stop();
-      });
-      expect(log[0]).to.include('Timeout');
-      expect(log[1]).to.include('Content update');
+      }, console);
+      expect(console.log[0]).to.include('Timeout');
+      expect(console.log[1]).to.include('Content update');
     });
   })
   it('should handle error events', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -455,13 +460,14 @@ describe('#ConsoleLogger', function() {
         assertions[1].fail(new Error('ERROR'))
         await delay(0);
         inspector.stop();
-      });
-      expect(log).to.include('Error');
+      }, console);
+      expect(console.log).to.include('Error');
     });
   })
   it('should handle abort event', async function() {
     await withTestRenderer(async ({ create, unmount }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -478,13 +484,14 @@ describe('#ConsoleLogger', function() {
         await create(cp);
         await unmount();
         inspector.stop();
-      });
-      expect(log).to.include('aborted');
+      }, console);
+      expect(console.log).to.include('aborted');
     });
   })
   it('should handle promise await events', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -500,13 +507,14 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      })
-      expect(log).to.include('Awaiting');
+      }, console);
+      expect(console.log).to.include('Awaiting');
     });
   })
   it('should handle fulfillment events with no listener', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -523,14 +531,15 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      })
-      expect(log).to.include('Fulfillment');
-      expect(log).to.include('no one cared');
+      }, console);
+      expect(console.log).to.include('Fulfillment');
+      expect(console.log).to.include('no one cared');
     });
   })
   it('should handle fulfillment events with important value', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -547,14 +556,15 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      })
-      expect(log).to.include('Fulfillment');
-      expect(log).to.not.include('no one cared');
+      }, console);
+      expect(console.log).to.include('Fulfillment');
+      expect(console.log).to.not.include('no one cared');
     });
   })
   it('should handle rejection events with no listener', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -571,14 +581,15 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      })
-      expect(log).to.include('Rejection');
-      expect(log).to.include('no one cared');
+      }, console);
+      expect(console.log).to.include('Rejection');
+      expect(console.log).to.include('no one cared');
     });
   })
   it('should handle rejection events with important error', async function() {
     await withTestRenderer(async ({ create }) => {
-      const { log } = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps();
         function Test() {
@@ -595,17 +606,18 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      })
-      expect(log).to.include('Rejection');
-      expect(log).to.not.include('no one cared');
+      }, console);
+      expect(console.log).to.include('Rejection');
+      expect(console.log).to.not.include('no one cared');
     });
   })
   it('should handle unrecognized events', async function() {
-    const { log } = await noConsole(async () => {
+    const console = {};
+    await withSilentConsole(async () => {
       const inspector = new ConsoleLogger();
       inspector.dispatch({ type: 'dingo' });
       inspector.stop();
-    })
-    expect(log).to.include('Unknown');
+    }, console);
+    expect(console.log).to.include('Unknown');
   })
 })

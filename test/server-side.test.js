@@ -5,7 +5,7 @@ import { renderToPipeableStream } from 'react-dom/server';
 import { act } from 'react-dom/test-utils';
 import { withServerSideRendering, withReactHydration } from './dom-renderer.js';
 import { createSteps } from './step.js';
-import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
+import { createErrorBoundary, caughtAt } from './error-handling.js';
 import { createWriteStream } from 'fs';
 import { delay, Abort } from '../index.js';
 import { isAbortError, createTrigger } from '../src/utils.js';

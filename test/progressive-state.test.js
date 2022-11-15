@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { createElement, useMemo } from 'react';
 import { withTestRenderer } from './test-renderer.js';
 import { createSteps } from './step.js';
-import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
+import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
 
 import {
@@ -157,7 +157,7 @@ describe('#useProgressiveState', function() {
         const { drinks, sober } = state;
         return (sober) ? ':-(' : '8-)';
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
         create(boundary);

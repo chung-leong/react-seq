@@ -3,7 +3,7 @@ import { withTestRenderer } from './test-renderer.js';
 import { withReactDOM, withReactStrictMode } from './dom-renderer.js';
 import { createElement, Suspense, StrictMode } from 'react';
 import { createSteps } from './step.js';
-import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
+import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
 import { delay, Abort } from '../index.js';
 import { isAbortError } from '../src/utils.js';
 
@@ -203,7 +203,7 @@ describe('#sequential()', function() {
         yield 'Pig';
         steps[2].done();
       });
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const boundary = createErrorBoundary(el);
         create(boundary);
         expect(toJSON()).to.equal(null);
@@ -224,7 +224,7 @@ describe('#sequential()', function() {
         yield 'Pig';
         steps[2].done();
       });
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const boundary = createErrorBoundary(el);
         create(boundary);
         expect(toJSON()).to.equal(null);
@@ -240,7 +240,7 @@ describe('#sequential()', function() {
       const { element: el } = sequential(async function*({ mount, defer }) {
         mount('Rushmore');
       });
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const boundary = createErrorBoundary(el);
         await create(boundary);
         expect(toJSON()).to.equal('ERROR');
@@ -415,7 +415,7 @@ describe('#sequential()', function() {
         fallback('Cow')
         yield 'Chicken';
       });
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const boundary1 = createErrorBoundary(el1);
         await create(boundary1);
         expect(toJSON()).to.equal('ERROR');
@@ -431,7 +431,7 @@ describe('#sequential()', function() {
   })
   it('should trigger error boundary', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const { element: el } = sequential(async function*({ fallback }) {
           fallbak('Cow'); // typo causing the function to throw
           yield createElement('div', {}, cat); // also an undeclared variable here
@@ -445,7 +445,7 @@ describe('#sequential()', function() {
   it('should trigger error boundary after a yield', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       const steps = createSteps(), assertions = createSteps();
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const { element: el } = sequential(async function*({ fallback }) {
           fallback('Cow');
           await assertions[0];

@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import sinon from 'sinon';
-import { noConsole } from './error-handling.js';
+import { withSilentConsole } from './error-handling.js';
 import { EventManager } from '../src/event-manager.js';
 
 import {
@@ -80,18 +80,20 @@ describe('#meanwhile()', function() {
     expect(ran).to.be.true;
   })
   it('should do nothing when no function is given', async function() {
-    const { error } = await noConsole(() => {
+    const console = {};
+    await withSilentConsole(async () => {
       meanwhile();
-    });
-    expect(error).to.be.null;
+    }, console);
+    expect(console.error).to.be.undefined;
   })
   it('should output errors to console', async function() {
-    const { error } = await noConsole(async () => {
+    const console = {};
+    await withSilentConsole(async () => {
       await meanwhile(async () => {
         throw new Error('Rats live on no evil star');
       });
-    });
-    expect(error).to.be.an('error').with.property('message', 'Rats live on no evil star');
+    }, console);
+    expect(console.error).to.be.an('error').with.property('message', 'Rats live on no evil star');
   })
 })
 

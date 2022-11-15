@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { createSteps, loopThrough } from './step.js';
-import { noConsole } from './error-handling.js';
+import { withSilentConsole } from './error-handling.js';
 import { delay } from '../index.js';
 
 import {
@@ -525,7 +525,8 @@ describe('#generateProps()', function() {
       animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
-      const results = await noConsole(async () => {
+      const console = {};
+      await withSilentConsole(async () => {
         const generator = generateProps(props, { world: true, animals: true });
         const list = [];
         let error;
@@ -538,9 +539,9 @@ describe('#generateProps()', function() {
           error = err;
         }
         expect(error).to.be.undefined;
-      });
-      expect(results.error).to.be.an('error');
-      expect(results.error.message).to.contain('What the...');
+      }, console);
+      expect(console.error).to.be.an('error');
+      expect(console.error.message).to.contain('What the...');
     });
   })
 })

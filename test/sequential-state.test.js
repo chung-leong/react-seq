@@ -3,7 +3,7 @@ import { createElement, StrictMode } from 'react';
 import { withTestRenderer } from './test-renderer.js';
 import { withReactStrictMode } from './dom-renderer.js';
 import { createSteps, loopThrough } from './step.js';
-import { createErrorBoundary, noConsole, caughtAt } from './error-handling.js';
+import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
 import { isAbortError } from '../src/utils.js';
 
@@ -291,7 +291,7 @@ describe('#useSequentialState()', function() {
         const state = useSequentialState(async function*({}) {
         });
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const el = createElement(Test);
         expect(() => createTestRenderer(el)).to.throw();
       });
@@ -311,7 +311,7 @@ describe('#useSequentialState()', function() {
         }, []);
         return state;
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
         create(boundary);
@@ -334,7 +334,7 @@ describe('#useSequentialState()', function() {
         });
         return state;
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
         create(boundary);
@@ -354,7 +354,7 @@ describe('#useSequentialState()', function() {
         }, []);
         return state;
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
         create(boundary);
@@ -377,7 +377,7 @@ describe('#useSequentialState()', function() {
         }, []);
         return state;
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
         create(boundary);
@@ -397,7 +397,7 @@ describe('#useSequentialState()', function() {
         }, []);
         return state;
       }
-      await noConsole(async () => {
+      await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
         await create(boundary);
