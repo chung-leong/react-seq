@@ -1,4 +1,4 @@
-# React-seq
+# React-seq ![ci](https://img.shields.io/github/workflow/status/chung-leong/react-seq/Node.js%20CI?label=Node.js%20CI&logo=github) ![nycrc config on GitHub](https://img.shields.io/nycrc/chung-leong/react-seq)
 
 React-seq is a light-weight library that helps you take full advantage of async functions and generators while
 developing React apps. It provides a set of hooks for managing processes that complete over time, such as loading
@@ -19,7 +19,7 @@ component that will display the output from the async generator as content:
 import { useSequential, delay } from 'react-seq';
 
 function LovelyAnimals({ favorite = 'Chicken' }) {
-  return useSequence(async function*({ fallback }) {
+  return useSequential(async function*({ fallback }) {
     fallback(<span>Cat</span>);
     await delay(1000);
     yield <span>Dog</span>;
@@ -34,8 +34,6 @@ function LovelyAnimals({ favorite = 'Chicken' }) {
   }, []);
 }
 ```
-
-
 
 ## Advantages
 
