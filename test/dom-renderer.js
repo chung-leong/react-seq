@@ -43,13 +43,13 @@ export async function withReactDOM(cb) {
   }
 }
 
-export async function withReactStrictMode(cb) {
+export async function withReactStrictMode(cb, delay = 0) {
   acquireLock();
   try {
-    settings({ strict_mode_clean_up: true });
+    settings({ strict_mode_clean_up: delay });
     await withReactDOM(cb);
   } finally {
-    settings({ strict_mode_clean_up: false });
+    settings({ strict_mode_clean_up: NaN });
     releaseLock();
   }
 }

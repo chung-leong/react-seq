@@ -1087,7 +1087,7 @@ describe('#useSequential()', function() {
       await assertions[3].done();
       await steps[4];
       expect(node.textContent).to.equal('Chicken');
-    });
+    }, 10);
   })
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should run all finally sections under strict mode', async function() {

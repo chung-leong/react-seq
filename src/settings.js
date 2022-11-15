@@ -1,7 +1,7 @@
 const currentSettings = {
   ssr: false,
   ssr_time_limit: 3000,
-  strict_mode_clean_up: false,
+  strict_mode_clean_up: NaN,
 };
 
 export function setting(name) {
@@ -29,8 +29,8 @@ export function settings(values) {
         }
         break;
       case 'strict_mode_clean_up':
-        if (typeof(value) !== 'boolean') {
-          throw new TypeError(`strict_mode_clean_up must be a boolean`);
+        if (typeof(value) !== 'number') {
+          throw new TypeError(`strict_mode_clean_up must be a number`);
         }
         break;
       default:

@@ -110,12 +110,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
     // state hooks don't run on server-side
     iterator.return().catch(err => console.error(err));
   }
-
-  if (setting('strict_mode_clean_up') && process.env.NODE_ENV === 'development') {
-    // deal with double invocatopn in strict mode during development by self-destructing
-    // when not immediately mounted
-    abortManager.setSelfDestruct();
-  }
+  abortManager.setSelfDestruct();
 
   let pendingState;
   let unusedSlot = false;

@@ -304,9 +304,8 @@ export function sequential(cb, options = {}) {
   if (suspensionKey) {
     // save the result so we can find it again when we unsuspend
     saveForLater(suspensionKey, result);
-  } else if (setting('strict_mode_clean_up') && process.env.NODE_ENV === 'development') {
-    // deal with double invocatopn in strict mode during development by self-destructing
-    // when not immediately mounted
+  } else {
+    // no self-destructing when suspension is used
     abortManager.setSelfDestruct();
   }
   return result;
