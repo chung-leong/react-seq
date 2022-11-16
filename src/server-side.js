@@ -65,7 +65,6 @@ export function renderInChildProc(location, buildPath, options = {}) {
         onMessages(entries);
       }
     } catch (err) {
-      console.error(err);
       throw err;
     }
   }

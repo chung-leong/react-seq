@@ -54,19 +54,19 @@ async function render(buildPath, location, additionalFile) {
   // create fake document object needed by WebPack to import module dynamically
   global.document = createFakeDocument(buildPath);
 
-  // load the HTML file and look for the JS path and look root node
-  const htmlPath = `${buildPath}/index.html`;
-  const html = await readFile(htmlPath, 'utf8');
-  const jsPath = findJSPath(html);
-  const wrapper = findRootNode(html);
-
   // function to be called by client-side code, giving us promise of web stream
   // renderToReadableStream()
   let streamPromise;
   process.send = async (p) => streamPromise = p;
 
-  // run the script
   try {
+    // load the HTML file and look for the JS path and look root node
+    const htmlPath = `${buildPath}/index.html`;
+    const html = await readFile(htmlPath, 'utf8');
+    const jsPath = findJSPath(html);
+    const wrapper = findRootNode(html);
+
+    // run the script
     await runJSFile(buildPath, jsPath);
     process.stdout.write(wrapper.before);
     try {
@@ -89,19 +89,23 @@ async function render(buildPath, location, additionalFile) {
 
   let exitCode = 0;
   const output = [];
-  for (const { type, args } of consoleEntries) {
-    for (let [ index, arg ] of args.entries()) {
-      if (arg instanceof Error) {
-        args[index] = await translateError(arg, buildPath);
+  try {
+    for (const { type, args } of consoleEntries) {
+      for (let [ index, arg ] of args.entries()) {
+        if (arg instanceof Error) {
+          args[index] = await translateError(arg, buildPath);
+        }
+      }
+      const json = JSON.stringify({ type, args });
+      if (!output.includes(json)) {
+        output.push(json);
+      }
+      if (type === 'error') {
+        exitCode = 1;
       }
     }
-    const json = JSON.stringify({ type, args });
-    if (!output.includes(json)) {
-      output.push(json);
-    }
-    if (type === 'error') {
-      exitCode = 1;
-    }
+  } catch (err) {
+    process.stderr.write(err.message)
   }
   process.stderr.write(output.join('\n') + '\n');
   process.exit(exitCode);
@@ -186,9 +190,6 @@ async function translateError(err, basePath) {
           }
         }
       }
-    }
-    for (const map of Object.values(sourceMaps)) {
-      map.destroy();
     }
   }
   return object;

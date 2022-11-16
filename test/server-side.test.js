@@ -331,14 +331,44 @@ describe('Hydration', function() {
 })
 
 describe('#renderInChildProc()', function() {
-  skip.it('should find the JS path from the HTML and load it', async function() {
-    const buildPath = resolve('./cra/build');
+  it('should fail when it cannot find the root node', async function() {
+    const buildPath = resolve('./cra/test-1-bad/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    let error;
+    try {
+      const html = await readStream(stream);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.an('error').with.property('message').that.contains('container node');
   })
-  skip.it('should fail when it cannot find the path to the JS script', async function() {
-    const buildPath = resolve('./cra/bad-build-1');
+  it('should fail when it cannot even find the HTML file', async function() {
+    const buildPath = resolve('./cra/test-2-bad/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    let error;
+    try {
+      const html = await readStream(stream);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.an('error').with.property('message').that.contains('no such file');
   })
-  skip.it('should fail when it cannot find the root node', async function() {
-    const buildPath = resolve('./cra/bad-build-2');
+  it('should fail when the App is not design for SSR', async function() {
+    const buildPath = resolve('./cra/test-3-bad/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    let error;
+    try {
+      const html = await readStream(stream);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.an('error').with.property('message').that.contains('document.getElementById');
+  })
+  it('should correctly render a simple example app', async function() {
+    const buildPath = resolve('./cra/test-4/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    const html = await readStream(stream);
+    expect(html).to.contain('Learn React');
   })
 })
 
@@ -376,6 +406,14 @@ async function renderToString(element) {
     },
   };
   pipeable.pipe(writable);
+  return Buffer.concat(chunks).toString();
+}
+
+async function readStream(stream) {
+  const chunks = [];
+  for await (const chunk of stream) {
+    chunks.push(chunk);
+  }
   return Buffer.concat(chunks).toString();
 }
 
