@@ -1,7 +1,8 @@
 {
   "checkCoverage": true,
   "reporter": [
-    "text"
+    "text",
+    "html"
   ],
   "lines": 100,
   "branches": 100,

@@ -6,7 +6,8 @@ export async function withTestRenderer(cb) {
       create: (el) => act(() => renderer = create(el)),
       update: (el) => act(() => renderer.update(el)),
       unmount: () => act(() => renderer.unmount()),
-      toJSON: () => renderer.toJSON()
+      toJSON: () => renderer.toJSON(),
+      act,
     });
   } finally {
     if (renderer) {

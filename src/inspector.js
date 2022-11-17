@@ -11,6 +11,7 @@ export class Inspector {
       this.onError(err);
     }
   }
+  /* c8 ignore next */
   onEvent(evt) {}
   onError(err) {
     console.error(err);

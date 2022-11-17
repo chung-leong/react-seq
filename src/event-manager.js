@@ -304,6 +304,23 @@ export class EventManager {
   }
 }
 
+const eventManagerMap = new WeakMap();
+
+export function manageEvents(key) {
+  if (typeof(key) === 'object' && key) {
+    const em = eventManagerMap.get(key);
+    if (em) {
+      return [ em.on, em.eventual ];
+    }
+  }
+}
+
+export function linkEventManager(key, em) {
+  if (typeof(key) === 'object' && key && em) {
+    eventManagerMap.set(key, em);
+  }
+}
+
 function mergePromises(promiseList, op) {
   if (op === 'or') {
     return Promise.race(promiseList);

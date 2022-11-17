@@ -54,8 +54,8 @@ describe('#progressiveState', function() {
 
 describe('#useProgressiveState', function() {
   it('should return a progressively changing state', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const createDrinks = async function*() {
         await assertions[0];
         yield 'Whiskey drink';
@@ -82,27 +82,27 @@ describe('#useProgressiveState', function() {
         return (sober) ? ':-(' : '8-)';
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal(':-(');
       expect(state).to.eql({ drinks: [], sober: true });
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(state).to.eql({ drinks: [], sober: true });
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('8-)');
       expect(state).to.eql({ drinks: [ 'Whiskey drink', 'Vodka drink' ], sober: false });
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(state).to.eql({ drinks: [ 'Whiskey drink', 'Vodka drink', 'Lager drink' ], sober: false });
-      assertions[3].done();
+      await assertions[3].done();
       await steps[4];
       expect(state).to.eql({ drinks: [ 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink' ], sober: false });
     });
   })
   it('should allowing usability to be set for specific prop', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const createDrinks = async function*() {
         await assertions[0];
         yield 'Whiskey drink';
@@ -128,20 +128,20 @@ describe('#useProgressiveState', function() {
         return (sober) ? ':-(' : '8-)';
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal(':-(');
       expect(state).to.eql({ drinks: [], sober: true });
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(state).to.eql({ drinks: [], sober: true });
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('8-)');
       expect(state).to.eql({ drinks: [ 'Whiskey drink', 'Vodka drink' ], sober: false });
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(state).to.eql({ drinks: [ 'Whiskey drink', 'Vodka drink', 'Lager drink' ], sober: false });
-      assertions[3].done();
+      await assertions[3].done();
       await steps[4];
       expect(state).to.eql({ drinks: [ 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink' ], sober: false });
     });
@@ -160,7 +160,27 @@ describe('#useProgressiveState', function() {
       await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
-        create(boundary);
+        await create(boundary);
+        await delay(10);
+        expect(caughtAt(boundary)).to.be.an('error');
+      });
+    });
+  })
+  it('should throw when usability is given object with incorrect properties', async function() {
+    await withTestRenderer(async ({ create }) => {
+      function Test() {
+        const state = useProgressiveState(async ({ usable }) => {
+          usable({ drinks: true });
+          return {};
+        }, []);
+        // without the following lines the call above would get optimized out
+        const { drinks, sober } = state;
+        return (sober) ? ':-(' : '8-)';
+      }
+      await withSilentConsole(async () => {
+        const el = createElement(Test);
+        const boundary = createErrorBoundary(el);
+        await create(boundary);
         await delay(10);
         expect(caughtAt(boundary)).to.be.an('error');
       });

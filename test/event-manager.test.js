@@ -40,6 +40,18 @@ describe('#EventManager', function() {
     const value2 = await Promise.race([ promise2, delay(5) ]);
     expect(value2).to.be.undefined;
   })
+  it('should create a handler that triggers fulfillment with given object', async function() {
+    const { on, eventual } = new EventManager({});
+    const object = { hello: 'world' };
+    const handler = on.click.bind(object);
+    const promise1 = eventual.click;
+    const promise2 = eventual.keypress;
+    setTimeout(() => handler(5), 10);
+    const value1 = await promise1;
+    expect(value1).to.equal(object);
+    const value2 = await Promise.race([ promise2, delay(5) ]);
+    expect(value2).to.be.undefined;
+  })
   it('should use the second argument as the fulfillment value as well', async function() {
     const { on, eventual } = new EventManager({});
     const handler = on.click.bind(null, 6);
@@ -214,6 +226,14 @@ describe('#EventManager', function() {
     expect(promise).to.be.a('promise');
     const value = await promise;
     expect(value).to.equal('timeout');
+  })
+  it('should cancel timeout when promise is fulfilled', async function() {
+    const { on, eventual } = new EventManager({});
+    const promise = eventual.click.for(20).milliseconds;
+    expect(promise).to.be.a('promise');
+    on.click('clicked');
+    const value = await promise;
+    expect(value).to.not.equal('timeout');
   })
   it('should permit attachment of timeout to promise chain', async function() {
     const { on, eventual } = new EventManager({});

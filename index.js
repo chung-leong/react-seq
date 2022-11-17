@@ -18,6 +18,7 @@ export {
   generateProps,
 } from './src/prop-generator.js';
 export {
+  manageEvents,
   important,
   throwing,
 } from './src/event-manager.js';

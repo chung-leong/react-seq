@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState, useContext, startTransition } from 'react';
 import { IntermittentIterator, Interruption } from './iterator.js';
-import { EventManager } from './event-manager.js';
+import { EventManager, linkEventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { InspectorContext } from './inspector.js';
 import { Abort, isAbortError } from './utils.js';
@@ -16,6 +16,7 @@ export function useFunctionState(fn, cb, deps) {
   }
   const inspector = useContext(InspectorContext);
   const { initialState, abortManager } = useMemo(() => {
+    debugger;
     return fn(cb, s => setState(s), e => setError(e), { inspector });
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
@@ -69,10 +70,12 @@ export function sequentialState(cb, setState, setError, options = {}) {
   };
 
   // let callback manages events with help of promises
+  let eventManager, eventManagerKey;
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     methods.manageEvents = (options = {}) => {
-      const em = new EventManager({ ...options, signal });
-      return [ em.on, em.eventual ];
+      eventManager = new EventManager({ ...options, signal, inspector });
+      linkEventManager(eventManagerKey, eventManager);
+      return [ eventManager.on, eventManager.eventual ];
     };
   }
 
@@ -114,6 +117,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   let pendingState;
   let unusedSlot = false;
+  linkEventManager(eventManagerKey = initialState, eventManager);
   return { initialState, abortManager };
 
   function updateState({ conditional = false, reusable = false }) {
@@ -126,6 +130,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
     if (pendingState !== undefined) {
       const newState = pendingState;
       pendingState = undefined;
+      linkEventManager(eventManagerKey = newState, eventManager);
       startTransition(() => setState(newState));
       unusedSlot = false;
     } else {

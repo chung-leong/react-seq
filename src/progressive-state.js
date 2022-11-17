@@ -12,7 +12,13 @@ export function progressiveState(cb, setState, setError, options) {
     let usables = {};
     methods.usable = (arg) => {
       if (arg instanceof Object) {
-        Object.assign(usables, arg);
+        for (const [ name, value ] of Object.entries(arg)) {
+          if (typeof(value) === 'number' || typeof(value) === 'function') {
+            usables[name] = value;
+          } else {
+            throw new Error('usable() expects object properties to be numbers or functions');
+          }
+        }
       } else if (typeof(arg) === 'number' || typeof(arg) === 'function') {
         usableDefault = arg;
       } else {

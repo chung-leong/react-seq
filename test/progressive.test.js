@@ -12,8 +12,8 @@ import {
 
 describe('#progressive', function() {
   it('should return a component that renders progressively', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -36,22 +36,22 @@ describe('#progressive', function() {
         });
         return { animals: generate() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('Pig');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('Pig, Donkey');
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Pig, Donkey, Chicken');
     });
   })
   it('should defer rendering until all items is fetched from generator', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -71,22 +71,22 @@ describe('#progressive', function() {
         type(TestComponent);
         return { animals: generate() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('None');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('None');
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Pig, Donkey, Chicken');
     });
   })
   it('should rendering with available data when deferrment delay is reached', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -108,23 +108,23 @@ describe('#progressive', function() {
         usable({ animals: 1 })
         return { animals: generate() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('None');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       await delay(25);
       expect(toJSON()).to.equal('Pig, Donkey');
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Pig, Donkey, Chicken');
     });
   })
   it('should trigger error boundary when a generator throws', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -139,16 +139,16 @@ describe('#progressive', function() {
         const { element: el } = progressive(async ({ fallback, usable, type }) => {
           fallback('None');
           type(TestComponent);
-          usable({ animals: true });
+          usable({ animals: 1 });
           return { animals: generate() };
         });
         const boundary = createErrorBoundary(el);
-        create(boundary);
+        await create(boundary);
         expect(toJSON()).to.equal('None');
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
         expect(toJSON()).to.equal('Pig');
-        assertions[1].done();
+        await assertions[1].done();
         await steps[2];
         expect(toJSON()).to.equal('ERROR');
         expect(caughtAt(boundary)).to.be.an('error');
@@ -156,8 +156,8 @@ describe('#progressive', function() {
     });
   })
   it('should accept a module with default as type', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -175,25 +175,25 @@ describe('#progressive', function() {
       const { element: el } = progressive(async ({ fallback, usable, type }) => {
         fallback('None');
         type({ default: Title });
-        usable({ animals: true });
+        usable({ animals: 1 });
         return { animals: generate() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig' ] });
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey' ] });
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.eql({ type: 'h1', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
     });
   })
   it('should accept an element-creating function in lieu of a type', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -207,26 +207,26 @@ describe('#progressive', function() {
       }
       const { element: el } = progressive(async ({ fallback, usable, element }) => {
         fallback('None');
-        usable({ animals: true });
+        usable({ animals: 1 });
         element(({ animals = [] }) => createElement('span', {}, animals.join(', ')));
         return { animals: generate() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig' ] });
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey' ] });
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Pig, Donkey, Chicken' ] });
     });
   })
   it('should progressively render values from sync generator', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(0), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(0), assertions = createSteps(act);
       function* generate() {
         yield assertions[0].then(() => {
           steps[1].done();
@@ -247,25 +247,25 @@ describe('#progressive', function() {
       const { element: el } = progressive(async ({ fallback, usable, type }) => {
         fallback('None');
         type(TestComponent);
-        usable({ animals: true });
+        usable({ animals: 1 });
         return { animals: generate() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('Pig');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('Pig, Donkey');
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Pig, Donkey, Chicken');
     });
   })
   it('should throw if an element type is not given', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       await withSilentConsole(async () => {
         const { element: el } = progressive(async () => {
           return {};
@@ -300,11 +300,24 @@ describe('#progressive', function() {
       });
     });
   })
-  it('should throw if usable is given a non-object', async function() {
+  it('should throw if usable is given incorrect parameter', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       await withSilentConsole(async () => {
         const { element: el } = progressive(async ({ usable }) => {
           usable('cow', 1);
+          return {};
+        });
+        const boundary = createErrorBoundary(el);
+        await create(boundary);
+        expect(caughtAt(boundary)).to.be.an('error');
+      })
+    });
+  })
+  it('should throw if usable is given an object with incorrect properties', async function() {
+    await withTestRenderer(async ({ create, toJSON }) => {
+      await withSilentConsole(async () => {
+        const { element: el } = progressive(async ({ usable }) => {
+          usable({ cow: false });
           return {};
         });
         const boundary = createErrorBoundary(el);
@@ -327,8 +340,8 @@ describe('#progressive', function() {
     });
   })
   it('should accept number as usablility default', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* create1() {
         await assertions[0];
         yield 'Pig';              // 1
@@ -356,26 +369,26 @@ describe('#progressive', function() {
         element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
         return { animals: create1(), sandwiches: create2() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('None');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('None');
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('None');
-      assertions[3].done()
+      await assertions[3].done()
       await steps[4];
       expect(toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
-      assertions[4].done()
+      await assertions[4].done()
     });
   })
   it('should let usable override the default for one prop', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* create1() {
         await assertions[0];
         yield 'Pig';              // 1
@@ -404,29 +417,29 @@ describe('#progressive', function() {
         element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
         return { animals: create1(), sandwiches: create2() };
       });
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('None');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('Pig (Cuban)');
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Pig, Cow (Cuban)');
-      assertions[3].done()
+      await assertions[3].done()
       await steps[4];
       expect(toJSON()).to.equal('Pig, Cow (Cuban, Hamburger)');
-      assertions[4].done()
+      await assertions[4].done()
     });
   });
 })
 
 describe('#useProgressive()', function() {
   it('should return a component that renders progressively', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -452,22 +465,22 @@ describe('#useProgressive()', function() {
         return animals.join(', ');
       }
       const el = createElement(ContainerComponent);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('Pig');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('Pig, Donkey');
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Pig, Donkey, Chicken');
     });
   })
   it('should use a dynamically loaded module', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       async function* generate() {
         await assertions[0];
         yield 'Pig';
@@ -490,22 +503,22 @@ describe('#useProgressive()', function() {
         }, []);
       }
       const el = createElement(ContainerComponent);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('None');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(JSON.parse(toJSON())).to.eql({ animals: [ 'Pig' ] });
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(JSON.parse(toJSON())).to.eql({ animals: [ 'Pig', 'Donkey' ] });
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(JSON.parse(toJSON())).to.eql({ animals: [ 'Pig', 'Donkey', 'Chicken' ] });
     });
   })
   it('should warn when loaded module does not have a default export', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function ContainerComponent() {
         return useProgressive(async ({ type }) => {
           await assertions[0];
@@ -517,17 +530,17 @@ describe('#useProgressive()', function() {
       const el = createElement(ContainerComponent);
       const console = {};
       await withSilentConsole(async () => {
-        create(el);
+        await create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
       }, console);
       expect(console.warn).to.contain('default');
     });
   })
   it('should warn when type is given a promise', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function ContainerComponent() {
         return useProgressive(async ({ type }) => {
           await assertions[0];
@@ -539,17 +552,17 @@ describe('#useProgressive()', function() {
       const el = createElement(ContainerComponent);
       const console = {};
       await withSilentConsole(async () => {
-        create(el);
+        await create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
       }, console);
       expect(console.warn).to.contain('await');
     });
   })
   it('should warn when usability is specified for a prop that does not appear in the return object', async function () {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function ContainerComponent() {
         return useProgressive(async ({ type, usable }) => {
           usable({ b: 1, c: 2 });
@@ -562,9 +575,9 @@ describe('#useProgressive()', function() {
       const el = createElement(ContainerComponent);
       const console = {};
       await withSilentConsole(async () => {
-        create(el);
+        await create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
       }, console);
       expect(console.warn).to.contain('prop');

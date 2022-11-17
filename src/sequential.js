@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useReducer, useContext, startTransition, createElement, lazy, Suspense } from 'react';
 import { IntermittentIterator, Timeout, Interruption } from './iterator.js';
-import { EventManager } from './event-manager.js';
+import { EventManager, linkEventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { InspectorContext } from './inspector.js';
 import { Abort, nextTick, isAbortError } from './utils.js';
@@ -77,11 +77,13 @@ export function sequential(cb, options = {}) {
     return abortManager.mounted;
   };
 
+  let eventManager, eventManagerKey;
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
     methods.manageEvents = (options = {}) => {
-      const { on, eventual } = new EventManager({ ...options, signal, inspector });
-      return [ on, eventual ];
+      eventManager = new EventManager({ ...options, signal, inspector });
+      linkEventManager(eventManagerKey, eventManager);
+      return [ eventManager.on, eventManager.eventual ];
     };
   }
 
@@ -308,6 +310,7 @@ export function sequential(cb, options = {}) {
     // no self-destructing when suspension is used
     abortManager.setSelfDestruct();
   }
+  linkEventManager(eventManagerKey = element, eventManager);
   return result;
 }
 

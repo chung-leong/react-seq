@@ -14,8 +14,8 @@ import {
 
 describe('#sequentialState()', function() {
   it('should invoke function with new state', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const createDrinks = async function*() {
         await assertions[0];
         yield 'Whiskey drink';
@@ -35,23 +35,23 @@ describe('#sequentialState()', function() {
       const setError = err => errors.push(err);
       const { initialState } = sequentialState(createDrinks, setState, setError);
       expect(initialState).to.be.undefined;
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(results).to.eql([ 'Whiskey drink' ]);
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink', 'Lager drink' ]);
-      assertions[3].done();
+      await assertions[3].done();
       await steps[4];
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink' ]);
     });
   })
   it('should invoke function with error when it occurs', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const createDrinks = async function*() {
         await assertions[0];
         yield 'Whiskey drink';
@@ -67,20 +67,20 @@ describe('#sequentialState()', function() {
       const setError = err => errors.push(err);
       const { initialState } = sequentialState(createDrinks, setState, setError);
       expect(initialState).to.be.undefined;
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(results).to.eql([ 'Whiskey drink' ]);
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(errors[0]).to.be.an('error');
     });
   })
   it('should return the initial state', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const createDrinks = async function*({ initial }) {
         initial('Sober');
         await assertions[0];
@@ -102,15 +102,15 @@ describe('#sequentialState()', function() {
       const { initialState } = sequentialState(createDrinks, setState, setError);
       expect(initialState).to.equal('Sober');
       for (let i = 0; i <= 4; i++) {
-        assertions[i].done();
+        await assertions[i].done();
       }
       await steps[4];
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink' ]);
     });
   })
   it('should allow the deferrment of state update', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const createDrinks = async function*({ defer }) {
         defer(20);
         await assertions[0];
@@ -130,23 +130,23 @@ describe('#sequentialState()', function() {
       const setState = value => results.push(value);
       const setError = err => errors.push(err);
       const { initialState } = sequentialState(createDrinks, setState, setError);
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(results).to.eql([]);
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(results).to.eql([]);
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(results).to.eql([]);
-      assertions[3].done();
+      await assertions[3].done();
       await steps[4];
       expect(results).to.eql([ 'Cider drink' ]);
     });
   })
   it('should interrupt iteration of generator when abort controller is invoked', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const createDrinks = async function*() {
         try {
           await assertions[0];
@@ -171,26 +171,25 @@ describe('#sequentialState()', function() {
       const setError = err => error = err;
       const { abortManager } = sequentialState(createDrinks, setState, setError);
       expect(abortManager).to.be.instanceOf(AbortController);
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(results).to.eql([ 'Whiskey drink' ]);
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
-      assertions[2].done();
+      await assertions[2].done();
       abortManager.abort();
-      await delay(0);
-      assertions[3].done();
-      assertions[4].done();
+      await assertions[3].done();
+      await assertions[4].done();
       await steps[5];
-      expect(results).to.eql([ 'Whiskey drink', 'Vodka drink' ]);
+      expect(results).to.eql([ 'Whiskey drink', 'Vodka drink', 'Lager drink' ]);
     });
   })
 })
 describe('#useSequentialState()', function() {
   it('should provide new state to component periodically', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const results = [];
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
@@ -218,28 +217,28 @@ describe('#useSequentialState()', function() {
         return state;
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(results).to.eql([ 'Pissing the night away' ]);
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(results).to.eql([ 'Pissing the night away', 'Whiskey drink' ]);
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(results).to.eql([ 'Pissing the night away', 'Whiskey drink', 'Vodka drink' ]);
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(results).to.eql([ 'Pissing the night away', 'Whiskey drink', 'Vodka drink', 'Lager drink' ]);
-      assertions[3].done();
+      await assertions[3].done();
       await steps[4];
-      assertions[4].done();
       expect(results).to.eql([ 'Pissing the night away', 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink' ]);
+      await assertions[4].done();
       await steps[5];
       expect(results).to.eql([ 'Pissing the night away', 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink', 'I get knocked down' ]);
     });
   })
   it('should invoke the finally section of a looping generator on unmount', async function() {
-    await withTestRenderer(async ({ create, unmount, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, unmount, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ manageEvents, initial }) {
           initial('Whiskey drink');
@@ -257,17 +256,17 @@ describe('#useSequentialState()', function() {
         return state;
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('Whiskey drink');
-      assertions[0].done();
-      unmount();
+      await assertions[0].done();
+      await unmount();
       await steps[1];
       expect(toJSON()).to.equal(null);
     });
   })
   it('should allow generation of initial state using a function', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test({ }) {
         const state = useSequentialState(async function*({ initial }) {
           initial(() => 'Whiskey drink');
@@ -278,9 +277,9 @@ describe('#useSequentialState()', function() {
         return state;
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('Whiskey drink');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('Vodka drink');
     });
@@ -298,8 +297,8 @@ describe('#useSequentialState()', function() {
     });
   })
   it('should throw any error encountered so it can be caught by error boundary', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
           initial('Sober');
@@ -314,12 +313,12 @@ describe('#useSequentialState()', function() {
       await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
-        create(boundary);
+        await create(boundary);
         expect(toJSON()).to.equal('Sober');
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
         expect(toJSON()).to.equal('Vodka drink');
-        assertions[1].done();
+        await assertions[1].done();
         await steps[2];
         expect(toJSON()).to.equal('ERROR');
         expect(caughtAt(boundary)).to.be.an('error');
@@ -327,8 +326,8 @@ describe('#useSequentialState()', function() {
     });
   })
   it('should throw if dependecies are not specified', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
         });
@@ -337,15 +336,15 @@ describe('#useSequentialState()', function() {
       await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
-        create(boundary);
+        await create(boundary);
         expect(toJSON()).to.equal('ERROR');
         expect(caughtAt(boundary)).to.be.an('error');
       });
     });
   })
   it('should throw when initial is called after an await statement', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
           await assertions[0];
@@ -357,9 +356,9 @@ describe('#useSequentialState()', function() {
       await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
-        create(boundary);
+        await create(boundary);
         expect(toJSON()).to.equal(null);
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
         expect(toJSON()).to.equal('ERROR');
         expect(caughtAt(boundary)).to.be.an('error');
@@ -367,8 +366,8 @@ describe('#useSequentialState()', function() {
     });
   })
   it('should throw when mount is called after an await statement', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ mount }) {
           await assertions[0];
@@ -380,9 +379,9 @@ describe('#useSequentialState()', function() {
       await withSilentConsole(async () => {
         const el = createElement(Test);
         const boundary = createErrorBoundary(el);
-        create(boundary);
+        await create(boundary);
         expect(toJSON()).to.equal(null);
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
         expect(toJSON()).to.equal('ERROR');
         expect(caughtAt(boundary)).to.be.an('error');
@@ -407,8 +406,8 @@ describe('#useSequentialState()', function() {
     });
   })
   it('should silently ignore any fetch abort error', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
           initial('Sober');
@@ -427,17 +426,17 @@ describe('#useSequentialState()', function() {
       }
       const el = createElement(Test);
       const boundary = createErrorBoundary(el);
-      create(boundary);
+      await create(boundary);
       expect(toJSON()).to.equal('Sober');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('Sober');
       expect(caughtAt(boundary)).to.be.undefined;
     });
   })
   it('should give null when value from generator is undefined', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
           initial('Sober');
@@ -448,15 +447,15 @@ describe('#useSequentialState()', function() {
         return typeof(state);
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('string');
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('object');
     });
   })
   it('should update state immediately where there is an unused slot', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
       function Test() {
         const state = useSequentialState(async function*({ initial, defer }) {
           initial('Sober');
@@ -470,15 +469,15 @@ describe('#useSequentialState()', function() {
         return state;
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(toJSON()).to.equal('Sober');
       await delay(45);
       expect(toJSON()).to.equal('Drunk');
     });
   })
   it('should make use of pending state after call to flush', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      const steps = createSteps(), assertions = createSteps();
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
       const results = [];
       let f;
       function Test() {
@@ -502,18 +501,18 @@ describe('#useSequentialState()', function() {
         return state;
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(results).to.eql([ undefined ]);
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(results).to.eql([ undefined ]);
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(results).to.eql([ undefined ]);
       f();
       await delay(5);
       expect(results).to.eql([ undefined, 'Vodka drink' ]);
-      assertions[2].done();
+      await assertions[2].done();
     });
   })
   it('should run callback provided through mount', async function() {

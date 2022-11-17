@@ -161,10 +161,10 @@ describe('#PromiseLogger', function() {
     expect(error).to.be.an('error');
   })
   it('should pick up content update events from useSequential', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
       const inspector = new PromiseLogger();
       const { oldEvents } = inspector;
-      const steps = createSteps(), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         return useSequential(async function*({ fallback }) {
           fallback('Cow');
@@ -181,26 +181,26 @@ describe('#PromiseLogger', function() {
       }
       const el = createElement(Test);
       const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
-      create(cp);
-      assertions[0].done();
+      await create(cp);
+      await assertions[0].done();
       await steps[1];
       expect(oldEvents({ type: 'content' })).to.have.lengthOf(1);
       expect(toJSON()).to.equal('Pig');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('Chicken');
       expect(oldEvents({ type: 'content' })).to.have.lengthOf(2);
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Monkey');
       expect(oldEvents({ type: 'content' })).to.have.lengthOf(3);
     });
   })
   it('should pick up timeout events from useSequential', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
       const inspector = new PromiseLogger();
       const { oldEvent } = inspector;
-      const steps = createSteps(), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         return useSequential(async function*({ fallback, timeout }) {
           fallback('Cow');
@@ -211,18 +211,18 @@ describe('#PromiseLogger', function() {
       }
       const el = createElement(Test);
       const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
-      create(cp);
+      await create(cp);
       await delay(30);
       expect(oldEvent({ type: 'timeout' })).to.have.property('content', 'Tortoise');
       expect(toJSON()).to.equal('Tortoise');
     });
   })
   it('should pick up error events from useSequential', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
       await withSilentConsole(async () => {
         const inspector = new PromiseLogger();
         const { oldEvents } = inspector;
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback }) {
             fallback('Cow');
@@ -237,22 +237,22 @@ describe('#PromiseLogger', function() {
         const el = createElement(Test);
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         const boundary = createErrorBoundary(cp);
-        create(boundary);
+        await create(boundary);
         expect(toJSON()).to.equal('Cow');
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
         expect(toJSON()).to.equal('Pig');
-        assertions[1].fail(new Error('ERROR'))
+        await assertions[1].fail(new Error('ERROR'))
         await delay(0);
         expect(oldEvents({ type: 'error' })).to.have.lengthOf(1);
       });
     });
   })
   it('should pick up abort event from useSequential', async function() {
-    await withTestRenderer(async ({ create, unmount, toJSON }) => {
+    await withTestRenderer(async ({ create, unmount, toJSON, act }) => {
       const inspector = new PromiseLogger();
       const { oldEvents } = inspector;
-      const steps = createSteps(), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         return useSequential(async function*({ fallback }) {
           fallback('Cow');
@@ -263,17 +263,16 @@ describe('#PromiseLogger', function() {
       }
       const el = createElement(Test);
       const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
-      create(cp);
-      unmount();
-      await delay(0);
+      await create(cp);
+      await unmount();
       expect(oldEvents({ type: 'abort' })).to.have.lengthOf(1);
     });
   })
   it('should pick up content update events from useSequentialState', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
       const inspector = new PromiseLogger();
       const { oldEvents } = inspector;
-      const steps = createSteps(), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
           initial('Cow');
@@ -291,17 +290,17 @@ describe('#PromiseLogger', function() {
       }
       const el = createElement(Test);
       const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
-      create(cp);
+      await create(cp);
       expect(oldEvents({ type: 'state' })).to.have.lengthOf(1);
-      assertions[0].done();
+      await assertions[0].done();
       await steps[1];
       expect(oldEvents({ type: 'state' })).to.have.lengthOf(2);
       expect(toJSON()).to.equal('Pig');
-      assertions[1].done();
+      await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('Chicken');
       expect(oldEvents({ type: 'state' })).to.have.lengthOf(3);
-      assertions[2].done();
+      await assertions[2].done();
       await steps[3];
       expect(toJSON()).to.equal('Monkey');
       expect(oldEvents({ type: 'state' })).to.have.lengthOf(4);
@@ -310,11 +309,11 @@ describe('#PromiseLogger', function() {
     });
   })
   it('should pick up error events from useSequentialState', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
       await withSilentConsole(async () => {
         const inspector = new PromiseLogger();
         const { oldEvents } = inspector;
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           const state = useSequentialState(async function*({ initial }) {
             initial('Cow');
@@ -330,19 +329,18 @@ describe('#PromiseLogger', function() {
         const el = createElement(Test);
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         const boundary = createErrorBoundary(cp);
-        create(boundary);
-        assertions[0].done();
+        await create(boundary);
+        await assertions[0].done();
         await steps[1];
-        assertions[1].fail(new Error('ERROR'))
-        await delay(0);
+        await assertions[1].fail(new Error('ERROR'))
         expect(oldEvents({ type: 'error' })).to.have.lengthOf(1);
       });
     });
   })
   it('should pick up abort event from useSequentialState', async function() {
-    await withTestRenderer(async ({ create, unmount, toJSON }) => {
+    await withTestRenderer(async ({ create, unmount, toJSON, act }) => {
       const inspector = new PromiseLogger();
-      const steps = createSteps(), assertions = createSteps();
+      const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const state = useSequentialState(async function*({ initial }) {
           initial('Cow');
@@ -354,9 +352,8 @@ describe('#PromiseLogger', function() {
       }
       const el = createElement(Test);
       const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
-      create(cp);
-      unmount();
-      await delay(0);
+      await create(cp);
+      await unmount();
       expect(inspector.oldEvents({ type: 'abort' })).to.have.lengthOf(1);
     });
   })
@@ -364,11 +361,11 @@ describe('#PromiseLogger', function() {
 
 describe('#ConsoleLogger', function() {
   it('should handle content update events', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback }) {
             fallback('Cow');
@@ -380,7 +377,7 @@ describe('#ConsoleLogger', function() {
         const el = createElement(Test);
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
         inspector.stop();
       }, console);
@@ -388,11 +385,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle state update events', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           const state = useSequentialState(async function*({ initial }) {
             initial('Cow');
@@ -410,11 +407,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle timeout events', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback, timeout }) {
             fallback('Cow');
@@ -434,11 +431,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle error events', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           const state = useSequentialState(async function*({ initial }) {
             initial('Cow');
@@ -455,21 +452,20 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         const boundary = createErrorBoundary(cp);
         await create(boundary);
-        assertions[0].done();
+        await assertions[0].done();
         await steps[1];
-        assertions[1].fail(new Error('ERROR'))
-        await delay(0);
+        await assertions[1].fail(new Error('ERROR'))
         inspector.stop();
       }, console);
       expect(console.log).to.include('Error');
     });
   })
   it('should handle abort event', async function() {
-    await withTestRenderer(async ({ create, unmount }) => {
+    await withTestRenderer(async ({ create, unmount, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           const state = useSequentialState(async function*({ initial }) {
             initial('Cow');
@@ -489,11 +485,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle promise await events', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
@@ -512,11 +508,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle fulfillment events with no listener', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
@@ -537,11 +533,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle fulfillment events with important value', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
@@ -562,11 +558,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle rejection events with no listener', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
@@ -587,11 +583,11 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle rejection events with important error', async function() {
-    await withTestRenderer(async ({ create }) => {
+    await withTestRenderer(async ({ create, act }) => {
       const console = {};
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps();
+        const steps = createSteps(), assertions = createSteps(act);
         function Test() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
