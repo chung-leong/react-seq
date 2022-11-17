@@ -5,7 +5,7 @@ import { renderToPipeableStream } from 'react-dom/server';
 import { act } from 'react-dom/test-utils';
 import { withServerSideRendering, withReactHydration } from './dom-renderer.js';
 import { createSteps } from './step.js';
-import { createErrorBoundary, caughtAt } from './error-handling.js';
+import { createErrorBoundary, caughtAt, withSilentConsole } from './error-handling.js';
 import { createWriteStream } from 'fs';
 import { delay, Abort } from '../index.js';
 import { isAbortError, createTrigger } from '../src/utils.js';
@@ -17,6 +17,9 @@ import {
 import {
   renderInChildProc,
 } from '../server.js';
+import {
+  __relay_ssr_msg,
+} from '../src/server-side.js';
 
 describe('Server-side rendering', function() {
   it('should render correctly to a stream', async function() {
@@ -369,6 +372,116 @@ describe('#renderInChildProc()', function() {
     const stream = renderInChildProc('http://example.test/', buildPath);
     const html = await readStream(stream);
     expect(html).to.contain('Learn React');
+  })
+  it('should receive log messages and errors from app', async function() {
+    const buildPath = resolve('./cra/test-5/build');
+    let messages;
+    const stream = renderInChildProc('http://example.test/', buildPath, { onMessages: (m) => messages = m });
+    const html = await readStream(stream);
+    expect(html).to
+      .contain('<script>')
+      .contain('__relay_ssr_msg')
+      .contain('Rendering to server');
+    expect(messages).to.be.an('array');
+    const errMsg = messages.find(m => m.type === 'error');
+    expect(errMsg).to.be.an('object');
+    expect(errMsg).to.have.property('args');
+    const error = errMsg.args[0];
+    expect(error).to.have.property('error', 'Error');
+    expect(error).to.have.property('stack');
+    expect(error.stack[0]).to.contain('App.js:6');
+  })
+  it('should fail when the module type is bogus', async function() {
+    const buildPath = resolve('./cra/test-1-bad/build');
+    const stream = renderInChildProc('http://example.test/', buildPath, { type: 'bogus' });
+    let error;
+    try {
+      const html = await readStream(stream);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.an('error').with.property('message').that.contains('Error encountered during SSR');
+  })
+  it('should send error to client-side console when the App fails to return a stream', async function() {
+    const buildPath = resolve('./cra/test-6-bad/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    let error;
+    const html = await readStream(stream);
+    expect(html).to
+      .contain('</html>')
+      .contain('<script>')
+      .contain('__relay_ssr_msg')
+      .contain('Did not receive a promise from client-side code');
+  })
+  it('should fail when the JS reference is unexpected', async function() {
+    const buildPath = resolve('./cra/test-7-bad/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    let error;
+    try {
+      const html = await readStream(stream);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.an('error').with.property('message').that.contains('path to JavaScript file');
+  })
+  it('should receive log messages and errors from app whose source maps are missing', async function() {
+    const buildPath = resolve('./cra/test-8/build');
+    let messages;
+    const stream = renderInChildProc('http://example.test/', buildPath, { onMessages: (m) => messages = m });
+    const html = await readStream(stream);
+    expect(html).to
+      .contain('<script>')
+      .contain('__relay_ssr_msg')
+      .contain('Rendering to server');
+    expect(messages).to.be.an('array');
+    const errMsg = messages.find(m => m.type === 'error');
+    expect(errMsg).to.be.an('object');
+    expect(errMsg).to.have.property('args');
+    const error = errMsg.args[0];
+    expect(error).to.have.property('error', 'Error');
+    expect(error).to.not.have.property('stack');
+  })
+})
+
+describe('#__relay_ssr_msg', function() {
+  it(`should correctly output a log entry to the console`, async function() {
+    const console = {};
+    await withSilentConsole(async () => {
+      const entry = { type: 'log', args: [ 'Rendering to server' ] };
+      __relay_ssr_msg(entry);
+    }, console);
+    expect(console.log).to.equal('Rendering to server');
+  })
+  it(`should correctly output an error to the console`, async function() {
+    const console = {};
+    await withSilentConsole(async () => {
+      const entry = {
+        type: 'error',
+        args: [
+          {
+            error: 'Error',
+            message: 'Pissing the night away',
+            stack: [
+              'at App.js:6:10',
+              'at c (../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:68:43)',
+              'at Wc (../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:70:252)',
+              'at Zc (../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:76:88)',
+              'at Z (../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:72:8)',
+              'at Zc (../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:76:88)',
+              'at Z (../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:84:217)',
+              'at Uc (../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:96:271)',
+              'at ../node_modules/react-dom/cjs/react-dom-server.browser.production.min.js:95:52'
+            ]
+          }
+        ]
+      };
+      __relay_ssr_msg(entry);
+    }, console);
+    expect(console.error).to.be.an('Error').with.property('message').that
+      .contains('Error')
+      .contains('encountered during SSR')
+      .contains('App.js:6:10')
+      .contains('Pissing the night away')
   })
 })
 

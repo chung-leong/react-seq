@@ -89,23 +89,19 @@ async function render(buildPath, location, additionalFile) {
 
   let exitCode = 0;
   const output = [];
-  try {
-    for (const { type, args } of consoleEntries) {
-      for (let [ index, arg ] of args.entries()) {
-        if (arg instanceof Error) {
-          args[index] = await translateError(arg, buildPath);
-        }
-      }
-      const json = JSON.stringify({ type, args });
-      if (!output.includes(json)) {
-        output.push(json);
-      }
-      if (type === 'error') {
-        exitCode = 1;
+  for (const { type, args } of consoleEntries) {
+    for (let [ index, arg ] of args.entries()) {
+      if (arg instanceof Error) {
+        args[index] = await translateError(arg, buildPath);
       }
     }
-  } catch (err) {
-    process.stderr.write(err.message)
+    const json = JSON.stringify({ type, args });
+    if (!output.includes(json)) {
+      output.push(json);
+    }
+    if (type === 'error') {
+      exitCode = 1;
+    }
   }
   process.stderr.write(output.join('\n') + '\n');
   process.exit(exitCode);
@@ -114,7 +110,7 @@ async function render(buildPath, location, additionalFile) {
 function findJSPath(html) {
   const m = /<script\s+[^>]*?\bsrc="(\/static\/js\/main[^>"]*).*?>/.exec(html);
   if (!m) {
-    throw new Error('Cannot find path to JavaScript script in HTML file');
+    throw new Error('Cannot find path to JavaScript file in HTML file');
   }
   return m[1];
 }
@@ -158,7 +154,6 @@ async function translateError(err, basePath) {
           pos = after;
         }
         const parts = pos.split(':');
-        debugger;
         if (parts.length === 3) {
           const path = `${basePath}/${parts[0]}`;
           const line = parseInt(parts[1]);
