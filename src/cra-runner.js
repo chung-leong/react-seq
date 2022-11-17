@@ -27,7 +27,7 @@ async function render(buildPath, location, additionalFile) {
   process.setUncaughtExceptionCaptureCallback(err => console.error(err));
 
   // default polyfills
-  /* c8 ignore next 6 */
+  /* c8 ignore start */
   if (!global.fetch) {
     try {
       const mod = await import('node-fetch');
@@ -35,7 +35,6 @@ async function render(buildPath, location, additionalFile) {
     } catch (err) {
     }
   }
-  /* c8 ignore next 8 */
   if (!global.AbortController) {
     try {
       const mod = await import('abort-controller');
@@ -44,10 +43,10 @@ async function render(buildPath, location, additionalFile) {
     } catch (err) {
     }
   }
-  /* c8 ignore next 3 */
   if (!global.globalThis) {
     global.globalThis = global;
   }
+  /* c8 ignore end */
   global.self = global;
 
   try {
