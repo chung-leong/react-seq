@@ -1,0 +1,1 @@
+{"version":3,"file":"static/js/58.4bc2ed66.chunk.js","mappings":"4JAAe,SAASA,IACtB,OAAO,6DACT,C","sources":["Something.js"],"sourcesContent":["export default function Something() {\n  return <div>Something is better than nothing</div>;\n}\n"],"names":["Something"],"sourceRoot":""}

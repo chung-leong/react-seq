@@ -4,6 +4,7 @@ import { runInThisContext } from 'vm';
 if (process.argv.length >= 4) {
   const [ buildPath, location, additionalFile ] = process.argv.slice(2);
   render(buildPath, location, additionalFile);
+  /* c8 ignore next 3 */
 } else {
   console.log(`cra-runner.js <build-path> <location> [<polyfill-path>]`);
 }
@@ -26,6 +27,7 @@ async function render(buildPath, location, additionalFile) {
   process.setUncaughtExceptionCaptureCallback(err => console.error(err));
 
   // default polyfills
+  /* c8 ignore next 6 */
   if (!global.fetch) {
     try {
       const mod = await import('node-fetch');
@@ -33,6 +35,7 @@ async function render(buildPath, location, additionalFile) {
     } catch (err) {
     }
   }
+  /* c8 ignore next 8 */
   if (!global.AbortController) {
     try {
       const mod = await import('abort-controller');
@@ -41,25 +44,26 @@ async function render(buildPath, location, additionalFile) {
     } catch (err) {
     }
   }
+  /* c8 ignore next 3 */
   if (!global.globalThis) {
     global.globalThis = global;
   }
   global.self = global;
 
-  // additional polyfills
-  if (additionalFile) {
-    await import(additionalFile);
-  }
-
-  // create fake document object needed by WebPack to import module dynamically
-  global.document = createFakeDocument(buildPath);
-
-  // function to be called by client-side code, giving us promise of web stream
-  // renderToReadableStream()
-  let streamPromise;
-  process.send = async (p) => streamPromise = p;
-
   try {
+    // additional polyfills
+    if (additionalFile) {
+      await import(additionalFile);
+    }
+
+    // create fake document object needed by WebPack to import module dynamically
+    global.document = createFakeDocument(buildPath);
+
+    // function to be called by client-side code, giving us promise of web stream
+    // renderToReadableStream()
+    let streamPromise;
+    process.send = async (p) => streamPromise = p;
+
     // load the HTML file and look for the JS path and look root node
     const htmlPath = `${buildPath}/index.html`;
     const html = await readFile(htmlPath, 'utf8');
@@ -202,9 +206,10 @@ function createFakeDocument(basePath) {
   };
   return {
     createElement(tag) {
+      /* c8 ignore next 3 */
       if (tag !== 'script') {
         throw new Error('Unsupported operation');
-      };
+      }
       return {
         parentNode: null,
         getAttribute: function(name) { return this[name] ?? null },
@@ -212,6 +217,7 @@ function createFakeDocument(basePath) {
       };
     },
     getElementsByTagName(tag) {
+      /* c8 ignore next 3 */
       if (tag !== 'script') {
         throw new Error('Unsupported operation');
       };

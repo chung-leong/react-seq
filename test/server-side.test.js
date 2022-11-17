@@ -441,6 +441,44 @@ describe('#renderInChildProc()', function() {
     expect(error).to.have.property('error', 'Error');
     expect(error).to.not.have.property('stack');
   })
+  it('should correctly render an app that uses dynamic import', async function() {
+    const buildPath = resolve('./cra/test-9/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    const html = await readStream(stream);
+    expect(html).to.contain('Something is better than nothing');
+  })
+  it('should fail reasonably when dynamically imported code is missing', async function() {
+    const buildPath = resolve('./cra/test-10-bad/build');
+    const stream = renderInChildProc('http://example.test/', buildPath);
+    const html = await readStream(stream);
+    expect(html).to
+      .contain('__relay_ssr_msg({"type":"error"')
+      .contain('Loading chunk')
+      .not.contain('Something is better than nothing');
+  })
+  it('should load polyfill script into app scope', async function() {
+    const buildPath = resolve('./cra/test-11/build');
+    const polyfill = resolve('./cra/test-11/fake-fetch.js');
+    let messages;
+    const stream = renderInChildProc('http://example.test/', buildPath, { polyfill, onMessages: m => messages = m});
+    const html = await readStream(stream);
+    expect(html).to.contain('</html>');
+    expect(messages[0]).to.eql({ type: 'log', args: [ 'crappy polyfill' ] });
+    expect(messages[1]).to.eql({ type: 'log', args: [ 'http://somewhere/' ] });
+    expect(messages[2]).to.have.property('type', 'error');
+  })
+  it('should fail when syntax error is present in polyfill script', async function() {
+    const buildPath = resolve('./cra/test-11/build');
+    const polyfill = resolve('./cra/test-11/worse-than-fake.js');
+    const stream = renderInChildProc('http://example.test/', buildPath, { polyfill });
+    let error;
+    try {
+      const html = await readStream(stream);
+    } catch (err) {
+      error = err;
+    }
+    expect(error).to.be.an('error').with.property('message').that.contains('Unexpected token');
+  })
 })
 
 describe('#__relay_ssr_msg', function() {
