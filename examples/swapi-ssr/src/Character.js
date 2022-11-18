@@ -1,4 +1,4 @@
-import { useProgressive } from 'react-seq';
+import { useProgressive, ssr } from 'react-seq';
 import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
@@ -21,6 +21,13 @@ export default function Character({ id }) {
 }
 
 function CharacterUI({ person, homeworld, films, species, vehicles, starships }) {
+  if (ssr() && person.name === 'Jar Jar Binks') {
+    try {
+      throw new Error(`Bad character encountered`);
+    } catch (err) {
+      console.error(err);
+    }
+  }
   return (
     <div>
       <h1>{person.name}</h1>

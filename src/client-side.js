@@ -44,6 +44,14 @@ export async function renderToInnerHTML(element, node) {
     node.innerHTML = html;
   } finally {
     settings({ ssr: false });
+    // suppress irrelevant warning
+    const errorFn = console.error;
+    console.error = (...args) => {
+      console.error = errorFn;
+      if (args.length !== 2 || !args[0].includes('multiple renderers')) {
+        console.error(...args);
+      }
+    };
   }
 }
 

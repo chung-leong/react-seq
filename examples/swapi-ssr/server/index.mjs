@@ -31,6 +31,7 @@ import { loadTablePage, loadTableObject } from './data.mjs';
       reply.type('text/html');
       const buildPath = resolve('../build');
       const location = `${req.protocol}://${req.hostname}/${path}`;
+      console.log(`Generating ${location}`);
       return renderInChildProc(location, buildPath);
     }
   });
@@ -47,6 +48,7 @@ import { loadTablePage, loadTableObject } from './data.mjs';
   })
   // start listening for requests
   await fastify.listen({ host: 'localhost', port: 8080 });
+  console.log(`Running test website at http://localhost:8080/`);
   opener(`http://localhost:8080/`);
 })();
 
