@@ -476,7 +476,7 @@ describe('#renderInChildProc()', function() {
     const buildPath = resolve('./cra/test-11/build');
     const polyfill = resolve('./cra/test-11/fake-fetch.js');
     let messages;
-    const stream = renderInChildProc('http://example.test/', buildPath, { polyfill, onMessages: m => messages = m});
+    const stream = renderInChildProc('http://example.test/', buildPath, { polyfill, onMessages: m => messages = m });
     const html = await readStream(stream);
     expect(html).to.contain('</html>');
     expect(messages[0]).to.eql({ type: 'log', args: [ 'crappy polyfill' ] });
@@ -494,6 +494,16 @@ describe('#renderInChildProc()', function() {
       error = err;
     }
     expect(error).to.be.an('error').with.property('message').that.contains('Unexpected token');
+  })
+  it('should invoke finally section of app', async function() {
+    const buildPath = resolve('./cra/test-12/build');
+    let messages;
+    const stream = renderInChildProc('http://example.test/', buildPath, { onMessages: m => messages = m });
+    const html = await readStream(stream);
+    expect(html).to
+      .contain('</html>')
+      .contain('Iteration #<!-- -->10');
+    expect(messages[0]).to.eql({ type: 'log', args: [ 'finally section' ] });
   })
 })
 

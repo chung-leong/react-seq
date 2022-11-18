@@ -4,14 +4,14 @@ import { settings } from './settings.js';
 import { delay } from './utils.js';
 
 export function hydrateRootReactSeq(container, element) {
+  let root;
   try {
     settings({ ssr: 'hydrate' });
-    const root = hydrateRoot(container, element);
-    // wait for the root to finish its work
-    await waitForRoot(root);
+    root = hydrateRoot(container, element);
     return root;
   } finally {
-    settings({ ssr: false });
+    // wait for the root to finish its work
+    waitForRoot(root).then(() => settings({ ssr: false }));
   }
 }
 
@@ -63,7 +63,7 @@ export function renderToServer(element) {
 }
 
 export async function waitForRoot(root) {
-  while (root._internalRoot.callbackNode) {
+  while (root?._internalRoot.callbackNode) {
     await delay(0);
   }
 }
