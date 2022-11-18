@@ -3,12 +3,13 @@ import { createElement, Suspense, lazy } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToPipeableStream } from 'react-dom/server';
 import { act } from 'react-dom/test-utils';
-import { withServerSideRendering, withReactHydration } from './dom-renderer.js';
+import { withServerSideRendering, withReactDOM } from './dom-renderer.js';
 import { createSteps } from './step.js';
 import { createErrorBoundary, caughtAt, withSilentConsole } from './error-handling.js';
 import { createWriteStream } from 'fs';
 import { delay, Abort } from '../index.js';
 import { isAbortError, createTrigger } from '../src/utils.js';
+import { settings } from '../src/settings.js';
 
 import {
   useSequential,
@@ -228,22 +229,27 @@ describe('Server-side rendering', function() {
 
 describe('Hydration', function() {
   it('should allow correct hydration of a component', async function() {
-    const steps = createSteps(), assertions = createSteps(act);
-    function TestComponent() {
-      return useSequential(async function*({ fallback, defer }) {
-        fallback(createElement('div', {}, 'Cow'));
-        defer(25);
-        await assertions[0];
-        yield createElement('div', {}, 'Pig');
-        await assertions[1];
-        yield createElement('div', {}, 'Chicken');
-        await assertions[2];
-        yield createElement('div', {}, 'Rocky');
-      }, []);
-    }
-    const el = createElement(TestComponent);
-    const html = '<!--$--><div>Rocky</div><!--/$-->';
-    await withReactHydration(html, el, async ({ node, root }) => {
+    await withReactDOM(async ({ unmount, node }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      function TestComponent() {
+        return useSequential(async function*({ fallback, defer }) {
+          fallback(createElement('div', {}, 'Cow'));
+          defer(25);
+          await assertions[0];
+          yield createElement('div', {}, 'Pig');
+          await assertions[1];
+          yield createElement('div', {}, 'Chicken');
+          await assertions[2];
+          yield createElement('div', {}, 'Rocky');
+        }, []);
+      }
+      unmount();
+      const el = createElement(TestComponent);
+      node.innerHTML = '<!--$--><div>Rocky</div><!--/$-->';
+      settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+      const root = hydrateRoot(node, el);
+      await waitForRoot(root);
+      settings({ ssr: false, ssr_time_limit: 3000 });
       await assertions[0].done();
       expect(hasSuspended(root)).to.be.true;
       expect(node.innerHTML).to.contain('<div>Rocky</div>');
@@ -256,33 +262,37 @@ describe('Hydration', function() {
     });
   })
   it('should correctly hydrate a component using a state hook', async function() {
-    const steps = createSteps(), assertions = createSteps(act);
-    function TestComponent() {
-      const state = useSequentialState(async function*({ initial }) {
-        initial('Cow');
-        try {
-          await assertions[0];
-          yield 'Pig';
-          steps[1].done();
-          await assertions[1];
-          yield 'Chicken';
-          steps[2].done();
-          await assertions[2];
-          yield 'Rocky';
-          steps[3].done();
-        } finally {
-          steps[4].done('finally');
-        }
-      }, []);
-      return createElement('div', {}, state);
-    }
-    const html = '<div>Cow</div>';
-    const el = createElement(TestComponent);
-    await withReactHydration(html, el, async ({ node }) => {
+    await withReactDOM(async ({ unmount, node }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      function TestComponent() {
+        const state = useSequentialState(async function*({ initial }) {
+          initial('Cow');
+          try {
+            await assertions[0];
+            yield 'Pig';
+            steps[1].done();
+            await assertions[1];
+            yield 'Chicken';
+            steps[2].done();
+            await assertions[2];
+            yield 'Rocky';
+            steps[3].done();
+          } finally {
+            steps[4].done('finally');
+          }
+        }, []);
+        return createElement('div', {}, state);
+      }
+      unmount();
+      node.innerHTML = '<div>Cow</div>';
+      const el = createElement(TestComponent);
+      settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+      const root = hydrateRoot(node, el);
+      await waitForRoot(root);
+      settings({ ssr: false, ssr_time_limit: 3000 });
       expect(node.innerHTML).to.contain('<div>Cow</div>');
       await assertions[0].done();
       await steps[1];
-      return;
       expect(node.innerHTML).to.contain('<div>Pig</div>');
       await assertions[1].done();
       await steps[2];
@@ -295,28 +305,34 @@ describe('Hydration', function() {
     });
   })
   it('should let generator run to the end when hydrating a component', async function() {
-    const steps = createSteps(), assertions = createSteps(act);
-    function TestComponent() {
-      return useSequential(async function*({ fallback }) {
-        fallback(createElement('div', {}, 'Cow'));
-        try {
-          await assertions[0];
-          yield createElement('div', {}, 'Pig');
-          steps[1].done();
-          await assertions[1];
-          yield createElement('div', {}, 'Chicken');
-          steps[2].done();
-          await assertions[2];
-          yield createElement('div', {}, 'Rocky');
-          steps[3].done();
-        } finally {
-          steps[4].done('finally');
-        }
-      }, []);
-    }
-    const html = '<!--$--><div>Pig</div><!--/$-->';
-    const el = createElement(TestComponent);
-    await withReactHydration(html, el, async ({ node }) => {
+    await withReactDOM(async ({ unmount, node }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      function TestComponent() {
+        return useSequential(async function*({ fallback }) {
+          fallback(createElement('div', {}, 'Cow'));
+          try {
+            await assertions[0];
+            yield createElement('div', {}, 'Pig');
+            steps[1].done();
+            await assertions[1];
+            yield createElement('div', {}, 'Chicken');
+            steps[2].done();
+            await assertions[2];
+            yield createElement('div', {}, 'Rocky');
+            steps[3].done();
+          } finally {
+            steps[4].done('finally');
+          }
+        }, []);
+      }
+      unmount();
+      node.innerHTML = '<!--$--><div>Pig</div><!--/$-->';
+      const el = createElement(TestComponent);
+      settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+      const root = hydrateRoot(node, el);
+      await waitForRoot(root);
+      settings({ ssr: false, ssr_time_limit: 3000 });
+
       await assertions[0].done();
       await steps[1];
       expect(node.innerHTML).to.contain('<div>Pig</div>');
@@ -566,6 +582,12 @@ async function readStream(stream) {
     chunks.push(chunk);
   }
   return Buffer.concat(chunks).toString();
+}
+
+async function waitForRoot(root) {
+  while (root._internalRoot.callbackNode) {
+    await delay(0);
+  }
 }
 
 function hasSuspended(root) {

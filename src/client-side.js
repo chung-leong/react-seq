@@ -1,11 +1,15 @@
 import { renderToReadableStream } from 'react-dom/server';
 import { hydrateRoot } from 'react-dom/client';
 import { settings } from './settings.js';
+import { delay } from './utils.js';
 
 export function hydrateRootReactSeq(container, element) {
   try {
     settings({ ssr: 'hydrate' });
-    return hydrateRoot(container, element);
+    const root = hydrateRoot(container, element);
+    // wait for the root to finish its work
+    await waitForRoot(root);
+    return root;
   } finally {
     settings({ ssr: false });
   }
@@ -56,6 +60,12 @@ export function renderToServer(element) {
       settings({ ssr: false });
     }
   })();
+}
+
+export async function waitForRoot(root) {
+  while (root._internalRoot.callbackNode) {
+    await delay(0);
+  }
 }
 
 export function hasSuspended(root) {

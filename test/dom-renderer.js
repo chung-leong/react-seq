@@ -5,7 +5,7 @@ export async function withReactDOM(cb) {
   const { createRoot } = await import('react-dom/client');
   const { act } = await import('react-dom/test-utils');
   const node = document.body.appendChild(document.createElement('div'));
-  const root = createRoot(node);
+  let root = createRoot(node);
   try {
     await cb({
       render: (el) => act(() => root.render(el)),
@@ -27,31 +27,6 @@ export async function withReactStrictMode(cb, delay = 0) {
       await withReactDOM(cb);
     } finally {
       settings({ strict_mode_clean_up: NaN });
-    }
-  });
-}
-
-export async function withReactHydration(html, el, cb, timeout = 1000) {
-  await withLock(async () => {
-    const { hydrateRoot } = await import('react-dom/client');
-    const { act } = await import('react-dom/test-utils');
-    const node = document.body.appendChild(document.createElement('div'));
-    node.innerHTML = html;
-    let root;
-    try {
-      settings({ ssr: 'hydrate', ssr_time_limit: timeout });
-      process.env.REACT_SEQ_SSR = timeout;
-      await act(() => root = hydrateRoot(node, el));
-      await cb({
-        unmount: () => act(() => root.unmount()),
-        root,
-        node,
-        act,
-      });
-    } finally {
-      await act(() => root.unmount());
-      node.remove();
-      settings({ ssr: false, ssr_time_limit: 3000 });
     }
   });
 }

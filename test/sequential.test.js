@@ -1320,9 +1320,9 @@ describe('#useSequential()', function() {
       }
       let compACount = 0;
       function CompA() {
-        return useSequential(async function*({ fallback, defer, mount }) {
+        return useSequential(async function*({ suspend }) {
           const id = compACount++;
-          fallback('Cow');
+          suspend('comp-A');
           await assertions[0];
           yield 'Pig';
           steps[1].done();
@@ -1344,7 +1344,7 @@ describe('#useSequential()', function() {
       }
       const el1 = createElement(Root, { showB: false });
       await create(el1);
-      expect(toJSON()).to.equal('Cow');
+      expect(toJSON()).to.eql('Monkey');
       await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal('Pig');

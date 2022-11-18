@@ -111,7 +111,6 @@ export function sequential(cb, options = {}) {
     }
   };
 
-
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
   const generator = cb(methods);
