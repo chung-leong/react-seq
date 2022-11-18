@@ -1306,4 +1306,61 @@ describe('#useSequential()', function() {
       expect(results).to.eql([ 'end', 'finally' ]);
     });
   })
+  it('should survive parent component going into suspension', async function() {
+    await withTestRenderer(async ({ create, update, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      const cats = [];
+      function Root({ showB = false }) {
+        const children = [ createElement(CompA) ];
+        if (showB) {
+          children.push(' ');
+          children.push(createElement(CompB));
+        }
+        return createElement(Suspense, { fallback: 'Monkey' }, ...children);
+      }
+      let compACount = 0;
+      function CompA() {
+        return useSequential(async function*({ fallback, defer, mount }) {
+          const id = compACount++;
+          fallback('Cow');
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+          await assertions[2];
+          yield 'Chicken';
+          steps[3].done();
+          await assertions[3];
+          yield 'Bear';
+          steps[4].done();
+        }, []);
+      }
+      function CompB() {
+        return useSequential(async function*({ suspend }) {
+          suspend('comp-B');
+          await assertions[1];
+          yield 'Dingo';
+          steps[2].done();
+        });
+      }
+      const el1 = createElement(Root, { showB: false });
+      await create(el1);
+      expect(toJSON()).to.equal('Cow');
+      await assertions[0].done();
+      await steps[1];
+      expect(toJSON()).to.equal('Pig');
+      const el2 = createElement(Root, { showB: true });
+      await update(el2);
+      await delay(20);
+      expect(toJSON()).to.eql([ 'Monkey' ]);
+      await assertions[1].done();
+      await steps[2];
+      expect(toJSON()).to.eql([ 'Pig', ' ', 'Dingo' ]);
+      await assertions[2].done();
+      await steps[3];
+      expect(toJSON()).to.eql([ 'Chicken', ' ', 'Dingo' ]);
+      await assertions[3].done();
+      await steps[4];
+      expect(toJSON()).to.eql([ 'Bear', ' ', 'Dingo' ]);
+    });
+  })
 })
