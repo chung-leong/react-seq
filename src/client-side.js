@@ -10,8 +10,7 @@ export function hydrateRootReactSeq(container, element) {
     root = hydrateRoot(container, element);
     return root;
   } finally {
-    // wait for the root to finish its work
-    waitForRoot(root).then(() => settings({ ssr: false }));
+    waitForHydration(root).then(() => settings({ ssr: false }));
   }
 }
 
@@ -62,25 +61,27 @@ export function renderToServer(element) {
   })();
 }
 
-export async function waitForRoot(root) {
+export async function waitForHydration(root) {
+  // wait hydrateRoot to finish its work
   while (root?._internalRoot.callbackNode) {
     await delay(0);
   }
-}
+  // wait for all components to finish hydrating
+  while (hydrating(root._internalRoot.current)) {
+    await delay(25);
+  }
 
-export function hasSuspended(root) {
-  function check(node) {
-    if (node.memoizedState && 'dehydrated' in node.memoizedState) {
+  function hydrating(node) {
+    if (node?.memoizedState?.dehydrated) {
       return true;
     }
     for (let c = node.child; c; c = c.sibling) {
-      if (check(c)) {
+      if (hydrating(c)) {
         return true;
       }
     }
     return false;
   }
-  return check(root._internalRoot.current);
 }
 
 export {

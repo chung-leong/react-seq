@@ -64,12 +64,12 @@ function parseLog(text) {
 }
 
 export function __relay_ssr_msg(e) {
-  let type = e.type;
-  let args = e.args.map(arg => {
-    if (arg && arg.error) {
-      let msg = arg.error + ' encountered during SSR; ' + arg.message;
+  var type = e.type;
+  var args = e.args.map(function(arg) {
+    if (arg && arg.error && typeof(Error) === 'function') {
+      var msg = arg.message;
       if (arg.stack) {
-        msg += '\n' + arg.stack.map(line => '    ' + line).join('\n');
+        msg += '\n    ' + arg.stack.join('\n    ');
       }
       const err = new Error(msg);
       err.stack = null;
@@ -77,5 +77,14 @@ export function __relay_ssr_msg(e) {
     }
     return arg;
   });
-  console[type].apply(null, args);
+  // add label
+  if (!/^%c/.test(args[0])) {
+    args.unshift('%c SSR ', 'background-color: #b00; color: #fff; font-weight: bold;');
+  }
+  if (typeof(console) === 'object') {
+    var f = console[type];
+    if (typeof(f) === 'function') {
+      f.apply(console, args);
+    }
+  }
 }

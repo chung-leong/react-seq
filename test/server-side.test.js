@@ -248,7 +248,6 @@ describe('Hydration', function() {
       node.innerHTML = '<!--$--><div>Rocky</div><!--/$-->';
       settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
       const root = hydrateRoot(node, el);
-      await waitForRoot(root);
       settings({ ssr: false, ssr_time_limit: 3000 });
       await assertions[0].done();
       expect(hasSuspended(root)).to.be.true;
@@ -288,7 +287,7 @@ describe('Hydration', function() {
       const el = createElement(TestComponent);
       settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
       const root = hydrateRoot(node, el);
-      await waitForRoot(root);
+      await waitForHydration(root);
       settings({ ssr: false, ssr_time_limit: 3000 });
       expect(node.innerHTML).to.contain('<div>Cow</div>');
       await assertions[0].done();
@@ -330,7 +329,7 @@ describe('Hydration', function() {
       const el = createElement(TestComponent);
       settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
       const root = hydrateRoot(node, el);
-      await waitForRoot(root);
+      await waitForHydration(root);
       settings({ ssr: false, ssr_time_limit: 3000 });
 
       await assertions[0].done();
@@ -514,7 +513,18 @@ describe('#__relay_ssr_msg', function() {
       const entry = { type: 'log', args: [ 'Rendering to server' ] };
       __relay_ssr_msg(entry);
     }, console);
-    expect(console.log).to.equal('Rendering to server');
+    expect(console.log).to.be.an('array');
+    expect(console.log[0]).to.equal('%c SSR ');
+    expect(console.log[2]).to.equal('Rendering to server');
+  })
+  it('should not attach label when message is already employing formatting', async function () {
+    const console = {};
+    await withSilentConsole(async () => {
+      const entry = { type: 'log', args: [ '%cRendering to server', 'color: #999' ] };
+      __relay_ssr_msg(entry);
+    }, console);
+    expect(console.log).to.be.an('array').with.lengthOf(2);
+    expect(console.log[0]).to.equal('%cRendering to server');
   })
   it(`should correctly output an error to the console`, async function() {
     const console = {};
@@ -541,9 +551,9 @@ describe('#__relay_ssr_msg', function() {
       };
       __relay_ssr_msg(entry);
     }, console);
-    expect(console.error).to.be.an('Error').with.property('message').that
-      .contains('Error')
-      .contains('encountered during SSR')
+    expect(console.error).to.be.an('array');
+    expect(console.error[0]).to.equal('%c SSR ');
+    expect(console.error[2]).to.be.an('Error').with.property('message').that
       .contains('App.js:6:10')
       .contains('Pissing the night away')
   })
@@ -594,9 +604,26 @@ async function readStream(stream) {
   return Buffer.concat(chunks).toString();
 }
 
-async function waitForRoot(root) {
-  while (root._internalRoot.callbackNode) {
+export async function waitForHydration(root) {
+  // wait hydrateRoot to finish its work
+  while (root?._internalRoot.callbackNode) {
     await delay(0);
+  }
+  // wait for all components to finish hydrating
+  while (hydrating(root._internalRoot.current)) {
+    await delay(25);
+  }
+
+  function hydrating(node) {
+    if (node?.memoizedState?.dehydrated) {
+      return true;
+    }
+    for (let c = node.child; c; c = c.sibling) {
+      if (hydrating(c)) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

@@ -32,24 +32,27 @@ export async function withLock(cb) {
 
 export async function withSilentConsole(cb, dest = {}) {
   await withLock(async () => {
-    function save(name, s) {
+    function save(name, ...args) {
       const target = dest[name];
+      const arg = args.length === 1 ? args[0] : args;
       if (target instanceof Array)  {
-        target.push(s);
+        target.push(arg);
       } else {
-        dest[name] = s;
+        dest[name] = arg;
       }
     }
     const functions = [ 'debug', 'notice', 'log', 'warn', 'error'];
     const originalFns = {};
-    functions.forEach(name => {
+    for (const name of functions) {
       originalFns[name] = console[name];
-      console[name] = arg => save(name, arg);
-    });
+      console[name] = save.bind(null, name);
+    }
     try {
       await cb();
     } finally {
-      functions.forEach(name => console[name] = originalFns[name]);
+      for (const name of functions) {
+        console[name] = originalFns[name];
+      }
     }
   });
 }

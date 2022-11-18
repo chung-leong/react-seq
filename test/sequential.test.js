@@ -22,7 +22,7 @@ describe('#sequential()', function() {
     expect(el).to.have.property('type', Suspense);
   })
   it('should return a component that uses the first item from the generator as its content', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
+    await withTestRenderer(async ({ create, toJSON, act, root }) => {
       const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         const seq = useSequential();
@@ -1306,10 +1306,47 @@ describe('#useSequential()', function() {
       expect(results).to.eql([ 'end', 'finally' ]);
     });
   })
+  it('should not trigger flush when delay is set to 0', async function() {
+    await withTestRenderer(async ({ create, update, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      function Test() {
+        return useSequential(async function*({ fallback, defer }) {
+          fallback('Cow');
+          defer(100);
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+          await assertions[1];
+          yield 'Chicken';
+          steps[2].done();
+          await assertions[2];
+          defer(0);
+          steps[3].done();
+          await assertions[3];
+          yield 'Bear';
+          steps[4].done();
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(toJSON()).to.eql('Cow');
+      await assertions[0].done();
+      await steps[1];
+      expect(toJSON()).to.eql('Cow');
+      await assertions[1].done();
+      await steps[2];
+      expect(toJSON()).to.eql('Cow');
+      await assertions[2].done();
+      await steps[3];
+      expect(toJSON()).to.eql('Cow');
+      await assertions[3].done();
+      await steps[4];
+      expect(toJSON()).to.eql('Bear');
+    });
+  })
   it('should survive parent component going into suspension', async function() {
     await withTestRenderer(async ({ create, update, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const cats = [];
       function Root({ showB = false }) {
         const children = [ createElement(CompA) ];
         if (showB) {

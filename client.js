@@ -2,5 +2,5 @@ export {
   renderToInnerHTML,
   renderToServer,
   hydrateRoot,
-  hasSuspended,
+  waitForHydration,
 } from './src/client-side.js';
