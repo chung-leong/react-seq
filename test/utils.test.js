@@ -112,6 +112,21 @@ describe('#stasi()', function() {
     expect(list1).to.eql([ 1, 2, 3, 4, 5 ]);
     expect(list2).to.eql(list1);
   })
+  it('should not make next enumerable if it is not when attached to the original generator', async function() {
+    async function* generate() {
+      for (let i = 1; i <= 5; i++) {
+        await delay(5)
+        yield i;
+      }
+    };
+    const target = generate();
+    const targetDesc1 = Object.getOwnPropertyDescriptor(target, 'next');
+    const enumerable1 = targetDesc1?.enumerable ?? false;
+    const agent = stasi(target);
+    const targetDesc2 = Object.getOwnPropertyDescriptor(target, 'next');
+    const enumerable2 = targetDesc2?.enumerable ?? false;
+    expect(enumerable2).to.equal(enumerable1);
+  })
   it('should stop tapping when an error is encountered', async function() {
     async function* generate() {
       for (let i = 1; i <= 5; i++) {

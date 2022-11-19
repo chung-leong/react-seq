@@ -77,8 +77,17 @@ export function stasi(generator) {
   } else {
     throw new Error('Not a generator');
   }
-  let ctx = generator.next.stasi;
+  const desc0 = Object.getOwnPropertyDescriptor(generator, 'next') ?? {
+    enumerable: false,
+    configurable: true,
+    writable: true,
+  };
   let nextS;
+  function attachNext(gen) {
+    const desc = { ...desc0, value: nextS };
+    Object.defineProperty(gen, 'next', desc);
+  }
+  let ctx = generator.next.stasi;
   if (ctx) {
     nextS = generator.next;
   } else {
@@ -152,11 +161,11 @@ export function stasi(generator) {
       };
     }
     nextS.stasi = ctx;
-    generator.next = nextS;
+    attachNext(generator);
   }
   // create empty generator and attach .next()
   const genS = (sync) ? (function*(){})() : (async function*(){})();
-  genS.next = nextS;
+  attachNext(genS);
   ctx.generators.push(genS);
   ctx.queues.push([]);
   return genS;
