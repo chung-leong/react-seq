@@ -132,6 +132,7 @@ function isComplex(value) {
 }
 
 export async function* generateNext(source) {
+  const base = source;
   const stack = [];
   let exhausted = false;
   let current = false;
@@ -215,9 +216,9 @@ export async function* generateNext(source) {
             current.push(value);
           }
           if (appending) {
-            for (const key of Object.keys(source)) {
+            for (const key of Object.keys(base)) {
               if (!(key in current)) {
-                const descriptor = Object.getOwnPropertyDescriptor(source, key);
+                const descriptor = Object.getOwnPropertyDescriptor(base, key);
                 Object.defineProperty(current, key, descriptor);
               }
             }
