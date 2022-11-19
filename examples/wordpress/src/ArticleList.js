@@ -1,17 +1,18 @@
 import { useRef, useEffect } from 'react';
-import { useProgressive } from 'react-seq';
+import { useProgressive, csr } from 'react-seq';
 import { useWordPressPosts } from './wordpress.js';
 import Content from './Content.js';
 
 export default function ArticleList() {
   const wp = useWordPressPosts();
-  return useProgressive(async ({ fallback, defer, type, usable, manageEvents, signal }) => {
+  return useProgressive(async ({ fallback, defer, type, usable, manageEvents, mount, signal }) => {
     fallback(<div className="loading">Loading...</div>)
-    const [ on, eventual ] = manageEvents();
-    const delay = defer(100);
+    defer(100);
     usable(0);
     usable({ articles: 1 });
     type(ArticleListUI);
+    await mount();
+    const [ on, eventual ] = manageEvents();
     const {
       fetchAll,
       fetchAuthors,
@@ -19,7 +20,7 @@ export default function ArticleList() {
       fetchTags,
       fetchFeaturedMedia,
     } = wp;
-    const demand = (delay !== Infinity) ? () => eventual.needForMore : null;
+    const demand = csr() ? () => eventual.needForMore : null;
     const options = { signal };
     const articles = fetchAll(demand, options);
     const authors = fetchAuthors(articles, options);
