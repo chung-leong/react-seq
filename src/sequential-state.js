@@ -69,16 +69,6 @@ export function sequentialState(cb, setState, setError, options = {}) {
     return abortManager.mounted;
   };
 
-  // let callback manages events with help of promises
-  let eventManager, eventManagerKey;
-  if (!process.env.REACT_APP_SEQ_NO_EM) {
-    methods.manageEvents = (options = {}) => {
-      eventManager = new EventManager({ ...options, signal, inspector });
-      linkEventManager(eventManagerKey, eventManager);
-      return [ eventManager.on, eventManager.eventual ];
-    };
-  }
-
   // let callback set initial state
   let initialState;
   let sync = true;
@@ -93,12 +83,31 @@ export function sequentialState(cb, setState, setError, options = {}) {
   };
 
   // permit explicit request to use pending state
-  let flushFn;
+  let flushFn, flushing = false;
   methods.flush = () => {
     if (flushFn) {
       flushFn();
     }
   };
+
+  // let callback manages events with help of promises
+  let eventManager, eventManagerKey;
+  if (!process.env.REACT_APP_SEQ_NO_EM) {
+    methods.manageEvents = (options = {}) => {
+      const onAwaitStart = () => {
+        if (flushFn) {
+          flushFn();
+        }
+        flushing = true;
+      };
+      const onAwaitEnd = () => {
+        flushing = false;
+      };
+      eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
+      linkEventManager(eventManagerKey, eventManager);
+      return [ eventManager.on, eventManager.eventual ];
+    };
+  }
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
@@ -122,7 +131,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   function updateState({ conditional = false, reusable = false }) {
     if (conditional) {
-      if (iterator.delay > 0 && !unusedSlot) {
+      if (iterator.delay > 0 && !unusedSlot && !flushing) {
         // wait for interruption
         return;
       }

@@ -41,11 +41,3 @@ export function settings(values) {
     currentSettings[name] = value;
   }
 }
-
-export function ssr() {
-  return (currentSettings.ssr === 'server');
-}
-
-export function csr() {
-  return (currentSettings.ssr !== 'server');
-}

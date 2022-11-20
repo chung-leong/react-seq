@@ -114,8 +114,17 @@ describe('#PromiseLogger', function() {
     const { on, eventual } = new EventManager({ inspector });
     await eventual.click.or.keyPress.for(10).milliseconds;
     const list = inspector.oldEvents({ type: 'await' });
-    expect(list).to.have.lengthOf(2);
-    expect(list.map(e => e.name)).to.eql([ 'click', 'keyPress' ]);
+    expect(list).to.have.lengthOf(1);
+    expect(list[0].promise).to.have.property('name', 'click.or.keyPress');
+  })
+  it('should receive notification from event manage when awaiting external promise', async function() {
+    const inspector = new PromiseLogger();
+    const { on, eventual } = new EventManager({ inspector });
+    const promise = Promise.resolve();
+    await eventual(promise).for(10).milliseconds;
+    const list = inspector.oldEvents({ type: 'await' });
+    expect(list).to.have.lengthOf(1);
+    expect(list[0].promise).to.have.property('name', '<promise>');
   })
   it('should receive notification from event manage when an handler is called', async function() {
     const inspector = new PromiseLogger();
@@ -141,9 +150,10 @@ describe('#PromiseLogger', function() {
     const promise = eventual.click;
     promise.then(() => {});
     const evt = await inspector.event({ type: 'await' }, 100);
-    evt.resolve('Hello');
+    evt.promise.resolve('Hello');
     const result = await promise;
     expect(result).to.equal('Hello');
+    expect(evt.promise).to.have.property('name', 'click')
   })
   it('should be able to trigger rejection of promise', async function() {
     const inspector = new PromiseLogger();
@@ -156,9 +166,10 @@ describe('#PromiseLogger', function() {
     });
     setTimeout(async () => await promise, 0);
     const evt = await inspector.newEvent({ type: 'await' }, 100);
-    evt.reject(new Error('Error'));
+    evt.promise.reject(new Error('Error'));
     await expect(promise).to.eventually.be.rejected;
     expect(error).to.be.an('error');
+    expect(evt.promise).to.have.property('name', 'click');
   })
   it('should pick up content update events from useSequential', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {

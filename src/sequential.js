@@ -77,16 +77,6 @@ export function sequential(cb, options = {}) {
     return abortManager.mounted;
   };
 
-  let eventManager, eventManagerKey;
-  if (!process.env.REACT_APP_SEQ_NO_EM) {
-    // let callback manages events with help of promises
-    methods.manageEvents = (options = {}) => {
-      eventManager = new EventManager({ ...options, signal, inspector });
-      linkEventManager(eventManagerKey, eventManager);
-      return [ eventManager.on, eventManager.eventual ];
-    };
-  }
-
   // let callback set fallback content
   let placeholder;
   let sync = true;
@@ -104,12 +94,31 @@ export function sequential(cb, options = {}) {
   };
 
   // permit explicit request to use pending content
-  let flushFn;
+  let flushFn, flushing = false;
   methods.flush = () => {
     if (flushFn) {
       flushFn();
     }
   };
+
+  let eventManager, eventManagerKey;
+  if (!process.env.REACT_APP_SEQ_NO_EM) {
+    // let callback manages events with help of promises
+    methods.manageEvents = (options = {}) => {
+      const onAwaitStart = () => {
+        if (flushFn) {
+          flushFn();
+        }
+        flushing = true;
+      };
+      const onAwaitEnd = () => {
+        flushing = false;
+      };
+      eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
+      linkEventManager(eventManagerKey, eventManager);
+      return [ eventManager.on, eventManager.eventual ];
+    };
+  }
 
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
@@ -238,7 +247,7 @@ export function sequential(cb, options = {}) {
 
     function updateContent({ conditional = false, reusable = false }) {
       if (conditional) {
-        if (iterator.delay > 0 && !unusedSlot) {
+        if (iterator.delay > 0 && !unusedSlot && !flushing) {
           // wait for next interruption
           return;
         }

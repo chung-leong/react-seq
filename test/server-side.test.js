@@ -329,9 +329,8 @@ describe('Hydration', function() {
       const el = createElement(TestComponent);
       settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
       const root = hydrateRoot(node, el);
-      await waitForHydration(root);
+      await delay(10);
       settings({ ssr: false, ssr_time_limit: 3000 });
-
       await assertions[0].done();
       await steps[1];
       expect(node.innerHTML).to.contain('<div>Pig</div>');

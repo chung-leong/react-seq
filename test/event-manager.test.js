@@ -324,4 +324,49 @@ describe('#EventManager', function() {
     expect(promise2).to.be.undefined;
     expect(promise3).to.be.undefined;
   })
+  it('should yield promises with expected names', async function() {
+    const { on, eventual } = new EventManager({});
+    const promise = Promise.resolve();
+    expect(eventual.click).to.have.property('name', 'click');
+    expect(eventual.click.or.keyPress).to.have.property('name', 'click.or.keyPress');
+    expect(eventual.click.and.keyPress).to.have.property('name', 'click.and.keyPress');
+    expect(eventual(promise)).to.have.property('name', '<promise>');
+    expect(eventual(promise).or.click).to.have.property('name', '<promise>.or.click');
+    expect(eventual(promise).or.click.and(promise)).to.have.property('name', '<promise>.or.click.and.<promise>');
+    expect(eventual.click.and.keyPress.for(5).minutes).to.have.property('timeout', 5 * 60 * 1000);
+  })
+  it('should invoke onAwaitStart when await occurs', async function() {
+    let count = 0;
+    function onAwaitStart() {
+      count++;
+    }
+    const { on, eventual } = new EventManager({ onAwaitStart });
+    await eventual.click.for(5).milliseconds;
+    expect(count).to.equal(1);
+    await eventual.keyPress.or.apocalypse.for(5).milliseconds;
+    expect(count).to.equal(2);
+  })
+  it('should invoke onAwaitEnd when awaiting ends', async function() {
+    let started = 0, ended = 0;
+    function onAwaitStart() {
+      started++;
+    }
+    function onAwaitEnd() {
+      ended++;
+    }
+    const { on, eventual } = new EventManager({ onAwaitStart, onAwaitEnd });
+    await eventual.click.for(5).milliseconds;
+    expect(started).to.equal(1);
+    expect(ended).to.equal(1);
+    await eventual.keyPress.or.apocalypse.for(5).milliseconds;
+    expect(started).to.equal(2);
+    expect(ended).to.equal(2);
+    const promise = eventual.worldPeace.for(10).milliseconds;
+    promise.then(() => {});
+    expect(started).to.equal(3);
+    expect(ended).to.equal(2);
+    promise.reject(new Error('Never gonna happen'));
+    await delay(5);
+    expect(ended).to.equal(3);
+  })
 })

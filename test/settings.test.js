@@ -3,8 +3,6 @@ import { expect } from 'chai';
 import {
   setting,
   settings,
-  ssr,
-  csr,
 } from '../index.js';
 
 describe('#setting()', function() {
@@ -37,59 +35,5 @@ describe('#settings()', function() {
   })
   it('should throw when ssr_time_limit is being set to a boolean', function() {
     expect(() => settings({ strict_mode_clean_up: true })).to.throw();
-  })
-})
-
-describe('#ssr()', function() {
-  it('should return true when ssr is set to server', function() {
-    settings({ ssr: 'server' });
-    try {
-      expect(ssr()).to.be.true;
-    } finally {
-      settings({ ssr: false });
-    }
-  })
-  it('should return false when ssr is set to hydrate', function() {
-    settings({ ssr: 'hydrate' });
-    try {
-      expect(ssr()).to.be.false;
-    } finally {
-      settings({ ssr: false });
-    }
-  })
-  it('should return false when ssr is set to false', function() {
-    settings({ ssr: false });
-    try {
-      expect(ssr()).to.be.false;
-    } finally {
-      settings({ ssr: false });
-    }
-  })
-})
-
-describe('#csr()', function() {
-  it('should return false when ssr is set to server', function() {
-    settings({ ssr: 'server' });
-    try {
-      expect(csr()).to.be.false;
-    } finally {
-      settings({ ssr: false });
-    }
-  })
-  it('should return true when ssr is set to hydrate', function() {
-    settings({ ssr: 'hydrate' });
-    try {
-      expect(csr()).to.be.true;
-    } finally {
-      settings({ ssr: false });
-    }
-  })
-  it('should return true when ssr is set to false', function() {
-    settings({ ssr: false });
-    try {
-      expect(csr()).to.be.true;
-    } finally {
-      settings({ ssr: false });
-    }
   })
 })

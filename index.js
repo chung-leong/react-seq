@@ -25,8 +25,6 @@ export {
 export {
   setting,
   settings,
-  ssr,
-  csr,
 } from './src/settings.js';
 export {
   InspectorContext,
