@@ -1,5 +1,6 @@
 import { fork } from 'child_process';
 import { Readable } from 'stream';
+import { isAsyncGenerator } from './utils.js';
 
 export function renderInChildProc(location, buildPath, options = {}) {
   const {
@@ -45,7 +46,12 @@ export function renderInChildProc(location, buildPath, options = {}) {
         throw new Error(err?.args[0].message ?? 'Error encountered during SSR');
       }
       if (onMessages) {
-        onMessages(entries);
+        const generator = onMessages(entries);
+        if (isAsyncGenerator(generator)) {
+          for await (const chunk of generator) {
+            yield Buffer.from(chunk);
+          }
+        }
       }
     } catch (err) {
       throw err;

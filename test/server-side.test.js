@@ -503,6 +503,20 @@ describe('#renderInChildProc()', function() {
       .contain('Iteration #<!-- -->10');
     expect(messages[0]).to.eql({ type: 'log', args: [ 'finally section' ] });
   })
+  it('should send content return by onMessages generator', async function() {
+    const buildPath = resolve('./cra/test-12/build');
+    const onMessages = async function*(messages) {
+      yield '<script>var a = "Alfa"; </script>\n';
+      yield '<script>var a = "Bravo"; </script>\n';
+      yield '<script>var a = "Charlie"; </script>\n';
+    };
+    const stream = renderInChildProc('http://example.test/', buildPath, { onMessages });
+    const html = await readStream(stream);
+    expect(html).to
+      .contain('"Alfa"')
+      .contain('"Bravo"')
+      .contain('"Charlie"');
+  })
 })
 
 describe('#__relay_ssr_msg', function() {
