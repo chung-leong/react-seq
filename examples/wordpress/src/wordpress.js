@@ -17,7 +17,7 @@ export function useWordPressBase() {
         const pageCount = list.pages;
         generator.total = list.total;
         yield list.values();
-        if (!demand || !(page < pageCount)) {
+        if (page >= pageCount) {
           break;
         }
         await demand();

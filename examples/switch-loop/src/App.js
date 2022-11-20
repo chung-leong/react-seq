@@ -31,11 +31,12 @@ export default function App() {
         switch (step) {
           case 'alfa': {
             at('alfa');
-            yield <Alfa onNext={on.click} />;
+            yield <Alfa onNext={on.click} init={!bravoSeen} />;
             await eventual.click.or.hashChange;
           } // fallthrough
           case 'bravo': {
             at('bravo');
+            var bravoSeen = true;
             yield <Bravo onPrev={on.click.prev} onNext={on.click.next} />;
             const button = await eventual.click.or.hashChange;
             if (button === 'prev') {
@@ -111,10 +112,10 @@ export default function App() {
   );
 }
 
-function Alfa({ onNext }) {
+function Alfa({ onNext, init }) {
   return (
     <section>
-      <h2>Alfa</h2>
+      <h2>Alfa{init ? '!' : ''}</h2>
       <div>
         <button onClick={onNext}>Next</button>
       </div>

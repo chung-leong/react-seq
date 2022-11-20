@@ -10,36 +10,58 @@ of code and data. It's designed for React 18 and above.
 npm install --save-dev react-seq
 `
 
-## Basic Usage
-
-`useSequential()` is React-seq's most basic hook. It accepts an async generator function as a parameter and returns a
-component that will display the output from the async generator as content:
+## Basic usage
 
 ```js
-import { useSequential, delay } from 'react-seq';
+import { useSequential } from 'react-seq';
 
-function LovelyAnimals({ favorite = 'Chicken' }) {
+function ProductPage({ productId }) {
   return useSequential(async function*({ fallback }) {
-    fallback(<span>Cat</span>);
-    await delay(1000);
-    yield <span>Dog</span>;
-    await delay(1000);
-    yield <span>Octopus</span>;
-    await delay(1000);
-    yield <span>Hippopotamus</span>;
-    await delay(1000);
-    yield <span>Polar bear</span>;
-    await delay(1000);
-    yield <span>{favorite}</span>;
-  }, []);
+    fallback(<div class="spinner"/>);
+    const product = await fetchProduct(productId);
+    const { ProductDescription } = await import('./ProductDescription.js');
+    yield (
+      <div>
+        <ProductDescription product={product}/>
+      </div>
+    );
+    const related = await fetchRelatedProducts(product);
+    const { ProductCarousel } = await import('./ProductCarousel.js');
+    yield (
+      <div>
+        <ProductDescription product={product}/>
+        <ProductCarousel products={related}/>
+      </div>
+    );
+    /* ... */
+  }, [ productId ]);
 }
 ```
 
-## Advantages
+## Progressive rendering
 
-## Examples
+## State hooks
 
-## ESLint Configuration
+## Event management
+
+## API reference
+
+* [Hooks and other functions](./API.md)
+* [Server-side rendering](./server/README.md)
+* [Client-side SSR support](./client/README.md)
+
+## List of examples
+
+* [Payment form](./examples/payment/README.md) <sup>`useSequential`</sup>
+* [Switch loop](./examples/switch-loop/README.md) <sup>`useSequential`</sup>
+* [Star Wars API](./examples/swapi/README.md) <sup>`useProgressive`</sup>
+* [Word Press](./examples/wordpress.md) <sup>`useProgressive`</sup>
+* [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
+* [Nobel Prize API](./examples/nobel/README.md) <sup>`useSequentialState`</sup>
+* [Star Wars API (alternate implementation)](./examples/swapi-hook/README.md) <sup>`useSequentialState`</sup>
+* [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
+
+## ESLint configuration
 
 Add the following rule to your ESLint settings to enable the linting of React-seq hooks:
 

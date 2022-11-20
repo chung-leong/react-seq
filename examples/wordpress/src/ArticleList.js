@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useProgressive, csr } from 'react-seq';
+import { useProgressive } from 'react-seq';
 import { useWordPressPosts } from './wordpress.js';
 import Content from './Content.js';
 
@@ -20,9 +20,8 @@ export default function ArticleList() {
       fetchTags,
       fetchFeaturedMedia,
     } = wp;
-    const demand = csr() ? () => eventual.needForMore : null;
     const options = { signal };
-    const articles = fetchAll(demand, options);
+    const articles = fetchAll(() => eventual.needForMore, options);
     const authors = fetchAuthors(articles, options);
     const categories = fetchCategories(articles, options);
     const tags = fetchTags(articles, options);
