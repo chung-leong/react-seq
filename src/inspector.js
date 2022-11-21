@@ -27,22 +27,23 @@ export class ConsoleLogger extends Inspector {
   }
 
   onEvent(evt) {
-    const l = (s) => {
+    const l = (...args) => {
       if (!this.stopped) {
         const now = new Date();
         const elapsed = ((now - this.startTime) / 1000).toFixed(3).padStart(8, ' ');
-        console.log(`[${elapsed}s] ` + s);
+        args.unshift(`%c ${elapsed}s `, 'background-color: #0aa; color: #fff;');
+        console.log(...args);
       }
     }
     switch (evt.type) {
       case 'await':
-        l(`Awaiting eventual ${evt.name}`);
+        l(`Awaiting eventual ${evt.promise.name}`);
         break;
       case 'fulfill':
-        l(`Fulfillment of ${evt.name} with ${evt.value}` + (evt.handled ? '' : ' (no one cared)'));
+        l(`Fulfillment of ${evt.name} with`, evt.value, (evt.handled) ? '' : '(no one cared)');
         break;
       case 'reject':
-        l(`Rejection of ${evt.name} with ${evt.value.name}` + (evt.handled ? '' : ' (no one cared)'));
+        l(`Rejection of ${evt.name} with`, evt.value, (evt.handled) ? '' : '(no one cared)');
         break;
       case 'state':
         l(`State update`);
@@ -51,7 +52,7 @@ export class ConsoleLogger extends Inspector {
         l(`Content update`);
         break;
       case 'error':
-        l(`Error encountered (${evt.error.name})`);
+        l(`Error encountered`, evt.error);
         break;
       case 'abort':
         l(`Generator aborted`);

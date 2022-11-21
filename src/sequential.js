@@ -223,6 +223,8 @@ export function sequential(cb, options = {}) {
       }
     }
 
+    const objectSeen = (process.env.NODE_ENV === 'development') ? new WeakMap() : null;
+
     // retrieve the remaining items from the generator unless an error was encountered
     // or we've finished iterating through the generator already
     if (!finished && !pendingError && !aborted) {
@@ -237,10 +239,25 @@ export function sequential(cb, options = {}) {
       // trigger rerendering using useReducer()
       redrawComponent = useReducer(c => c + 1, 0)[1];
       if (currentError) {
-        inspector?.dispatch({ type: 'error', error: currentError });
+        // deal with double invocation during development
+        if (process.env.NODE_ENV === 'development') {
+          if (!objectSeen.get(currentError)) {
+            inspector?.dispatch({ type: 'error', error: currentError });
+            objectSeen.set(currentError, true);
+          }
+        } else {
+          inspector?.dispatch({ type: 'error', error: currentError });
+        }
         throw currentError;
       }
-      inspector?.dispatch({ type: 'content', content: currentContent });
+      if (process.env.NODE_ENV === 'development') {
+        if (!objectSeen.get(currentContent)) {
+          inspector?.dispatch({ type: 'content', content: currentContent });
+          objectSeen.set(currentContent, true);
+        }
+      } else {
+        inspector?.dispatch({ type: 'content', content: currentContent });
+      }
       return currentContent;
     }
 
