@@ -1,7 +1,6 @@
 import { expect } from 'chai';
 import { createElement, StrictMode } from 'react';
 import { withTestRenderer } from './test-renderer.js';
-import { withReactStrictMode } from './dom-renderer.js';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
@@ -292,7 +291,7 @@ describe('#useSequentialState()', function() {
       }
       await withSilentConsole(async () => {
         const el = createElement(Test);
-        expect(() => createTestRenderer(el)).to.throw();
+        expect(() => create(el)).to.throw();
       });
     });
   })
@@ -536,46 +535,6 @@ describe('#useSequentialState()', function() {
       expect(unmounted).to.be.false;
       unmount();
       expect(unmounted).to.be.true;
-    });
-  })
-  it('should should shutdown spurious generator created by StrictMode', async function() {
-    await withReactStrictMode(async ({ render, node, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
-      let calls = 0, finalized = 0, finished = 0;
-      function Test() {
-        const state = useSequentialState(async function*({ initial }) {
-          initial('Pissing the night away');
-          calls++;
-          try {
-            await assertions[0];
-            yield 'Whiskey drink';
-            steps[1].done();
-            await assertions[1];
-            yield 'Vodka drink';
-            steps[2].done();
-            finished++;
-          } finally {
-            finalized++;
-            steps[3].done();
-          }
-        }, []);
-        return state;
-      }
-      const el = createElement(Test);
-      const strict = createElement(StrictMode, {}, el);
-      await render(strict);
-      expect(node.textContent).to.equal('Pissing the night away');
-      await assertions[0].done();
-      await steps[1];
-      expect(node.textContent).to.equal('Whiskey drink');
-      await assertions[1].done();
-      await steps[2];
-      expect(node.textContent).to.equal('Vodka drink');
-      await assertions[2].done();
-      await steps[3];
-      expect(finished).to.equal(1);
-      expect(calls).to.equal(2);
-      expect(finalized).to.equal(calls);
     });
   })
   it('should flush state when awaiting on a promise', async function() {

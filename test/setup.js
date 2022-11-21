@@ -1,10 +1,12 @@
 import Chai from 'chai';
 import ChaiAsPromised from 'chai-as-promised';
+import ChaiThings from 'chai-things';
 import AbortController from 'abort-controller';
 import fetch from 'node-fetch';
 import 'mocha-skip-if';
 
 Chai.use(ChaiAsPromised);
+Chai.use(ChaiThings);
 
 if (!(AbortController in global)) {
   global.AbortController = AbortController;

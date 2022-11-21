@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { withTestRenderer } from './test-renderer.js';
-import { withReactDOM, withReactStrictMode } from './dom-renderer.js';
+import { withReactDOM } from './dom-renderer.js';
 import { createElement, Suspense, StrictMode } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
@@ -1089,7 +1089,7 @@ describe('#useSequential()', function() {
   })
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should work under strict mode', async function() {
-    await withReactStrictMode(async ({ render, act, node }) => {
+    await withReactDOM(async ({ render, act, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
       let call = 0;
       function Test() {
@@ -1126,28 +1126,34 @@ describe('#useSequential()', function() {
       expect(node.textContent).to.equal('Chicken');
     }, 10);
   })
-  skip.if.dom.is.absent.or.not.in.development.mode.
-  it('should run all finally sections under strict mode', async function() {
-    await withReactStrictMode(async ({ render, act, node }) => {
+  skip.entirely.if(!global.gc).or.if(!global.WeakRef).or.dom.is.absent.or.not.in.development.mode.
+  it('should allow spurious generator created by strict mode to be garbage-collected', async function() {
+    await withReactDOM(async ({ render, act, node, unmount }) => {
       const steps = createSteps(), assertions = createSteps(act);
       let call = 0, finalized = 0;
+      const refs = [];
       function Test() {
-        return useSequential(async function*({ fallback }) {
-          fallback('Cow');
-          try {
-            steps[call].done();
-            await assertions[call++];
-            yield 'Monkey';
-            steps[2].done();
-            await assertions[2];
-            yield 'Pig';
-            steps[3].done();
-            await assertions[3];
-            yield 'Chicken';
-            steps[4].done();
-          } finally {
-            finalized++;
+        return useSequential(function({ fallback }) {
+          async function* generate() {
+            fallback('Cow');
+            try {
+              steps[call].done();
+              await assertions[call++];
+              yield 'Monkey';
+              steps[2].done();
+              await assertions[2];
+              yield 'Pig';
+              steps[3].done();
+              await assertions[3];
+              yield 'Chicken';
+              steps[4].done();
+            } finally {
+              finalized++;
+            }
           }
+          const generator = generate();
+          refs.push(new WeakRef(generator));
+          return generator;
         }, []);
       }
       const el = createElement(Test);
@@ -1159,6 +1165,11 @@ describe('#useSequential()', function() {
       expect(node.textContent).to.equal('Cow');
       await assertions[0].done();
       await assertions[1].done();
+      // the spurious generator should be garbage-collectable at this point, since it was assertions[0] holding a
+      // ref to a function that kept it in play
+      gc();
+      expect(refs[0].deref()).to.be.undefined;
+      expect(refs[1].deref()).to.not.be.undefined;
       await steps[2];
       expect(node.textContent).to.equal('Monkey');
       await assertions[2].done();
@@ -1167,15 +1178,20 @@ describe('#useSequential()', function() {
       await assertions[3].done();
       await steps[4];
       expect(node.textContent).to.equal('Chicken');
-      // wait for timeout to occur
-      await delay(10);
       expect(call).to.equal(2);
-      expect(finalized).to.equal(call);
+      // the finally section ran only once, since the spurious generator never got this far
+      expect(finalized).to.equal(1);
+      expect(refs).to.have.lengthOf(2);
+      // unmount and perform garbage collection again
+      await unmount();
+      gc();
+      expect(refs[0].deref()).to.be.undefined;
+      expect(refs[1].deref()).to.be.undefined;
     });
   })
   skip.if.dom.is.absent.or.not.in.development.mode.
   it('should allow a container component to return a suspending component when a real DOM is involved', async function() {
-    await withReactStrictMode(async ({ render, act, node }) => {
+    await withReactDOM(async ({ render, act, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
       let call = 0;
       function Test() {

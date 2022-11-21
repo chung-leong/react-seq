@@ -5,7 +5,7 @@ import { withTestRenderer } from './test-renderer.js';
 import { createElement } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary } from './error-handling.js';
-import { delay, throwing, important, useSequential, useSequentialState } from '../index.js';
+import { delay, throwing, important, useSequential, useSequentialState, settings } from '../index.js';
 
 import {
   Inspector,
@@ -277,6 +277,7 @@ describe('#PromiseLogger', function() {
       await create(cp);
       await unmount();
       expect(oldEvents({ type: 'abort' })).to.have.lengthOf(1);
+      expect(oldEvents({ type: 'return' })).to.have.lengthOf(1);
     });
   })
   it('should pick up content update events from useSequentialState', async function() {
@@ -315,8 +316,37 @@ describe('#PromiseLogger', function() {
       await steps[3];
       expect(toJSON()).to.equal('Monkey');
       expect(oldEvents({ type: 'state' })).to.have.lengthOf(4);
-      const results = oldEvents().map(e => e.state);
+      const results = oldEvents({ type: 'state' }).map(e => e.state);
       expect(results).to.eql([ 'Cow', 'Pig', 'Chicken', 'Monkey' ]);
+    });
+  })
+  it('should pick up early return events from useSequentialState whe ssr is server', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const inspector = new PromiseLogger();
+      const { oldEvents } = inspector;
+      const steps = createSteps(), assertions = createSteps(act);
+      function Test() {
+        const state = useSequentialState(async function*({ initial }) {
+          initial('Cow');
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+          await assertions[1];
+          yield 'Chicken';
+          steps[2].done();
+          await assertions[2];
+          yield 'Monkey';
+          steps[3].done();
+        }, []);
+        return state;
+      }
+      const el = createElement(Test);
+      const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+      settings({ ssr: 'server' });
+      await create(cp);
+      settings({ ssr: false });
+      expect(oldEvents({ type: 'state' })).to.have.lengthOf(1);
+      expect(oldEvents({ type: 'return' })).to.have.lengthOf(1);
     });
   })
   it('should pick up error events from useSequentialState', async function() {
@@ -443,7 +473,7 @@ describe('#ConsoleLogger', function() {
   })
   it('should handle error events', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = {};
+      const console = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -468,12 +498,12 @@ describe('#ConsoleLogger', function() {
         await assertions[1].fail(new Error('ERROR'))
         inspector.stop();
       }, console);
-      expect(console.log).to.include('Error');
+      expect(console.log).to.contain.something.that.matches(/Error/);
     });
   })
   it('should handle abort event', async function() {
     await withTestRenderer(async ({ create, unmount, act }) => {
-      const console = {};
+      const console = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -492,7 +522,7 @@ describe('#ConsoleLogger', function() {
         await unmount();
         inspector.stop();
       }, console);
-      expect(console.log).to.include('aborted');
+      expect(console.log).to.contain.something.that.matches(/aborted/);
     });
   })
   it('should handle promise await events', async function() {

@@ -23,9 +23,6 @@ generators created by [`useSequentialState`](./useSequentialState.md) and
 `ssr` to "hydrate" has the same effect on rendering deferment but no impact on the state hooks.
 * `ssr_time_limit` - `<number>` Duration in milliseconds within which components must yield displayable contents
 during server-side rendering (i.e. `ssr` = "server" or "hydrate"). Failing to do so means the use of the [timeout](./timeout.md) content or blank if none is set. The default is 3000.
-* `strict_mode_clean_up` - `<number>` If set, the duration in milliseconds within which components must become
-mounted before their associated generators are forcible shutdown. A value of 0 means shutdown on the very next
-tick. Applicable only when `process.env.NODE_ENV` is "development".
 
 ## Notes
 

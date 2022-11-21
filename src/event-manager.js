@@ -1,5 +1,145 @@
 import { Abort } from './utils.js';
 
+const MERGED  = 0x0001;
+const MERGING = 0x0002;
+const STALE   = 0x0004;
+const DERIVED = 0x0008;
+
+// subclassing Promise means the JS engine can't employ certain optimizations--we're okay with that
+class ManagedPromise extends Promise {
+  constructor(cb) {
+    super(cb);
+    this.resolve = null;
+    this.reject = null;
+    this.manager = null;
+    this.name = undefined;
+    this.state = 0;
+    this.timeout = 0;
+  }
+
+  static create(manager, name, derived = false, source = null) {
+    let resolve, reject;
+    const promise = new ManagedPromise((r1, r2) => { resolve = r1; reject = r2; });
+    promise.resolve = resolve;
+    promise.reject = reject;
+    ManagedPromise.init(promise, manager, name, derived);
+    if (source) {
+      source.then(promise.resolve, promise.reject);
+    }
+    return promise;
+  }
+
+  static init(promise, manager, name, derived) {
+    promise.manager = manager;
+    promise.name = name;
+    promise.state = (derived) ? DERIVED : 0;
+    promise.proxitize('or');
+    promise.proxitize('and');
+  }
+
+  then(thenFn, catchFn) {
+    // inform manager something is awaiting on this promise
+    // unless then() is called by Promise.race() or Promise.all()
+    if (this.state & MERGING) {
+      this.state = (this.state & ~MERGING) | MERGED;
+    } else if (this.name) {
+      this.manager.reportAwaitStart(this);
+      // report the end of the awaiting when promise settles
+      const end = () => { this.manager.reportAwaitEnd(this) };
+      super.then(end, end);
+    }
+    // call parent function, which will yield a new promise
+    const promise = super.then(thenFn, catchFn);
+    if (promise instanceof ManagedPromise) {
+      // properly initialize it with expected info
+      ManagedPromise.init(promise, this.manager, `${this.name}.then(...)`, true);
+    }
+    return promise;
+  }
+
+  setTimeout(delay) {
+    const timeout = setTimeout(() => this.resolve('timeout'), delay);
+    const stop = () => clearTimeout(timeout);
+    super.then(stop, stop);
+    this.timeout = delay;
+  }
+
+  // allow attachment of a timer using the syntax
+  // await eventual.click.for(4).seconds
+  for(number) {
+    const multipliers = {
+      milliseconds: 1,
+      seconds: 1000,
+      minutes: 1000 * 60,
+      hours: 1000 * 60 * 60
+    };
+    if (!(number >= 0)) {
+      throw new TypeError(`Invalid duration: ${number}`);
+    }
+    const proxy = new Proxy({}, {
+      get: (_, name) => {
+        if (typeof(name) !== 'string') {
+          return;
+        }
+        const multipler = multipliers[name] ?? multipliers[name + 's'];
+        if (multipler === undefined) {
+          const msg = (name === 'then') ? 'No time unit selected' : `Invalid time unit: ${name}`;
+          throw new Error(msg);
+        }
+        const delay = number * multipler;
+        if (delay !== Infinity) {
+          this.setTimeout(delay);
+        }
+        return this;
+      },
+      set: throwError,
+    });
+    return proxy;
+  }
+
+  // promise from an 'or' chain fulfills when the quickest one fulfills
+  or(promise) {
+    return this.combineWithExternal('or', promise);
+  }
+
+  // promise from an 'and' chain fulfills when all promises do
+  and(promise) {
+    return this.combineWithExternal('and', promise);
+  }
+
+  // allow the syntax
+  // await eventual.click.or.keyPress
+  proxitize(op) {
+    const fn = this[op].bind(this);
+    this[op] = new Proxy(fn, { get: (fn, name) => this.combineWithNamed(op, name), set: throwError });
+  }
+
+  combineWithNamed(op, name) {
+    const promise = this.manager.getPromise(name);
+    if (promise) {
+      promise.state |= MERGING;
+      return this.combineWith(op, promise, name);
+    }
+  }
+
+  combineWithExternal(op, promise) {
+    return this.combineWith(op, promise, '<promise>');
+  }
+
+  combineWith(op, promise, suffix) {
+    this.state |= MERGING;
+    let combined;
+    if (op === 'or') {
+      combined = Promise.race([ this, promise ]);
+    } else {
+      combined = Promise.all([ this, promise ]).then(arr => arr.flat());
+    }
+    const name = (this.name) ? `${this.name}.${op}.${suffix}` : suffix;
+    combined = ManagedPromise.create(this.manager, name, true, combined);
+    return combined;
+  }
+}
+
 export class EventManager {
   // whether to output a warning when no promises are fulfilled
   warning = false;
@@ -34,6 +174,8 @@ export class EventManager {
     this.inspector = inspector;
     this.onAwaitStart = onAwaitStart;
     this.onAwaitEnd = onAwaitEnd;
+    // prevent unhandled error message
+    this.abortPromise.catch(() => {});
     // attach listen to abort signal
     signal?.addEventListener('abort', () => this.abortAll(), { once: true });
   }
@@ -42,7 +184,7 @@ export class EventManager {
     if (typeof(name) !== 'string') {
       return;
     }
-    const { promises, resolves, rejects } = this;
+    const { promises } = this;
     let promise = promises[name];
     if (!promise) {
       promise = promises[name] = ManagedPromise.create(this, name);
@@ -213,146 +355,6 @@ export class EventManager {
       promise.reject(err);
     }
     this.abortPromise.reject(err);
-  }
-}
-
-const MERGED  = 0x0001;
-const MERGING = 0x0002;
-const STALE   = 0x0004;
-const DERIVED = 0x0008;
-
-// subclassing Promise means the JS engine can't employ certain optimizations--we're okay with that
-class ManagedPromise extends Promise {
-  constructor(cb) {
-    super(cb);
-    this.resolve = null;
-    this.reject = null;
-    this.manager = null;
-    this.name = undefined;
-    this.state = 0;
-    this.timeout = 0;
-  }
-
-  static create(manager, name, derived = false, source = null) {
-    let resolve, reject;
-    const promise = new ManagedPromise((r1, r2) => { resolve = r1; reject = r2; });
-    promise.resolve = resolve;
-    promise.reject = reject;
-    ManagedPromise.init(promise, manager, name, derived);
-    if (source) {
-      source.then(promise.resolve, promise.reject);
-    }
-    return promise;
-  }
-
-  static init(promise, manager, name, derived) {
-    promise.manager = manager;
-    promise.name = name;
-    promise.state = (derived) ? DERIVED : 0;
-    promise.proxitize('or');
-    promise.proxitize('and');
-  }
-
-  then(thenFn, catchFn) {
-    // inform manager something is awaiting on this promise
-    // unless then() is called by Promise.race() or Promise.all()
-    if (this.state & MERGING) {
-      this.state = (this.state & ~MERGING) | MERGED;
-    } else if (this.name) {
-      this.manager.reportAwaitStart(this);
-      // report the end of the awaiting when promise settles
-      const end = () => { this.manager.reportAwaitEnd(this) };
-      super.then(end, end);
-    }
-    // call parent function, which will yield a new promise
-    const promise = super.then(thenFn, catchFn);
-    if (promise instanceof ManagedPromise) {
-      // properly initialize it with expected info
-      ManagedPromise.init(promise, this.manager, `${this.name}.then(...)`, true);
-    }
-    return promise;
-  }
-
-  setTimeout(delay) {
-    const timeout = setTimeout(() => this.resolve('timeout'), delay);
-    const stop = () => clearTimeout(timeout);
-    super.then(stop, stop);
-    this.timeout = delay;
-  }
-
-  // allow attachment of a timer using the syntax
-  // await eventual.click.for(4).seconds
-  for(number) {
-    const multipliers = {
-      milliseconds: 1,
-      seconds: 1000,
-      minutes: 1000 * 60,
-      hours: 1000 * 60 * 60
-    };
-    if (!(number >= 0)) {
-      throw new TypeError(`Invalid duration: ${number}`);
-    }
-    const proxy = new Proxy({}, {
-      get: (_, name) => {
-        if (typeof(name) !== 'string') {
-          return;
-        }
-        const multipler = multipliers[name] ?? multipliers[name + 's'];
-        if (multipler === undefined) {
-          const msg = (name === 'then') ? 'No time unit selected' : `Invalid time unit: ${name}`;
-          throw new Error(msg);
-        }
-        const delay = number * multipler;
-        if (delay !== Infinity) {
-          this.setTimeout(delay);
-        }
-        return this;
-      },
-      set: throwError,
-    });
-    return proxy;
-  }
-
-  // promise from an 'or' chain fulfills when the quickest one fulfills
-  or(promise) {
-    return this.combineWithExternal('or', promise);
-  }
-
-  // promise from an 'and' chain fulfills when all promises do
-  and(promise) {
-    return this.combineWithExternal('and', promise);
-  }
-
-  // allow the syntax
-  // await eventual.click.or.keyPress
-  proxitize(op) {
-    const fn = this[op].bind(this);
-    this[op] = new Proxy(fn, { get: (fn, name) => this.combineWithNamed(op, name), set: throwError });
-  }
-
-  combineWithNamed(op, name) {
-    const promise = this.manager.getPromise(name);
-    if (promise) {
-      promise.state |= MERGING;
-      return this.combineWith(op, promise, name);
-    }
-  }
-
-  combineWithExternal(op, promise) {
-    return this.combineWith(op, promise, '<promise>');
-  }
-
-  combineWith(op, promise, suffix) {
-    this.state |= MERGING;
-    let combined;
-    if (op === 'or') {
-      combined = Promise.race([ this, promise ]);
-    } else {
-      combined = Promise.all([ this, promise ]).then(arr => arr.flat());
-    }
-    const name = (this.name) ? `${this.name}.${op}.${suffix}` : suffix;
-    combined = ManagedPromise.create(this.manager, name, true, combined);
-    return combined;
   }
 }
 

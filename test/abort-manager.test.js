@@ -102,13 +102,4 @@ describe('#AbortManager', function() {
     manager.onMount();
     expect(() => manager.onUnmount()).to.throw();
   })
-  it('should cancel timeout when onMount is called', async function() {
-    const manager = new AbortManager();
-    const { signal } = manager;
-    manager.setSelfDestruct();
-    manager.onMount();
-    const promise = new Promise(resolve => signal.addEventListener('abort', resolve, { once: true }));
-    const result = await Promise.race([ promise, delay(30, { value: 'timeout' }) ]);
-    expect(result).to.equal('timeout');
-  })
 })

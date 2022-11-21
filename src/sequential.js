@@ -11,11 +11,10 @@ export function useSequential(cb, deps) {
 }
 
 export function useFunction(fn, cb, deps) {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const inspector = useContext(InspectorContext);
   const { element, abortManager } = useMemo(() => {
     return fn(cb, { inspector });
-  }, deps);
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     abortManager.onMount();
     return () => {
@@ -229,7 +228,7 @@ export function sequential(cb, options = {}) {
     if (!finished && !pendingError && !aborted) {
       retrieveRemaining();
     } else {
-      // don't wait for return()
+      inspector?.dispatch({ type: 'return' });
       iterator.return().catch(err => console.error(err));
     }
     return { default: Sequence };
@@ -302,6 +301,7 @@ export function sequential(cb, options = {}) {
       if (!aborted) {
         updateContent({});
       }
+      inspector?.dispatch({ type: 'return' });
       await iterator.return().catch(err => console.error(err));
     }
   });
@@ -314,9 +314,6 @@ export function sequential(cb, options = {}) {
   if (suspensionKey) {
     // save the result so we can find it again when we unsuspend
     saveForLater(suspensionKey, result);
-  } else {
-    // no self-destructing when suspension is used
-    abortManager.setSelfDestruct();
   }
   linkEventManager(eventManagerKey = element, eventManager);
   return result;

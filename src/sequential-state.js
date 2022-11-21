@@ -11,14 +11,10 @@ export function useSequentialState(cb, deps) {
 }
 
 export function useFunctionState(fn, cb, deps) {
-  if (!deps) {
-    throw new Error('No dependencies specified');
-  }
   const inspector = useContext(InspectorContext);
   const { initialState, abortManager } = useMemo(() => {
-    debugger;
     return fn(cb, s => setState(s), e => setError(e), { inspector });
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ inspector, ...deps ]); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
   useEffect(() => {
@@ -29,7 +25,7 @@ export function useFunctionState(fn, cb, deps) {
   }, [ initialState, abortManager ]);
   useMemo(() => {
     inspector?.dispatch({ type: 'state', state });
-  }, [ state ]);
+  }, [ state, inspector ]);
   if (error) {
     inspector?.dispatch({ type: 'error', error });
     throw error;
@@ -120,9 +116,9 @@ export function sequentialState(cb, setState, setError, options = {}) {
     retrieveRemaining();
   } else {
     // state hooks don't run on server-side
+    inspector?.dispatch({ type: 'return' });
     iterator.return().catch(err => console.error(err));
   }
-  abortManager.setSelfDestruct();
 
   let pendingState;
   let unusedSlot = false;
@@ -181,6 +177,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
     if (!aborted) {
       updateState({});
     }
+    inspector?.dispatch({ type: 'return' });
     await iterator.return();
   }
 }

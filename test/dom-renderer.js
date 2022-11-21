@@ -20,17 +20,6 @@ export async function withReactDOM(cb) {
   }
 }
 
-export async function withReactStrictMode(cb, delay = 0) {
-  await withLock(async () => {
-    try {
-      settings({ strict_mode_clean_up: delay });
-      await withReactDOM(cb);
-    } finally {
-      settings({ strict_mode_clean_up: NaN });
-    }
-  });
-}
-
 export async function withServerSideRendering(cb, timeout = 1000) {
   await withLock(async () => {
     let window;

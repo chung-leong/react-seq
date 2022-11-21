@@ -19,7 +19,7 @@ export class Inspector {
 }
 
 export class ConsoleLogger extends Inspector {
-  startTime = new Date;
+  startTime = new Date();
   stopped = false;
 
   stop = () => {
@@ -29,7 +29,7 @@ export class ConsoleLogger extends Inspector {
   onEvent(evt) {
     const l = (s) => {
       if (!this.stopped) {
-        const now = new Date;
+        const now = new Date();
         const elapsed = ((now - this.startTime) / 1000).toFixed(3).padStart(8, ' ');
         console.log(`[${elapsed}s] ` + s);
       }
@@ -58,6 +58,9 @@ export class ConsoleLogger extends Inspector {
         break;
       case 'timeout':
         l(`Timeout after ${evt.duration} milliseconds`);
+        break;
+      case 'return':
+        l(`Generator returned`);
         break;
       default:
         l(`Unknown event: ${evt.type}`);

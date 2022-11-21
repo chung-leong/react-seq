@@ -15,9 +15,6 @@ describe('#setting()', function() {
   it('should return 3000 for "ssr_time_limit" by default', function() {
     expect(setting('ssr_time_limit')).to.equal(3000);
   })
-  it('should return NaN for "strict_mode_clean_up" by default', function() {
-    expect(setting('strict_mode_clean_up')).to.be.NaN;
-  })
 })
 
 describe('#settings()', function() {
@@ -32,8 +29,5 @@ describe('#settings()', function() {
   })
   it('should throw when ssr_time_limit is being set to a string', function() {
     expect(() => settings({ ssr_time_limit: 'cow' })).to.throw();
-  })
-  it('should throw when ssr_time_limit is being set to a boolean', function() {
-    expect(() => settings({ strict_mode_clean_up: true })).to.throw();
   })
 })

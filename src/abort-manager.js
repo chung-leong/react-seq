@@ -15,21 +15,6 @@ export class AbortManager extends AbortController {
   // clean-up function returned by apply
   revert = null;
 
-  setSelfDestruct() {
-    if (process.env.NODE_ENV === 'development') {
-      // deal with double invocatopn in strict mode during development by self-destructing
-      // when not immediately mounted
-      const delay = setting('strict_mode_clean_up');
-      if (!isNaN(delay)) {
-        if (delay === 0) {
-          this.aborting = nextTick(() => this.abort());
-        } else {
-          this.aborting = timeout(delay, () => this.abort());
-        }
-      }
-    }
-  }
-
   setEffect(fn) {
     this.apply = fn;
   }
