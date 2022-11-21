@@ -186,83 +186,85 @@ The function is first invoked on [line 83](./src/media-cap.js#L83) to set the in
 ```
 
 What follow are functions that deal with the nitty-gritty of the capturing process. We'll skip over these and head to
-[line 288](./src/media-cap.js#L288) where [`mount`](../../doc/mount.md) is called:
+[line 289](./src/media-cap.js#L289) where [`mount`](../../doc/mount.md) is called:
 
 ```js
-    await mount(() => {
-      on.mount();
-
-      // watch for orientation change
-      function onOrientationChange(evt) {
-        // wait for resize event to occur
-        window.addEventListener('resize', async () => {
-          if (liveVideo) {
-            const el = await createVideoElement(stream);
-            if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
-              liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
-              on.streamChange({ type: 'streamchange' });
-            }
-          }
-        }, { once: true });
-      }
-      window.addEventListener('orientationchange', onOrientationChange);
-      navigator.mediaDevices.addEventListener('devicechange', on.deviceChange);
-
-      // watch for permission change
-      navigator.permissions.query({ name: 'camera' }).then((cameraStatus) => {
-        cameraStatus.onchange = on.permissionChange;
-      }, () => {});
-      navigator.permissions.query({ name: 'microphone' }).then((microphoneStatus) => {
-        microphoneStatus.onchange = on.permissionChange;
-      }, () => {});
-      return () => {
-        window.removeEventListener('orientationchange', onOrientationChange);
-        navigator.mediaDevices.removeEventListener('devicechange', on.deviceChange);
-        mediaRecorder?.stop();
-        closeStream();
-      };
-    });
+  await mount();
 ```
 
-The function passed to `mount` will be invoked in a `useEffect` hook. Attachment of listeners to the DOM needs to
-happen here and not in the generator function since it is a side effect. We take the liberty to perform additional
-clean-up here besides removal of handlers, to save ourselves the trouble of having to set up a try-finally block in
-the generator function (how releasing of resources is normally done).
+The function returns a promise that is fulfilled by the mounting of the component. In other words, when React
+invokes its `useEffect` hooks. We need to wait for this to happen whenever our code makes changes that need to
+eventually be reverted, for instance, attachment of event handlers to the DOM. Mounting means eventual unmounting,
+guaranteeing the triggering of the component's abort controller and the execution of its finally section.
+
+To see what would happen otherwise, try commenting out the line. This example runs under
+[Strict Mode](https://reactjs.org/docs/strict-mode.html), which means during development React will call our
+component function twice. Two async generators will be created as a result. Only one of them will witness a mount. With
+the checkpoint in place, our code functions correctly. The second, spurious generator gets stopped in its track.
+Without it, the spurious generator continues onward, eventually acquiring for itself a feed from the camera (which
+you cannot see). When you close the video capture window then, you'll notice that your camera will remain active. The
+first generator has shut its feed down but the second generator is still holding onto its.
+
+After establishing the checkpoint, we proceed to attach event listeners to various parts of the browser:
+
+```js
+// set up event listeners
+window.addEventListener('orientationchange', (evt) => {
+  // wait for resize event to occur
+  window.addEventListener('resize', async () => {
+    if (liveVideo) {
+      const el = await createVideoElement(stream);
+      if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
+        liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
+        on.streamChange({ type: 'streamchange' });
+      }
+    }
+  }, { once: true });
+}, { signal });
+navigator.mediaDevices.addEventListener('devicechange', on.deviceChange, { signal });
+
+// watch for permission change
+for (const name of [ 'camera', 'microphone' ]) {
+  const status = await navigator.permissions.query({ name });
+  status.addEventListener('change', on.permissionChange, { signal });
+}
+```
 
 As you can see, there are quite a number of relevant events. The device can get rotated, thereby changing the
-dimensions of the video feed. A device can get plugged in or unplugged. Permission levels can be toggled. All of
+dimensions of the video feed. A device can be plugged in or get unplugged. Permission levels can be toggled. All of
 these events will cause different `eventual` promises to be fulfilled.
 
-Note the use of `await`. In addition to setting the callback function, `mount` returns a promise is fulfilled when
-the component mounts. Until that happens we don't want to enter the main event loop, sitting immediately below:
+After this, the generator enters an infinite loop inside a try-finally block, with a try-catch block inside it:
 
 ```js
-    for (;;) {
-      try {
+    try {
+      for (;;) {
+        try {
 ```
 
-The reason for this is that while obtaining a media stream is conceptually not a side effect, in practice it is,
-since a browser permission prompt can appear. Our code would behave weirdly otherwise in strict mode, due to
-[double invocation](https://reactjs.org/docs/strict-mode.html#detecting-unexpected-side-effects) during development.
-This statement stops the second, abandoned generator from going any further. It'll be stuck waiting for a promise
-that never gets fulfilled, until a timer function comes and puts a kibosh on it.
-
-Once the generator gets past this point, it enters an infinite loop with a try-catch block inside. Let us first examine
-the catch block ([line 406](./src/media-cap.js#L406)):
+Let us first examine the finally and catch blocks ([line 399](./src/media-cap.js#L399)) near the function's bottom:
 
 ```js
-      } catch (err) {
-        lastError = err;
-        if (status === 'acquiring') {
-          status = 'denied';
+        } catch (err) {
+          lastError = err;
+          if (status === 'acquiring') {
+            status = 'denied';
+          }
         }
-      }
-      yield currentState();
-    } // end of for loop
+        yield currentState();
+      } // end of for loop
+    } finally {
+      mediaRecorder?.stop();
+      closeStream();
+    }
 ```
 
-It's quite simple. The error just gets saved to `lastError`. If we're in the middle of acquiring a device, the status
-is changed to "denied".
+The finally block is quite simple. It's there to perform final clean up. If a recorder is active, it's shutdown. If
+a media stream is open, it gets closed. We don't need to use `removeEventListener` here to remove the listeners we
+had installed earlier--our abort controller will do this for us.
+
+The catch block is also quite simple. It saves just the error to `lastError`. If we're in the middle of acquiring a
+device, it changes the status to "denied".
 
 Below the catch block is the generator's one and only `yield` statement. Every time we go through the `for` loop,
 the hook consumer will receive a new state, consisting of the local variables declared at the beginning of the
@@ -270,50 +272,50 @@ generator function. The UI will get updated to reflect the changes that have occ
 
 Now, let us look at what our event loop does in each of the possible statuses.
 
-## Status: "acquiring" ([line 322](./src/media-cap.js#L322))
+## Status: "acquiring" ([line 315](./src/media-cap.js#L315))
 
 ```js
-        if (status === 'acquiring') {
-          // acquire a media-capturing device
-          await openStream();
-          status = 'previewing';
-        } else ...
+          if (status === 'acquiring') {
+            // acquire a media-capturing device
+            await openStream();
+            status = 'previewing';
+          } else ...
 ```
 
 We try opening a media stream. If the operation succeeds, the status is changed to "previewing". If not, we end up in
 the catch block, described above.
 
-## Status: "previewing" ([line 326](./src/media-cap.js#L326))
+## Status: "previewing" ([line 319](./src/media-cap.js#L319))
 
 ```js
-        } else if (status === 'previewing') {
-          const evt = await eventual.userRequest.or.streamChange.or.deviceChange.or.volumeChange;
-          if (evt.type === 'record') {
-            await startRecorder(evt.options, evt.segment, evt.callback);
-            status = 'recording';
-          } else if (evt.type === 'snap') {
-            await createSnapShot(evt.mimeType, evt.quality);
-            status = 'recorded';
-          } else if (evt.type === 'select') {
-            closeStream();
-            selectedDeviceId = evt.deviceId;
-            status = 'acquiring';
-          } else if (evt.type === 'streamend') {
-            closeStream();
-            status = 'acquiring';
-          } else if (evt.type === 'devicechange') {
-            const prev = devices;
-            await getDevices();
-            if (selectNewDevice) {
-              const newDevice = devices.find(d1 => !prev.find(d2 => d2.id === d1.id));
-              if (newDevice) {
-                closeStream();
-                selectedDeviceId = newDevice.id;
-                status = 'acquiring';
+          } else if (status === 'previewing') {
+            const evt = await eventual.userRequest.or.streamChange.or.deviceChange.or.volumeChange;
+            if (evt.type === 'record') {
+              await startRecorder(evt.options, evt.segment, evt.callback);
+              status = 'recording';
+            } else if (evt.type === 'snap') {
+              await createSnapShot(evt.mimeType, evt.quality);
+              status = 'recorded';
+            } else if (evt.type === 'select') {
+              closeStream();
+              selectedDeviceId = evt.deviceId;
+              status = 'acquiring';
+            } else if (evt.type === 'streamend') {
+              closeStream();
+              status = 'acquiring';
+            } else if (evt.type === 'devicechange') {
+              const prev = devices;
+              await getDevices();
+              if (selectNewDevice) {
+                const newDevice = devices.find(d1 => !prev.find(d2 => d2.id === d1.id));
+                if (newDevice) {
+                  closeStream();
+                  selectedDeviceId = newDevice.id;
+                  status = 'acquiring';
+                }
               }
             }
-          }
-        } else ...
+          } else ...
 ```
 
 The user is now seeing the output from his camera. At this point, he might:
@@ -344,23 +346,23 @@ If the volume level is different, we don't need to do anything, as the variable 
 yield statement at the bottom of the loop will deliver the new value to the hook consumer, which will adjust the
 volume bar accordingly.
 
-## Status: "recording" ([line 353](./src/media-cap.js#L353))
+## Status: "recording" ([line 346](./src/media-cap.js#L346))
 
 ```js
-        } else if (status === 'recording') {
-          const evt = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
-          if (evt.type === 'stop') {
-            const recorded = await stopRecorder();
-            status = (recorded) ? 'recorded' : 'previewing';
-          } else if (evt.type === 'pause') {
-            mediaRecorder.pause();
-            status = 'paused';
-          } else if (evt.type === 'streamend') {
-            closeStream();
-            const recorded = await stopRecorder();
-            status = (recorded) ? 'recorded' : 'acquiring';
-          }
-        } else ...
+          } else if (status === 'recording') {
+            const evt = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
+            if (evt.type === 'stop') {
+              const recorded = await stopRecorder();
+              status = (recorded) ? 'recorded' : 'previewing';
+            } else if (evt.type === 'pause') {
+              mediaRecorder.pause();
+              status = 'paused';
+            } else if (evt.type === 'streamend') {
+              closeStream();
+              const recorded = await stopRecorder();
+              status = (recorded) ? 'recorded' : 'acquiring';
+            }
+          } else ...
 ```
 
 The video recorder has been switched on. What can happen at this stage? Well, the same things as before plus
@@ -376,48 +378,48 @@ nothing recorded.
 Fulfillment of `durationChange` or `volumeChange` does not require any additional action. The code just needs to
 "wake up" so the `yield` statement gets run.
 
-## Status: "paused" ([line 366](./src/media-cap.js#L366))
+## Status: "paused" ([line 359](./src/media-cap.js#L359))
 
 ```js
-        } else if (status === 'paused') {
-          const evt = await eventual.userRequest.or.streamChange.or.volumeChange;
-          if (evt.type === 'stop') {
-            const recorded = await stopRecorder()
-            status = (recorded) ? 'recorded' : 'previewing';
-          } else if (evt.type === 'resume') {
-            mediaRecorder.resume();
-            status = 'recording';
-          } else if (evt.type === 'streamend') {
-            closeStream();
-            const recorded = await stopRecorder();
-            status = (recorded) ? 'recorded' : 'acquiring';
-          }
-        } else ...
+          } else if (status === 'paused') {
+            const evt = await eventual.userRequest.or.streamChange.or.volumeChange;
+            if (evt.type === 'stop') {
+              const recorded = await stopRecorder()
+              status = (recorded) ? 'recorded' : 'previewing';
+            } else if (evt.type === 'resume') {
+              mediaRecorder.resume();
+              status = 'recording';
+            } else if (evt.type === 'streamend') {
+              closeStream();
+              const recorded = await stopRecorder();
+              status = (recorded) ? 'recorded' : 'acquiring';
+            }
+          } else ...
 ```
 
 The code for the "paused" stage is nearly identical to that of the "recording" stage. The only difference is here the
 user can resume recording and we're not anticipating changes in the video duration.
 
-## Status: "recorded" ([line 379](./src/media-cap.js#L379))
+## Status: "recorded" ([line 372](./src/media-cap.js#L372))
 
 ```js
-        } else if (status === 'recorded') {
-          unwatchAudioVolume();
-          const evt = await eventual.userRequest.or.streamChange;
-          if (evt.type === 'clear') {
-            capturedVideo = undefined;
-            capturedAudio = undefined;
-            capturedImage = undefined;
-            status = (stream) ? 'previewing' : 'acquiring';
-            if (stream) {
-              watchAudioVolume();
-              // refresh the list just in case something was plugged in
-              await getDevices();
+          } else if (status === 'recorded') {
+            unwatchAudioVolume();
+            const evt = await eventual.userRequest.or.streamChange;
+            if (evt.type === 'clear') {
+              capturedVideo = undefined;
+              capturedAudio = undefined;
+              capturedImage = undefined;
+              status = (stream) ? 'previewing' : 'acquiring';
+              if (stream) {
+                watchAudioVolume();
+                // refresh the list just in case something was plugged in
+                await getDevices();
+              }
+            } else if (evt.type === 'streamend') {
+              closeStream();
             }
-          } else if (evt.type === 'streamend') {
-            closeStream();
-          }
-        } else ...
+          } else ...
 ```
 
 Okay, we have recorded something. The first thing we do is turn off volume monitoring, as showing the input
@@ -428,20 +430,20 @@ status to "previewing" once again--provided we still have the live stream. The u
 the camera while reviewing the video, requiring a trip to the "acquiring" stage. We also need to rescan the list
 of available devices, as we have been ignoring `eventual.deviceChange` in the prior stages.
 
-## Status: "denied" ([line 395](./src/media-cap.js#L395))
+## Status: "denied" ([line 388](./src/media-cap.js#L388))
 
 ```js
-        } else if (status === 'denied') {
-          const evt = await eventual.deviceChange.or.permissionChange;
-          if (evt.type === 'devicechange') {
-            await getDevices();
-            if (devices.length > 0) {
+          } else if (status === 'denied') {
+            const evt = await eventual.deviceChange.or.permissionChange;
+            if (evt.type === 'devicechange') {
+              await getDevices();
+              if (devices.length > 0) {
+                status = 'acquiring';
+              }
+            } else if (evt.type === 'change') {
               status = 'acquiring';
             }
-          } else if (evt.type === 'change') {
-            status = 'acquiring';
           }
-        }
 ```
 
 Finally, we only have the "denied" status to consider. What can happen at this stage that can get us out of it?
@@ -464,6 +466,12 @@ You can find the answer to that question in the [documentation of
 > The return() method of an async generator acts as if a return statement is inserted in the generator's body at the
 > current suspended position, which finishes the generator and allows the generator to perform any cleanup tasks when
 > combined with a try...finally block.
+
+Another thing that you might wonder about is the fate of the second generator, the one created due to strict mode.
+What happens when a piece of async code gets permanently stuck, waiting for a promise that would never get fulfilled?
+The answer is...it's pining for the fjords. Stone dead, in another word. There are no more external references to
+any part of the generator after it has reached the `await` statement. All associated objects therefore become
+eligible for garbage collection. The generator effectively is no longer there.
 
 ## Final Thoughts
 

@@ -8,7 +8,7 @@ export function useMediaCapture(options = {}) {
     selectNewDevice = true,
     watchVolume = false,
   } = options;
-  return useSequentialState(async function*({ initial, mount, manageEvents }) {
+  return useSequentialState(async function*({ initial, mount, manageEvents, signal }) {
     let status = 'acquiring';
     let duration;
     let volume;
@@ -285,132 +285,129 @@ export function useMediaCapture(options = {}) {
       }
     }
 
-    // set up effects and wait for mount to occur
-    await mount(() => {
-      function onOrientationChange(evt) {
-        // wait for resize event to occur
-        window.addEventListener('resize', async () => {
-          if (liveVideo) {
-            const el = await createVideoElement(stream);
-            if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
-              liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
-              on.streamChange({ type: 'streamchange' });
-            }
+    // wait for mount to occur
+    await mount();
+
+    // set up event listeners
+    window.addEventListener('orientationchange', (evt) => {
+      // wait for resize event to occur
+      window.addEventListener('resize', async () => {
+        if (liveVideo) {
+          const el = await createVideoElement(stream);
+          if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
+            liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
+            on.streamChange({ type: 'streamchange' });
           }
-        }, { once: true });
-      }
-      window.addEventListener('orientationchange', onOrientationChange);
-      navigator.mediaDevices.addEventListener('devicechange', on.deviceChange);
+        }
+      }, { once: true });
+    }, { signal });
+    navigator.mediaDevices.addEventListener('devicechange', on.deviceChange, { signal });
 
-      // watch for permission change
-      navigator.permissions.query({ name: 'camera' }).then((cameraStatus) => {
-        cameraStatus.onchange = on.permissionChange;
-      }, () => {});
-      navigator.permissions.query({ name: 'microphone' }).then((microphoneStatus) => {
-        microphoneStatus.onchange = on.permissionChange;
-      }, () => {});
-      return () => {
-        window.removeEventListener('orientationchange', onOrientationChange);
-        navigator.mediaDevices.removeEventListener('devicechange', on.deviceChange);
-        mediaRecorder?.stop();
-        closeStream();
-      };
-    });
+    // watch for permission change
+    for (const name of [ 'camera', 'microphone' ]) {
+      const status = await navigator.permissions.query({ name });
+      status.addEventListener('change', on.permissionChange, { signal });
+    }
 
-    for (;;) {
-      try {
-        if (status === 'acquiring') {
-          // acquire a media-capturing device
-          await openStream();
-          status = 'previewing';
-        } else if (status === 'previewing') {
-          const evt = await eventual.userRequest.or.streamChange.or.deviceChange.or.volumeChange;
-          if (evt.type === 'record') {
-            await startRecorder(evt.options, evt.segment, evt.callback);
-            status = 'recording';
-          } else if (evt.type === 'snap') {
-            await createSnapShot(evt.mimeType, evt.quality);
-            status = 'recorded';
-          } else if (evt.type === 'select') {
-            closeStream();
-            selectedDeviceId = evt.deviceId;
-            status = 'acquiring';
-          } else if (evt.type === 'streamend') {
-            closeStream();
-            status = 'acquiring';
-          } else if (evt.type === 'devicechange') {
-            const prev = devices;
-            await getDevices();
-            if (selectNewDevice) {
-              const newDevice = devices.find(d1 => !prev.find(d2 => d2.id === d1.id));
-              if (newDevice) {
-                closeStream();
-                selectedDeviceId = newDevice.id;
-                status = 'acquiring';
+    try {
+      for (;;) {
+        try {
+          if (status === 'acquiring') {
+            // acquire a media-capturing device
+            await openStream();
+            status = 'previewing';
+          } else if (status === 'previewing') {
+            const evt = await eventual.userRequest.or.streamChange.or.deviceChange.or.volumeChange;
+            if (evt.type === 'record') {
+              await startRecorder(evt.options, evt.segment, evt.callback);
+              status = 'recording';
+            } else if (evt.type === 'snap') {
+              await createSnapShot(evt.mimeType, evt.quality);
+              status = 'recorded';
+            } else if (evt.type === 'select') {
+              closeStream();
+              selectedDeviceId = evt.deviceId;
+              status = 'acquiring';
+            } else if (evt.type === 'streamend') {
+              closeStream();
+              status = 'acquiring';
+            } else if (evt.type === 'devicechange') {
+              const prev = devices;
+              await getDevices();
+              if (selectNewDevice) {
+                const newDevice = devices.find(d1 => !prev.find(d2 => d2.id === d1.id));
+                if (newDevice) {
+                  closeStream();
+                  selectedDeviceId = newDevice.id;
+                  status = 'acquiring';
+                }
               }
             }
-          }
-        } else if (status === 'recording') {
-          const evt = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
-          if (evt.type === 'stop') {
-            const recorded = await stopRecorder();
-            status = (recorded) ? 'recorded' : 'previewing';
-          } else if (evt.type === 'pause') {
-            mediaRecorder.pause();
-            status = 'paused';
-          } else if (evt.type === 'streamend') {
-            closeStream();
-            const recorded = await stopRecorder();
-            status = (recorded) ? 'recorded' : 'acquiring';
-          }
-        } else if (status === 'paused') {
-          const evt = await eventual.userRequest.or.streamChange.or.volumeChange;
-          if (evt.type === 'stop') {
-            const recorded = await stopRecorder()
-            status = (recorded) ? 'recorded' : 'previewing';
-          } else if (evt.type === 'resume') {
-            mediaRecorder.resume();
-            status = 'recording';
-          } else if (evt.type === 'streamend') {
-            closeStream();
-            const recorded = await stopRecorder();
-            status = (recorded) ? 'recorded' : 'acquiring';
-          }
-        } else if (status === 'recorded') {
-          unwatchAudioVolume();
-          const evt = await eventual.userRequest.or.streamChange;
-          if (evt.type === 'clear') {
-            capturedVideo = undefined;
-            capturedAudio = undefined;
-            capturedImage = undefined;
-            status = (stream) ? 'previewing' : 'acquiring';
-            if (stream) {
-              watchAudioVolume();
-              // refresh the list just in case something was plugged in
-              await getDevices();
+          } else if (status === 'recording') {
+            const evt = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
+            if (evt.type === 'stop') {
+              const recorded = await stopRecorder();
+              status = (recorded) ? 'recorded' : 'previewing';
+            } else if (evt.type === 'pause') {
+              mediaRecorder.pause();
+              status = 'paused';
+            } else if (evt.type === 'streamend') {
+              closeStream();
+              const recorded = await stopRecorder();
+              status = (recorded) ? 'recorded' : 'acquiring';
             }
-          } else if (evt.type === 'streamend') {
-            closeStream();
-          }
-        } else if (status === 'denied') {
-          const evt = await eventual.deviceChange.or.permissionChange;
-          if (evt.type === 'devicechange') {
-            await getDevices();
-            if (devices.length > 0) {
+          } else if (status === 'paused') {
+            const evt = await eventual.userRequest.or.streamChange.or.volumeChange;
+            if (evt.type === 'stop') {
+              const recorded = await stopRecorder()
+              status = (recorded) ? 'recorded' : 'previewing';
+            } else if (evt.type === 'resume') {
+              mediaRecorder.resume();
+              status = 'recording';
+            } else if (evt.type === 'streamend') {
+              closeStream();
+              const recorded = await stopRecorder();
+              status = (recorded) ? 'recorded' : 'acquiring';
+            }
+          } else if (status === 'recorded') {
+            unwatchAudioVolume();
+            const evt = await eventual.userRequest.or.streamChange;
+            if (evt.type === 'clear') {
+              capturedVideo = undefined;
+              capturedAudio = undefined;
+              capturedImage = undefined;
+              status = (stream) ? 'previewing' : 'acquiring';
+              if (stream) {
+                watchAudioVolume();
+                // refresh the list just in case something was plugged in
+                await getDevices();
+              }
+            } else if (evt.type === 'streamend') {
+              closeStream();
+            }
+          } else if (status === 'denied') {
+            const evt = await eventual.deviceChange.or.permissionChange;
+            if (evt.type === 'devicechange') {
+              await getDevices();
+              if (devices.length > 0) {
+                status = 'acquiring';
+              }
+            } else if (evt.type === 'change') {
               status = 'acquiring';
             }
-          } else if (evt.type === 'change') {
-            status = 'acquiring';
+          }
+        } catch (err) {
+          lastError = err;
+          if (status === 'acquiring') {
+            status = 'denied';
           }
         }
-      } catch (err) {
-        lastError = err;
-        if (status === 'acquiring') {
-          status = 'denied';
-        }
-      }
-      yield currentState();
-    } // end of for loop
+        yield currentState();
+      } // end of for loop
+    } finally {
+      mediaRecorder?.stop();
+      closeStream();
+    }
   }, [ video, audio, preferredDevice, selectNewDevice, watchVolume ]);
 }
 
