@@ -1,4 +1,4 @@
-import { useSequentialState } from 'react-seq';
+import { useSequentialState, manageEvents } from 'react-seq';
 
 const baseURL = 'https://swapi.dev/api/';
 
@@ -7,13 +7,11 @@ export function useSWAPI(type, params = {}, options = {}) {
     delay = 100,
     refresh = Infinity,
   } = options;
-  let onUpdateRequest;
   const { id } = params;
-  const state = useSequentialState(async function*({ initial, defer, flush, manageEvents, signal }) {
+  const state = useSequentialState(async function*({ initial, defer, manageEvents, signal }) {
     initial({});
-    const [ on, eventual ] = manageEvents();
+    const [ , eventual ] = manageEvents();
     const opts = { signal };
-    onUpdateRequest = on.updateRequest;
     for (let i = 0;; i++) {
       defer(i === 0 ? delay : Infinity);
       try {
@@ -113,7 +111,6 @@ export function useSWAPI(type, params = {}, options = {}) {
           default:
             throw new Error(`Unknown object type: ${type}`);
         }
-        flush();
       } catch (err) {
         if (i === 0) {
           throw err;
@@ -124,7 +121,8 @@ export function useSWAPI(type, params = {}, options = {}) {
       }
     }
   }, [ delay, id, refresh, type ]);
-  return [ state, onUpdateRequest ];
+  const [ on ] = manageEvents(state);
+  return [ state, on.updateRequest ];
 }
 
 export function trimURL(url) {
