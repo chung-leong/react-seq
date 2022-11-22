@@ -1,70 +1,120 @@
-# Getting Started with Create React App
+# Payment form example
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-## Available Scripts
+## Seeing the code in action
 
-In the project directory, you can run:
+Go to the `examples/payment` folder. Run `npm install` then `npm start`. A browser window should automatically
+open up.
 
-### `npm start`
+## Payment page
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```js
+export function PaymentPage() {
+  return useSequential(async function*({ fallback, manageEvents }) {
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The [first line of the function](./src/PaymentPage.js#L5) is a call to
+[`useSequential`](../../doc/useSequential.md). The argument is an anonymous async generator function, which will yield
+the contents of our component. Using object destructuring we obtain a pair of function from the hook: `fallback` and
+`manageEvents`. The former is used immediately on the next line:
 
-### `npm test`
+```js
+  fallback(<PaymentLoading />);
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+This set the fallback placeholder. It'll be on screen until our generator produces the first content. Before that
+happens we need to know what payment methods are available to the user, which in real life might depend on he
+where lives, what the product is, and so forth. We load the code responsible dynamically and calls
+`getPaymentMethods` to obtain the list:
 
-### `npm run build`
+```js
+  // load code related to making payments
+  const { getPaymentMethods, processPayment } = await import('./payment.js');
+  // get the available payment methods
+  const methods = await getPaymentMethods();
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+We then preload the form used for each method so that when the user select a method, we can display the correct form
+immediately:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```js
+  // load input forms for the different methods
+  const forms = {};
+  for (const method of methods) {
+    const module = await import(`./PaymentMethod${method.name}.js`);
+    forms[method.name] = module[`PaymentMethod${method.name}`];
+  }
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Finally we load the selection screen:
 
-### `npm run eject`
+```js
+  const { PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Now we're ready to take down the fallback placeholder and show some real content:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```js
+  const [ on, eventual ] = manageEvents();
+  let success = false;
+  let method = null;
+  while (!success) {
+    if (!method) {
+      yield <PaymentSelectionScreen methods={methods} onSelect={on.selection} />;
+      method = await eventual.selection;
+    }
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+Initially, we don't know what is the user's preferred method of payment. So we show the selection screen. Later, if
+for some reason we need to start over, we skip this step.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+We use the `yield` operator to hand contents to React. Here we have a `<PaymentSelectionScreen />`. Its `onSelect` is
+set to `on.selection`. Where is this `on.selection` coming from?
 
-## Learn More
+The two objects returned by `manageEvents` on [line 20](./src/PaymentPage.js#L20), `on` and `eventual`, are
+[JavaScript proxy objects](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
+Their properties are dynamically generated. `eventual` automatically generates promises while `on` automatically
+generates handlers that resolve them.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+This bit of magic provided by the event manager represents the key advantage of using React-seq. It allows you to
+use React in a more imperative fashion. Instead of passively reacting to events, you proactively seek out an answer.
+The prompt-and-wait-for-response logic you see above in a way is reminiscent of the sort of console programs you might
+have written in your first-year CS class:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```c
+  int success = FALSE;
+  int method = 0;
+  while (!success) {
+    if (!method) {
+      printf("Select a payment method [1-%d]: ", method_count);
+      scanf("%d\n", &method);
+    }
+```
 
-### Code Splitting
+Moving on.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+```js
+  const PaymentMethod = forms[method.name];
+  yield <PaymentMethod onSubmit={on.response} onCancel={on.response.cancel} />;
+  const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
+  // wait for user to submit the form or hit cancel button
+  const response = await eventual.response;
+  if (response === 'cancel') {
+    // go back to selection screen
+    method = null;
+    continue;
+  }
+```
 
-### Analyzing the Bundle Size
+An alternative way to implement the logic above would be to await on a separate `cancel` promise:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+```js
+  yield <PaymentMethod onSubmit={on.response} onCancel={on.cancel.bind(null)} />;
+  const response = await eventual.response.or.cancel;
+  if (!response) {
+    method = null;
+    continue;
+  }
+```
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The cancel handler is bound to `null`. If we
