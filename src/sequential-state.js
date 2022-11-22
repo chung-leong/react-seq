@@ -12,9 +12,12 @@ export function useSequentialState(cb, deps) {
 
 export function useFunctionState(fn, cb, deps) {
   const inspector = useContext(InspectorContext);
+  if (deps) {
+    deps.push(inspector);
+  }
   const { initialState, abortManager } = useMemo(() => {
     return fn(cb, s => setState(s), e => setError(e), { inspector });
-  }, [ inspector, ...deps ]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
   const [ state, setState ] = useState(initialState);
   const [ error, setError ] = useState();
   useEffect(() => {
@@ -26,6 +29,10 @@ export function useFunctionState(fn, cb, deps) {
   useMemo(() => {
     inspector?.dispatch({ type: 'state', state });
   }, [ state, inspector ]);
+  if (!deps) {
+    // stat hooks go into nasty infinite loops when deps is omitted--we don't allow it
+    throw new Error('No dependencies specified');
+  }
   if (error) {
     inspector?.dispatch({ type: 'error', error });
     throw error;

@@ -12,6 +12,9 @@ export function useSequential(cb, deps) {
 
 export function useFunction(fn, cb, deps) {
   const inspector = useContext(InspectorContext);
+  if (deps) {
+    deps.push(inspector);
+  }
   const { element, abortManager } = useMemo(() => {
     return fn(cb, { inspector });
   }, deps); // eslint-disable-line react-hooks/exhaustive-deps

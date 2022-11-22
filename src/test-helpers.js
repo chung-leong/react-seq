@@ -2,7 +2,7 @@ import { createElement } from 'react';
 import { InspectorContext, PromiseLogger } from './inspector.js';
 import { delay } from './utils.js';
 
-export async function withTestRender(el, cb, options = {}) {
+export async function withTestRenderer(el, cb, options = {}) {
   const {
     timeout = 2000
   } = options;
@@ -10,9 +10,9 @@ export async function withTestRender(el, cb, options = {}) {
   const logger = new PromiseLogger();
   const provider = createElement(InspectorContext.Provider, { value: logger }, el);
   let renderer;
-  let lastPromise = await stoppage(logger, act, timeout, () => renderer = create(provider));
   try {
-    return cb({
+    let lastPromise = (await stoppage(logger, act, timeout, () => renderer = create(provider))).promise;
+    await cb({
       renderer,
       logger,
       update: async (el) => {
@@ -28,13 +28,13 @@ export async function withTestRender(el, cb, options = {}) {
         if (!lastPromise) {
           throw new Error('Not awaiting');
         }
-        lastPromise = await stoppage(logger, act, timeout, () => lastPromise.resolve(value));
+        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve(value))).promise;
       },
       reject: async (err) => {
         if (!lastPromise) {
           throw new Error('Not awaiting');
         }
-        lastPromise = await stoppage(logger, act, timeout, () => lastPromise.reject(err));
+        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.reject(err))).promise;
       },
       timeout: async (err) => {
         if (!lastPromise) {
@@ -43,7 +43,7 @@ export async function withTestRender(el, cb, options = {}) {
         if (!(lastPromise.timeout >= 0)) {
           throw new Error('Not expecting timeout');
         }
-        lastPromise = await stoppage(logger, act, timeout, () => lastPromise.resolve('timeout'));
+        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve('timeout'))).promise;
       }
     });
   } finally {
@@ -65,9 +65,16 @@ export async function withReactDOM(el, cb, options = {}) {
   const logger = new PromiseLogger();
   const provider = createElement(InspectorContext.Provider, { value: logger }, el);
   const root = createRoot(node);
-  let lastPromise = await stoppage(logger, act, timeout, () => root.render(provider));
+  // suppress "not wrapped in act" messages
+  const errorFn = console.error;
+  console.error = (...args) => {
+    if (typeof(args[0]) !== 'string' || !args[0].includes('was not wrapped in act')) {
+      errorFn(...args);
+    }
+  };
   try {
-    return cb({
+    let lastPromise = (await stoppage(logger, act, timeout, () => root.render(provider))).promise;
+    await cb({
       node,
       root,
       logger,
@@ -84,13 +91,13 @@ export async function withReactDOM(el, cb, options = {}) {
         if (!lastPromise) {
           throw new Error('Not awaiting');
         }
-        lastPromise = await stoppage(logger, act, timeout, () => lastPromise.resolve(value));
+        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve(value))).promise;
       },
       reject: async (err) => {
         if (!lastPromise) {
           throw new Error('Not awaiting');
         }
-        lastPromise = await stoppage(logger, act, timeout, () => lastPromise.reject(err));
+        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.reject(err))).promise;
       },
       timeout: async (err) => {
         if (!lastPromise) {
@@ -99,26 +106,24 @@ export async function withReactDOM(el, cb, options = {}) {
         if (!(lastPromise.timeout >= 0)) {
           throw new Error('Not expecting timeout');
         }
-        lastPromise = await stoppage(logger, act, timeout, () => lastPromise.resolve('timeout'));
+        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve('timeout'))).promise;
       }
     });
   } finally {
     root.unmount();
     node.remove();
+    console.error = errorFn;
   }
 }
 
-async function stoppage(logger, act, delay, cb) {
-  await act(cb);
+async function stoppage(logger, act, ms, cb) {
   const returning = logger.newEvent({ type: 'return' });
   const waiting = logger.newEvent({ type: 'await' });
-  const timeout = delay(delay).then(() => { throw new Error(`Timeout after ${delay}ms`) });
-  const event = await Promise.race([ returning, waiting, timeout ]);
-  const promise = (event.type === 'await') ? event.promise : null;
-  const updating1 = logger.newEvent({ type: 'content' });
-  const updating2 = logger.newEvent({ type: 'state' });
-  await Promise.race([ updating1, updating2, delay(10) ]);
-  return promise;
+  const timeout = delay(ms).then(() => { throw new Error(`Timeout after ${ms}ms`) });
+  await act(() => cb());
+  const event = await act(() => Promise.race([ returning, waiting, timeout ]));
+  await act(() => {});
+  return event;
 }
 
 export async function withJSDOM(cb, options) {
