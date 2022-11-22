@@ -14,7 +14,7 @@ class ManagedPromise extends Promise {
     this.manager = null;
     this.name = undefined;
     this.state = 0;
-    this.timeout = 0;
+    this.timeout = -1;
   }
 
   static create(manager, name, derived = false, source = null) {

@@ -211,6 +211,7 @@ export function sequential(cb, options = {}) {
 
     let currentContent = pendingContent;
     let currentError = pendingError;
+    let lastSeen;
     let redrawComponent;
 
     if (ssr) {
@@ -222,8 +223,6 @@ export function sequential(cb, options = {}) {
         iterator.setInterruption(updateDelay);
       }
     }
-
-    const objectSeen = (process.env.NODE_ENV === 'development') ? new WeakMap() : null;
 
     // retrieve the remaining items from the generator unless an error was encountered
     // or we've finished iterating through the generator already
@@ -240,23 +239,15 @@ export function sequential(cb, options = {}) {
       redrawComponent = useReducer(c => c + 1, 0)[1];
       if (currentError) {
         // deal with double invocation during development
-        if (process.env.NODE_ENV === 'development') {
-          if (!objectSeen.get(currentError)) {
-            inspector?.dispatch({ type: 'error', error: currentError });
-            objectSeen.set(currentError, true);
-          }
-        } else {
+        if (lastSeen !== currentError) {
           inspector?.dispatch({ type: 'error', error: currentError });
+          lastSeen = currentError;
         }
         throw currentError;
       }
-      if (process.env.NODE_ENV === 'development') {
-        if (!objectSeen.get(currentContent)) {
-          inspector?.dispatch({ type: 'content', content: currentContent });
-          objectSeen.set(currentContent, true);
-        }
-      } else {
+      if (lastSeen !== currentContent) {
         inspector?.dispatch({ type: 'content', content: currentContent });
+        lastSeen = currentContent;
       }
       return currentContent;
     }

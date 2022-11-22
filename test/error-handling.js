@@ -1,4 +1,5 @@
 import { createElement, Component } from 'react';
+import { createTrigger } from '../src/utils.js';
 
 // some tests (like those that works with JSDOM) can't run at the same time
 let locked = false;
