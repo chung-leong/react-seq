@@ -139,7 +139,11 @@ export function sequentialState(cb, setState, setError, options = {}) {
     if (pendingState !== undefined) {
       const newState = pendingState;
       pendingState = undefined;
-      startTransition(() => setState(newState));
+      startTransition(() => {
+        if (abortManager.mountState) {
+          setState(newState);
+        }
+      });
       unusedSlot = false;
     } else {
       unusedSlot = reusable;
@@ -147,7 +151,9 @@ export function sequentialState(cb, setState, setError, options = {}) {
   }
 
   function throwError(err) {
-    setError(err);
+    if (abortManager.mountState) {
+      setError(err);
+    }
   }
 
   async function retrieveRemaining() {

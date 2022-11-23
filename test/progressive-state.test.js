@@ -30,12 +30,13 @@ describe('#progressiveState', function() {
     let state, error;
     const setState = value => state = value;
     const setError = err => error = err;
-    const { initialState } = progressiveState(async ({ usable, initial }) => {
+    const { initialState, abortManager: am } = progressiveState(async ({ usable, initial }) => {
       usable(2);
       initial({ drinks: [], sober: true });
       return { drinks: createDrinks(), sober: false };
     }, setState, setError);
     state = initialState;
+    am.onMount();
     expect(state).to.eql({ drinks: [], sober: true });
     assertions[0].done();
     await steps[1];

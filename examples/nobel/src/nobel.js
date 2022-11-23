@@ -1,7 +1,7 @@
 import { useSequentialState } from 'react-seq';
 
 export function useNobelPrize(category, year) {
-  return useSequentialState(async function*({ signal }) {
+  return useSequentialState(async function*({ mount, signal }) {
     if (!category || !year) {
       return;
     }
@@ -12,11 +12,11 @@ export function useNobelPrize(category, year) {
       prizeAmountAdjusted,
       laureates
     } ] = await fetchJSON(prizeURL, { signal });
-    const prize = {
+    let prize = {
       fullName: str(categoryFullName),
       amount: prizeAmount,
       amountAdjusted: prizeAmountAdjusted,
-      laureates: laureates.map(({ fullName, orgName, motivation }) => {
+      laureates: laureates?.map(({ fullName, orgName, motivation }) => {
         return {
           fullName: str(fullName) ?? str(orgName),
           motivation: str(motivation),
@@ -24,23 +24,26 @@ export function useNobelPrize(category, year) {
       }),
     };
     yield prize;
-    for (const [ index, laureate ] of laureates.entries()) {
-      const [ {
-        gender,
-        birth,
-        death,
-        nobelPrizes,
-        wikipedia,
-      } ] = await fetchJSON(laureate.links.href);
-      const target = prize.laureates[index];
-      target.gender = gender;
-      target.birth = formatDatePlace(birth);
-      target.death = formatDatePlace(death);
-      // find the relevant prize
-      const matchingPrize = nobelPrizes.find(p => p.awardYear === year);
-      target.affiliation = formatAffiliation(matchingPrize?.affiliations?.[0]);
-      target.wikipedia = wikipedia.english;
-      yield prize;
+    if (laureates) {
+      for (const [ index, laureate ] of laureates.entries()) {
+        const [ {
+          gender,
+          birth,
+          death,
+          nobelPrizes,
+          wikipedia,
+        } ] = await fetchJSON(laureate.links.href);
+        prize = { ...prize };
+        const target = prize.laureates[index];
+        target.gender = gender;
+        target.birth = formatDatePlace(birth);
+        target.death = formatDatePlace(death);
+        // find the relevant prize
+        const matchingPrize = nobelPrizes.find(p => p.awardYear === year);
+        target.affiliation = formatAffiliation(matchingPrize?.affiliations?.[0]);
+        target.wikipedia = wikipedia.english;
+        yield prize;
+      }
     }
   }, [ category, year ]);
 }

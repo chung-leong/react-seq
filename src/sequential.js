@@ -263,9 +263,11 @@ export function sequential(cb, options = {}) {
       if (pendingContent !== undefined) {
         currentContent = pendingContent;
         pendingContent = undefined;
-        if (redrawComponent) {
-          startTransition(redrawComponent);
-        }
+        startTransition(() => {
+          if (abortManager.mountState) {
+            redrawComponent?.()
+          }
+        });
         unusedSlot = false;
       } else {
         unusedSlot = reusable;
@@ -274,8 +276,8 @@ export function sequential(cb, options = {}) {
 
     function throwError(err) {
       currentError = err;
-      if (redrawComponent) {
-        redrawComponent();
+      if (abortManager.mountState) {
+        redrawComponent?.();
       }
     }
 

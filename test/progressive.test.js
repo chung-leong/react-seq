@@ -28,7 +28,7 @@ describe('#progressive', function() {
       function TestComponent({ animals }) {
         return animals.join(', ');
       }
-      const { element: el } = progressive(async ({ fallback, type, usable }) => {
+      const { element: el, abortManager: am } = progressive(async ({ fallback, type, usable }) => {
         fallback('None');
         type(TestComponent);
         usable({
@@ -37,6 +37,7 @@ describe('#progressive', function() {
         return { animals: generate() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];
@@ -66,12 +67,13 @@ describe('#progressive', function() {
       function TestComponent({ animals }) {
         return animals.join(', ');
       }
-      const { element: el } = progressive(async ({ fallback, type }) => {
+      const { element: el, abortManager: am } = progressive(async ({ fallback, type }) => {
         fallback('None');
         type(TestComponent);
         return { animals: generate() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];
@@ -101,7 +103,7 @@ describe('#progressive', function() {
       function TestComponent({ animals }) {
         return animals.join(', ');
       }
-      const { element: el } = progressive(async ({ fallback, type, defer, usable }) => {
+      const { element: el, abortManager: am } = progressive(async ({ fallback, type, defer, usable }) => {
         type(TestComponent);
         fallback('None');
         defer(15);
@@ -109,6 +111,7 @@ describe('#progressive', function() {
         return { animals: generate() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];
@@ -136,7 +139,7 @@ describe('#progressive', function() {
         return animals.join(', ');
       }
       await withSilentConsole(async () => {
-        const { element: el } = progressive(async ({ fallback, usable, type }) => {
+        const { element: el, abortManager: am } = progressive(async ({ fallback, usable, type }) => {
           fallback('None');
           type(TestComponent);
           usable({ animals: 1 });
@@ -144,6 +147,7 @@ describe('#progressive', function() {
         });
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(toJSON()).to.equal('None');
         await assertions[0].done();
         await steps[1];
@@ -172,13 +176,14 @@ describe('#progressive', function() {
       function Title({ animals = [] }) {
         return createElement('h1', {}, animals.join(', '));
       }
-      const { element: el } = progressive(async ({ fallback, usable, type }) => {
+      const { element: el, abortManager: am } = progressive(async ({ fallback, usable, type }) => {
         fallback('None');
         type({ default: Title });
         usable({ animals: 1 });
         return { animals: generate() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];
@@ -205,13 +210,14 @@ describe('#progressive', function() {
         yield 'Chicken';
         steps[3].done();
       }
-      const { element: el } = progressive(async ({ fallback, usable, element }) => {
+      const { element: el, abortManager: am } = progressive(async ({ fallback, usable, element }) => {
         fallback('None');
         usable({ animals: 1 });
         element(({ animals = [] }) => createElement('span', {}, animals.join(', ')));
         return { animals: generate() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];
@@ -244,13 +250,14 @@ describe('#progressive', function() {
       function TestComponent({ animals = [] }) {
         return animals.join(', ');
       }
-      const { element: el } = progressive(async ({ fallback, usable, type }) => {
+      const { element: el, abortManager: am } = progressive(async ({ fallback, usable, type }) => {
         fallback('None');
         type(TestComponent);
         usable({ animals: 1 });
         return { animals: generate() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];
@@ -267,11 +274,12 @@ describe('#progressive', function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
       await withSilentConsole(async () => {
-        const { element: el } = progressive(async () => {
+        const { element: el, abortManager: am } = progressive(async () => {
           return {};
         });
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(caughtAt(boundary)).to.be.an('error');
       });
     });
@@ -303,12 +311,13 @@ describe('#progressive', function() {
   it('should throw if usable is given incorrect parameter', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       await withSilentConsole(async () => {
-        const { element: el } = progressive(async ({ usable }) => {
+        const { element: el, abortManager: am } = progressive(async ({ usable }) => {
           usable('cow', 1);
           return {};
         });
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(caughtAt(boundary)).to.be.an('error');
       })
     });
@@ -316,12 +325,13 @@ describe('#progressive', function() {
   it('should throw if usable is given an object with incorrect properties', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       await withSilentConsole(async () => {
-        const { element: el } = progressive(async ({ usable }) => {
+        const { element: el, abortManager: am } = progressive(async ({ usable }) => {
           usable({ cow: false });
           return {};
         });
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(caughtAt(boundary)).to.be.an('error');
       })
     });
@@ -329,12 +339,13 @@ describe('#progressive', function() {
   it('should throw if function returns a non-object', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       await withSilentConsole(async () => {
-        const { element: el } = progressive(async ({ element }) => {
+        const { element: el, abortManager: am } = progressive(async ({ element }) => {
           element((props) => 'Hello');
           return 123;
         });
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(caughtAt(boundary)).to.be.an('error');
       });
     });
@@ -363,13 +374,14 @@ describe('#progressive', function() {
         yield 'Chicken sandwich';
       }
 
-      const { element: el } = progressive(async ({ element, usable, fallback }) => {
+      const { element: el, abortManager: am } = progressive(async ({ element, usable, fallback }) => {
         fallback('None');
         usable(2);
         element(({ animals, sandwiches }) => `${animals.join(', ')} (${sandwiches.join(', ')})`);
         return { animals: create1(), sandwiches: create2() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];
@@ -410,7 +422,7 @@ describe('#progressive', function() {
         yield 'Chicken sandwich';
       }
 
-      const { element: el } = progressive(async ({ element, usable, fallback }) => {
+      const { element: el, abortManager: am } = progressive(async ({ element, usable, fallback }) => {
         fallback('None');
         usable(0);
         usable({ sandwiches: 1 })
@@ -418,6 +430,7 @@ describe('#progressive', function() {
         return { animals: create1(), sandwiches: create2() };
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('None');
       await assertions[0].done();
       await steps[1];

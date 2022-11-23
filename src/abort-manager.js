@@ -1,5 +1,4 @@
 import { nextTick, timeout, until, createTrigger } from './utils.js';
-import { setting } from './settings.js';
 
 export class AbortManager extends AbortController {
   // scheduled abort
@@ -10,6 +9,8 @@ export class AbortManager extends AbortController {
   unmounting = null;
   // promise that the component is mounted
   mounted = createTrigger();
+  // boolean indicating whether component is mounted
+  mountState = false;
   // effect function
   apply = null;
   // clean-up function returned by apply
@@ -28,6 +29,7 @@ export class AbortManager extends AbortController {
     this.aborting?.cancel();
     this.unmounting?.cancel();
     this.mounting = nextTick(() => this.mounted.resolve());
+    this.mountState = true;
 
     // call effect function if there's one
     const result = this.apply?.();
@@ -39,6 +41,7 @@ export class AbortManager extends AbortController {
   onUnmount() {
     // cancel mounting
     this.mounting?.cancel();
+    this.mountState = false;
     this.unmounting = nextTick(() => this.mounted = createTrigger());
 
     // run clean-up function

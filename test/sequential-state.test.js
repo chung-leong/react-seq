@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { createElement, StrictMode } from 'react';
 import { withTestRenderer } from './test-renderer.js';
+import { withReactDOM } from './dom-renderer.js';
 import { createSteps, loopThrough } from './step.js';
 import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
 import { delay } from '../index.js';
@@ -32,7 +33,8 @@ describe('#sequentialState()', function() {
       const results = [], errors = [];
       const setState = value => results.push(value);
       const setError = err => errors.push(err);
-      const { initialState } = sequentialState(createDrinks, setState, setError);
+      const { initialState, abortManager: am } = sequentialState(createDrinks, setState, setError);
+      am.onMount();
       expect(initialState).to.be.undefined;
       await assertions[0].done();
       await steps[1];
@@ -64,7 +66,8 @@ describe('#sequentialState()', function() {
       const results = [], errors = [];
       const setState = value => results.push(value);
       const setError = err => errors.push(err);
-      const { initialState } = sequentialState(createDrinks, setState, setError);
+      const { initialState, abortManager: am } = sequentialState(createDrinks, setState, setError);
+      am.onMount();
       expect(initialState).to.be.undefined;
       await assertions[0].done();
       await steps[1];
@@ -98,7 +101,8 @@ describe('#sequentialState()', function() {
       const results = [], errors = [];
       const setState = value => results.push(value);
       const setError = err => errors.push(err);
-      const { initialState } = sequentialState(createDrinks, setState, setError);
+      const { initialState, abortManager: am } = sequentialState(createDrinks, setState, setError);
+      am.onMount();
       expect(initialState).to.equal('Sober');
       for (let i = 0; i <= 4; i++) {
         await assertions[i].done();
@@ -128,7 +132,8 @@ describe('#sequentialState()', function() {
       const results = [], errors = [];
       const setState = value => results.push(value);
       const setError = err => errors.push(err);
-      const { initialState } = sequentialState(createDrinks, setState, setError);
+      const { initialState, abortManager: am } = sequentialState(createDrinks, setState, setError);
+      am.onMount();
       await assertions[0].done();
       await steps[1];
       expect(results).to.eql([]);
@@ -170,6 +175,7 @@ describe('#sequentialState()', function() {
       const setError = err => error = err;
       const { abortManager } = sequentialState(createDrinks, setState, setError);
       expect(abortManager).to.be.instanceOf(AbortController);
+      abortManager.onMount();
       await assertions[0].done();
       await steps[1];
       expect(results).to.eql([ 'Whiskey drink' ]);
@@ -185,6 +191,7 @@ describe('#sequentialState()', function() {
     });
   })
 })
+
 describe('#useSequentialState()', function() {
   it('should provide new state to component periodically', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
@@ -625,6 +632,42 @@ describe('#useSequentialState()', function() {
       await assertions[5].done();
       await steps[6];
       expect(toJSON()).to.eql('Donkey');
+    });
+  })
+  it('should stop updating as soon as it unmounts', async function() {
+    await withReactDOM(async ({ render, node, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      const states = [];
+      function Test({ cat }) {
+        const state = useSequentialState(async function*({ initial, manageEvents }) {
+          initial({ animal: 'Cow' });
+          const [ on, eventual ] = manageEvents();
+          await assertions[0];
+          yield { animal: `${cat} #1` };
+          steps[1].done();
+          await assertions[1];
+          yield { animal: `${cat} #2` };
+          steps[2].done();
+          await assertions[2];
+          yield { anima: `${cat} #3` };
+          steps[3].done();
+        }, [ cat ]);
+        return state.animal;
+      }
+      const el1 = createElement(Test, { cat: 'Phil' });
+      await render(createElement(StrictMode, {}, el1));
+      expect(node.textContent).to.eql('Cow');
+      await assertions[0].done();
+      await steps[1];
+      expect(node.textContent).to.eql('Phil #1');
+      const el2 = createElement(Test, { cat: 'Nick' })
+      const promise = render(createElement(StrictMode, {}, el2));
+      expect(node.textContent).to.eql('Cow');
+      await promise;
+      expect(node.textContent).to.eql('Nick #1');
+      await assertions[1].done();
+      await steps[2];
+      expect(node.textContent).to.eql('Nick #2');
     });
   })
 })

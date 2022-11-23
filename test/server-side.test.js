@@ -247,26 +247,23 @@ describe('Hydration', function() {
       const el = createElement(TestComponent);
       node.innerHTML = '<!--$--><div>Rocky</div><!--/$-->';
       settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
-      const root = hydrateRoot(node, el);
-      settings({ ssr: false, ssr_time_limit: 3000 });
-      await assertions[0].done();
-      expect(hasSuspended(root)).to.be.true;
-      expect(node.innerHTML).to.contain('<div>Rocky</div>');
-      await assertions[1].done();
-      expect(hasSuspended(root)).to.be.true;
-      expect(node.innerHTML).to.contain('<div>Rocky</div>');
-      await assertions[2].done();
-      expect(hasSuspended(root)).to.be.false;
-      expect(node.innerHTML).to.contain('<div>Rocky</div>');
+      try {
+        const root = hydrateRoot(node, el);
+        await assertions[0].done();
+        expect(hasSuspended(root)).to.be.true;
+        expect(node.innerHTML).to.contain('<div>Rocky</div>');
+        await assertions[1].done();
+        expect(hasSuspended(root)).to.be.true;
+        expect(node.innerHTML).to.contain('<div>Rocky</div>');
+        await assertions[2].done();
+        expect(hasSuspended(root)).to.be.false;
+        expect(node.innerHTML).to.contain('<div>Rocky</div>');
+      } finally {
+        settings({ ssr: false, ssr_time_limit: 3000 });
+      }
     });
-    if (global.window) {
-      throw new Error('Window is left behind');
-    }
   })
   it('should correctly hydrate a component using a state hook', async function() {
-    if (global.window) {
-      throw new Error('Window is set');
-    }
     await withReactDOM(async ({ unmount, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
       function TestComponent() {

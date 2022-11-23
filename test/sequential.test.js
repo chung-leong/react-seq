@@ -14,7 +14,7 @@ import {
 
 describe('#sequential()', function() {
   it('should return a Suspense element', function() {
-    const { element: el } = sequential(async function*({ fallback }) {
+    const { element: el, abortManager: am } = sequential(async function*({ fallback }) {
       fallback('Cow');
       yield 'Pig';
     });
@@ -27,13 +27,14 @@ describe('#sequential()', function() {
         const seq = useSequential();
         return seq();
       }
-      const { element: el } = sequential(async function*({ fallback }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback }) {
         fallback('Cow');
         await assertions[0];
         yield 'Pig';
         steps[1].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await assertions[0].done();
       await steps[1];
@@ -43,7 +44,7 @@ describe('#sequential()', function() {
   it('should return a component that defers rendering', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ fallback, defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback, defer }) {
         fallback('Cow');
         defer(20);
         await assertions[0];
@@ -54,6 +55,7 @@ describe('#sequential()', function() {
         steps[2].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await assertions[0].done();
       await steps[1];
@@ -68,7 +70,7 @@ describe('#sequential()', function() {
   it('should return a component that displays new contents intermittently', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ defer }) {
         defer(20)
         await assertions[0];
         yield 'Pig';
@@ -81,6 +83,7 @@ describe('#sequential()', function() {
         steps[3].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal(null);
       await assertions[0].done();
       await steps[1];
@@ -100,7 +103,7 @@ describe('#sequential()', function() {
   it('should allow deferrment to be turned off midway', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ defer }) {
         defer(10)
         await assertions[0];
         yield 'Pig';
@@ -114,6 +117,7 @@ describe('#sequential()', function() {
         steps[3].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal(null);
       await assertions[0].done();
       await steps[1];
@@ -131,7 +135,7 @@ describe('#sequential()', function() {
   it('should return a component that eventually shows the final item from the generator', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*() {
+      const { element: el, abortManager: am } = sequential(async function*() {
         await assertions[0];
         yield 'Pig';
         steps[1].done();
@@ -140,6 +144,7 @@ describe('#sequential()', function() {
         steps[2].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal(null);
       await assertions[0].done();
       await steps[1];
@@ -152,7 +157,7 @@ describe('#sequential()', function() {
   it('should return a component that uses fallback', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ fallback, defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback, defer }) {
         fallback('Cow');
         await assertions[0];
         yield 'Pig';
@@ -162,6 +167,7 @@ describe('#sequential()', function() {
         steps[2].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await assertions[0].done();
       await steps[1];
@@ -174,7 +180,7 @@ describe('#sequential()', function() {
   it('should allow fallback to be created by a callback function', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ fallback, defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback, defer }) {
         fallback(() => 'Cow');
         await assertions[0];
         yield 'Pig';
@@ -184,6 +190,7 @@ describe('#sequential()', function() {
         steps[2].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await assertions[0].done();
       await steps[1];
@@ -196,7 +203,7 @@ describe('#sequential()', function() {
   it('should throw when fallback is called after an await statement', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ fallback, defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback, defer }) {
         await assertions[0];
         setTimeout(() => steps[1].done(), 0);
         fallback('Cow');
@@ -206,6 +213,7 @@ describe('#sequential()', function() {
       await withSilentConsole(async () => {
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(toJSON()).to.equal(null);
         await assertions[0].done();
         await steps[1];
@@ -217,7 +225,7 @@ describe('#sequential()', function() {
   it('should throw when mount is called after an await statement', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ mount, defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ mount, defer }) {
         await assertions[0];
         setTimeout(() => steps[1].done(), 0);
         mount(() => {});
@@ -227,6 +235,7 @@ describe('#sequential()', function() {
       await withSilentConsole(async () => {
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(toJSON()).to.equal(null);
         await assertions[0].done();
         await steps[1];
@@ -237,12 +246,13 @@ describe('#sequential()', function() {
   })
   it('should throw when mount is called with a non function', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
-      const { element: el } = sequential(async function*({ mount, defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ mount, defer }) {
         mount('Rushmore');
       });
       await withSilentConsole(async () => {
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(toJSON()).to.equal('ERROR');
         expect(caughtAt(boundary)).to.be.an('error');
       });
@@ -252,7 +262,7 @@ describe('#sequential()', function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
       let triggerClick;
-      const { element: el } = sequential(async function*({ fallback, manageEvents }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback, manageEvents }) {
         fallback('Cow');
         const [ on, eventual ] = manageEvents();
         triggerClick = on.click;
@@ -269,6 +279,7 @@ describe('#sequential()', function() {
         steps[3].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await assertions[0].done();
       await steps[1];
@@ -292,7 +303,7 @@ describe('#sequential()', function() {
   it('should terminate iteration when component is unmounted mid-cycle', async function() {
     await withTestRenderer(async ({ create, unmount, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ fallback }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback }) {
         fallback('Cow');
         try {
           await assertions[0];
@@ -312,6 +323,7 @@ describe('#sequential()', function() {
         }
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await assertions[0].done();
       await steps[1];
@@ -331,7 +343,7 @@ describe('#sequential()', function() {
   it('should render timeout content when time limit is breached', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ defer, fallback, timeout }) {
+      const { element: el, abortManager: am } = sequential(async function*({ defer, fallback, timeout }) {
         defer(10);
         fallback('Cow');
         timeout(10, async () => 'Tortoise');
@@ -340,6 +352,7 @@ describe('#sequential()', function() {
         steps[1].done();
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await delay(15);
       expect(toJSON()).to.equal('Tortoise');
@@ -350,7 +363,7 @@ describe('#sequential()', function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
       let timeoutDuration;
-      const { element: el } = sequential(async function*({ fallback, timeout }) {
+      const { element: el, abortManager: am } = sequential(async function*({ fallback, timeout }) {
         fallback('Cow');
         timeout(10, async ({ abort, limit }) => {
           timeoutDuration = limit;
@@ -370,6 +383,7 @@ describe('#sequential()', function() {
         }
       });
       await create(el);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await delay(15);
       expect(toJSON()).to.equal('Tortoise');
@@ -382,7 +396,7 @@ describe('#sequential()', function() {
   it('should allow creation of a suspending component', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ suspend }) {
+      const { element: el, abortManager: am } = sequential(async function*({ suspend }) {
         suspend();
         await assertions[0];
         yield 'Pig';
@@ -393,6 +407,7 @@ describe('#sequential()', function() {
       });
       const suspense = createElement(Suspense, { fallback: 'Cow' }, el);
       await create(suspense);
+      am.onMount();
       expect(toJSON()).to.equal('Cow');
       await assertions[0].done();
       await steps[1];
@@ -432,12 +447,13 @@ describe('#sequential()', function() {
   it('should trigger error boundary', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       await withSilentConsole(async () => {
-        const { element: el } = sequential(async function*({ fallback }) {
+        const { element: el, abortManager: am } = sequential(async function*({ fallback }) {
           fallbak('Cow'); // typo causing the function to throw
           yield createElement('div', {}, cat); // also an undeclared variable here
         });
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(caughtAt(boundary)).to.be.an('error');
       });
     });
@@ -446,7 +462,7 @@ describe('#sequential()', function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
       await withSilentConsole(async () => {
-        const { element: el } = sequential(async function*({ fallback }) {
+        const { element: el, abortManager: am } = sequential(async function*({ fallback }) {
           fallback('Cow');
           await assertions[0];
           yield createElement('div', {}, 'Pig');
@@ -456,6 +472,7 @@ describe('#sequential()', function() {
         });
         const boundary = createErrorBoundary(el);
         await create(boundary);
+        am.onMount();
         expect(toJSON()).to.equal('Cow');
         await assertions[0].done();
         await steps[1];

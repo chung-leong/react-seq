@@ -45,8 +45,8 @@ function Prize({ fullName, amount, amountAdjusted, laureates }) {
       <h2>{fullName}</h2>
       <div><b>Amount:</b> ${amount}</div>
       <div><b>Amount (in present dollar):</b> ${amountAdjusted}</div>
-      <h2>Laureate{laureates.length > 1 ? 's' : ''}</h2>
-      {laureates.map((laureate, i) => {
+      <h2>Laureate{laureates?.length > 1 ? 's' : ''}</h2>
+      {laureates?.map((laureate, i) => {
         const {
           fullName,
           motivation,
@@ -64,7 +64,7 @@ function Prize({ fullName, amount, amountAdjusted, laureates }) {
             <div><b>Gender:</b> {gender}</div>
             <div><b>Birth:</b> {birth}</div>
             <div><b>Death:</b> {death}</div>
-            <div><b>Wikipedia:</b> <a href={wikipedia} target="_blank">{wikipedia}</a></div>
+            <div><b>Wikipedia:</b> <a href={wikipedia} rel="noreferrer" target="_blank">{wikipedia}</a></div>
           </div>
         );
       })}
