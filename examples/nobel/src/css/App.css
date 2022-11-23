@@ -1,0 +1,14 @@
+.App {
+}
+
+select:invalid {
+  color: #666;
+}
+
+select > option {
+  color: #000;
+}
+
+select option[value=""] {
+  color: #666;
+}
