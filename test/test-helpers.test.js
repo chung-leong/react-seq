@@ -20,6 +20,42 @@ describe('#withTestRenderer()', function() {
       expect(renderer.toJSON()).to.equal('Pig');
     });
   })
+  it('should rerender a component', async function() {
+    function Test({ animal = 'Pig' }) {
+      return useSequential(async function*({ fallback }) {
+        fallback('Cow');
+        yield animal;
+      }, []);
+    }
+    const el = createElement(Test);
+    await withTestRenderer(el, async ({ renderer, update }) => {
+      expect(renderer.toJSON()).to.equal('Pig');
+      const el2 = createElement(Test, { animal: 'Turkey' });
+      await update(el2);
+      expect(renderer.toJSON()).to.equal('Turkey');
+    });
+  })
+  it('should unmount a component', async function() {
+    let unmounted = false;
+    function Test() {
+      return useSequential(async function*({ fallback, mount }) {
+        fallback('Cow');
+        mount(() => {
+          return () => {
+            unmounted = true;
+          };
+        })
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withTestRenderer(el, async ({ renderer, unmount }) => {
+      expect(renderer.toJSON()).to.equal('Pig');
+      await unmount();
+      expect(renderer.toJSON()).to.equal(null);
+      expect(unmounted).to.be.true;
+    });
+  })
   it('should report correct stoppage points', async function() {
     function Test() {
       return useSequential(async function*({ fallback, manageEvents }) {
@@ -33,6 +69,34 @@ describe('#withTestRenderer()', function() {
     await withTestRenderer(el, async ({ renderer, awaiting }) => {
       expect(renderer.toJSON()).to.equal('Pig');
       expect(awaiting()).to.equal('click');
+    });
+  })
+  it('should throw when attempt to resolve an non-existent promise', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withTestRenderer(el, async ({ renderer, awaiting, resolve }) => {
+      expect(renderer.toJSON()).to.equal('Pig');
+      expect(awaiting()).to.be.undefined;
+      await expect(resolve()).to.eventually.be.rejected;
+    });
+  })
+  it('should throw when attempt to reject an non-existent promise', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withTestRenderer(el, async ({ renderer, awaiting, reject }) => {
+      expect(renderer.toJSON()).to.equal('Pig');
+      expect(awaiting()).to.be.undefined;
+      await expect(reject(new Error('Doh'))).to.eventually.be.rejected;
     });
   })
   it('should be able to trigger next steps', async function() {
@@ -123,6 +187,43 @@ describe('#withTestRenderer()', function() {
       await expect(timeout()).to.eventually.be.rejected;
     });
   })
+  it('should throw when timeout is used where no awaiting is occurring', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        const [ on, eventual ] = manageEvents();
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withTestRenderer(el, async ({ renderer, awaiting, timeout }) => {
+      expect(renderer.toJSON()).to.equal('Pig');
+      expect(awaiting()).to.undefined;
+      await expect(timeout()).to.eventually.be.rejected;
+    });
+  })
+  it('should be able to trigger error', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        const [ on, eventual ] = manageEvents();
+        yield 'Pig';
+        try {
+          await eventual.click;
+          yield 'Chicken';
+        } catch (err) {
+          yield err.message;
+        }
+      }, []);
+    }
+    const el = createElement(Test);
+    await withTestRenderer(el, async ({ renderer, awaiting, reject }) => {
+      expect(renderer.toJSON()).to.equal('Pig');
+      expect(awaiting()).to.equal('click');
+      await reject(new Error('Chicken shit'));
+      expect(renderer.toJSON()).to.equal('Chicken shit');
+    });
+  })
 })
 
 describe('#withReactDOM()', function() {
@@ -138,6 +239,42 @@ describe('#withReactDOM()', function() {
       expect(node.textContent).to.equal('Pig');
     });
   })
+  it('should rerender a component', async function() {
+    function Test({ animal = 'Pig' }) {
+      return useSequential(async function*({ fallback }) {
+        fallback('Cow');
+        yield animal;
+      }, []);
+    }
+    const el = createElement(Test);
+    await withReactDOM(el, async ({ node, update }) => {
+      expect(node.textContent).to.equal('Pig');
+      const el2 = createElement(Test, { animal: 'Turkey' });
+      await update(el2);
+      expect(node.textContent).to.equal('Turkey');
+    });
+  })
+  it('should unmount a component', async function() {
+    let unmounted = false;
+    function Test() {
+      return useSequential(async function*({ fallback, mount }) {
+        fallback('Cow');
+        mount(() => {
+          return () => {
+            unmounted = true;
+          };
+        })
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withReactDOM(el, async ({ node, unmount }) => {
+      expect(node.textContent).to.equal('Pig');
+      await unmount();
+      expect(node.textContent).to.equal('');
+      expect(unmounted).to.be.true;
+    });
+  })
   it('should report correct stoppage points', async function() {
     function Test() {
       return useSequential(async function*({ fallback, manageEvents }) {
@@ -151,6 +288,34 @@ describe('#withReactDOM()', function() {
     await withReactDOM(el, async ({ node, awaiting }) => {
       expect(node.textContent).to.equal('Pig');
       expect(awaiting()).to.equal('click');
+    });
+  })
+  it('should throw when attempt to resolve an non-existent promise', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withReactDOM(el, async ({ node, awaiting, resolve }) => {
+      expect(node.textContent).to.equal('Pig');
+      expect(awaiting()).to.be.undefined;
+      await expect(resolve()).to.eventually.be.rejected;
+    });
+  })
+  it('should throw when attempt to reject an non-existent promise', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withReactDOM(el, async ({ node, awaiting, reject }) => {
+      expect(node.textContent).to.equal('Pig');
+      expect(awaiting()).to.be.undefined;
+      await expect(reject(new Error('Doh'))).to.eventually.be.rejected;
     });
   })
   it('should be able to trigger next steps', async function() {
@@ -239,6 +404,43 @@ describe('#withReactDOM()', function() {
       expect(node.textContent).to.equal('Pig');
       expect(awaiting()).to.equal('click');
       await expect(timeout()).to.eventually.be.rejected;
+    });
+  })
+  it('should throw when timeout is used where no awaiting is occurring', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        const [ on, eventual ] = manageEvents();
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    await withReactDOM(el, async ({ node, awaiting, timeout }) => {
+      expect(node.textContent).to.equal('Pig');
+      expect(awaiting()).to.undefined;
+      await expect(timeout()).to.eventually.be.rejected;
+    });
+  })
+  it('should be able to trigger error', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        const [ on, eventual ] = manageEvents();
+        yield 'Pig';
+        try {
+          await eventual.click;
+          yield 'Chicken';
+        } catch (err) {
+          yield err.message;
+        }
+      }, []);
+    }
+    const el = createElement(Test);
+    await withReactDOM(el, async ({ node, awaiting, reject }) => {
+      expect(node.textContent).to.equal('Pig');
+      expect(awaiting()).to.equal('click');
+      await reject(new Error('Chicken shit'));
+      expect(node.textContent).to.equal('Chicken shit');
     });
   })
 })
