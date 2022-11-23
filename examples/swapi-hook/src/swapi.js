@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useSequentialState, manageEvents } from 'react-seq';
 
 const baseURL = 'https://swapi.dev/api/';
@@ -8,9 +9,11 @@ export function useSWAPI(type, params = {}, options = {}) {
     refresh = Infinity,
   } = options;
   const { id } = params;
+  const onRef = useRef();
   const state = useSequentialState(async function*({ initial, defer, manageEvents, signal }) {
     initial({});
-    const [ , eventual ] = manageEvents();
+    const [ on, eventual ] = manageEvents();
+    onRef(on);
     const opts = { signal };
     for (let i = 0;; i++) {
       defer(i === 0 ? delay : Infinity);
@@ -121,8 +124,7 @@ export function useSWAPI(type, params = {}, options = {}) {
       }
     }
   }, [ delay, id, refresh, type ]);
-  const [ on ] = manageEvents(state);
-  return [ state, on.updateRequest ];
+  return [ state, onRef.current.updateRequest ];
 }
 
 export function trimURL(url) {

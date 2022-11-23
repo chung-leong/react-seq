@@ -1,6 +1,6 @@
 import { useMemo, useEffect, useState, useContext, startTransition } from 'react';
 import { IntermittentIterator, Interruption } from './iterator.js';
-import { EventManager, linkEventManager } from './event-manager.js';
+import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { InspectorContext } from './inspector.js';
 import { Abort, isAbortError } from './utils.js';
@@ -94,7 +94,6 @@ export function sequentialState(cb, setState, setError, options = {}) {
   };
 
   // let callback manages events with help of promises
-  let eventManager, eventManagerKey;
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     methods.manageEvents = (options = {}) => {
       const onAwaitStart = () => {
@@ -106,9 +105,8 @@ export function sequentialState(cb, setState, setError, options = {}) {
       const onAwaitEnd = () => {
         flushing = false;
       };
-      eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
-      linkEventManager(eventManagerKey, eventManager);
-      return [ eventManager.on, eventManager.eventual ];
+      const em = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
+      return [ em.on, em.eventual ];
     };
   }
 
@@ -129,7 +127,6 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   let pendingState;
   let unusedSlot = false;
-  linkEventManager(eventManagerKey = initialState, eventManager);
   return { initialState, abortManager };
 
   function updateState({ conditional = false, reusable = false }) {
@@ -142,7 +139,6 @@ export function sequentialState(cb, setState, setError, options = {}) {
     if (pendingState !== undefined) {
       const newState = pendingState;
       pendingState = undefined;
-      linkEventManager(eventManagerKey = newState, eventManager);
       startTransition(() => setState(newState));
       unusedSlot = false;
     } else {

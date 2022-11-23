@@ -10,7 +10,6 @@ import { isAbortError } from '../src/utils.js';
 import {
   sequential,
   useSequential,
-  manageEvents,
 } from '../index.js';
 
 describe('#sequential()', function() {
@@ -286,46 +285,6 @@ describe('#sequential()', function() {
       // ditto
       expect(toJSON()).to.equal('Chicken');
       triggerClick();
-      await steps[3];
-      expect(toJSON()).to.equal('Rocky');
-    });
-  })
-  it('should permit retrieval of event manager from outside the hook', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
-      const { element: el } = sequential(async function*({ fallback, manageEvents }) {
-        fallback('Cow');
-        const [ on, eventual ] = manageEvents();
-        await assertions[0];
-        yield 'Pig';
-        steps[1].done();
-        await assertions[1];
-        await eventual.click;
-        yield 'Chicken';
-        steps[2].done();
-        await assertions[2];
-        await eventual.click;
-        yield 'Rocky';
-        steps[3].done();
-      });
-      await create(el);
-      expect(toJSON()).to.equal('Cow');
-      await assertions[0].done();
-      await steps[1];
-      expect(toJSON()).to.equal('Pig');
-      await assertions[1].done();
-      await delay(10);
-      // should be the same still as it's still waiting for the click
-      expect(toJSON()).to.equal('Pig');
-      const [ on ] = manageEvents(el);
-      on.click();
-      await steps[2];
-      expect(toJSON()).to.equal('Chicken');
-      await assertions[2].done();
-      await delay(10);
-      // ditto
-      expect(toJSON()).to.equal('Chicken');
-      on.click();
       await steps[3];
       expect(toJSON()).to.equal('Rocky');
     });
