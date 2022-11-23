@@ -57,7 +57,8 @@ export async function withReactDOM(el, cb, options = {}) {
     ...jsDOMOpts
   } = options;
   if (typeof(window) !== 'object' && typeof(global) === 'object') {
-    return withJSDOM(async () => withReactDOM(el, cb), jsDOMOpts);
+    await withJSDOM(async () => await withReactDOM(el, cb), jsDOMOpts);
+    return;
   }
   const { createRoot } = await import('react-dom/client');
   const { act } = await import('react-dom/test-utils');
@@ -135,9 +136,11 @@ export async function withJSDOM(cb, options) {
   global.window = window;
   global.document = window.document;
   global.navigator = { userAgent: 'node.js' };
+  /* c8 ignore next 3 */
   global.requestAnimationFrame = function (callback) {
     return setTimeout(callback, 0);
   };
+  /* c8 ignore next 3 */
   global.cancelAnimationFrame = function (id) {
     clearTimeout(id);
   };

@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { createElement } from 'react';
 import { useSequential } from '../index.js';
+import { withSilentConsole } from './error-handling.js';
 
 import {
   withTestRenderer,
@@ -442,5 +443,23 @@ describe('#withReactDOM()', function() {
       await reject(new Error('Chicken shit'));
       expect(node.textContent).to.equal('Chicken shit');
     });
+  })
+  it('should allow normal error message through while suppressing act warning', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        console.error('Rats live on no evil star');
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    const output = {};
+    await withSilentConsole(async () => {
+      await withReactDOM(el, async ({ node, awaiting }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.be.undefined;
+      });
+    }, output);
+    expect(output.error).to.equal('Rats live on no evil star');
   })
 })

@@ -528,14 +528,14 @@ describe('#useProgressive()', function() {
         }, []);
       }
       const el = createElement(ContainerComponent);
-      const console = {};
+      const output = {};
       await withSilentConsole(async () => {
         await create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
         await assertions[0].done();
         await steps[1];
-      }, console);
-      expect(console.warn).to.contain('default');
+      }, output);
+      expect(output.warn).to.contain('default');
     });
   })
   it('should warn when type is given a promise', async function () {
@@ -550,14 +550,14 @@ describe('#useProgressive()', function() {
         }, []);
       }
       const el = createElement(ContainerComponent);
-      const console = {};
+      const output = {};
       await withSilentConsole(async () => {
         await create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
         await assertions[0].done();
         await steps[1];
-      }, console);
-      expect(console.warn).to.contain('await');
+      }, output);
+      expect(output.warn).to.contain('await');
     });
   })
   it('should warn when usability is specified for a prop that does not appear in the return object', async function () {
@@ -573,14 +573,14 @@ describe('#useProgressive()', function() {
         }, []);
       }
       const el = createElement(ContainerComponent);
-      const console = {};
+      const output = {};
       await withSilentConsole(async () => {
         await create(el);
         expect(JSON.parse(toJSON())).to.eql(null);
         await assertions[0].done();
         await steps[1];
-      }, console);
-      expect(console.warn).to.contain('prop');
+      }, output);
+      expect(output.warn).to.contain('prop');
     });
   })
 })

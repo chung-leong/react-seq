@@ -294,22 +294,22 @@ describe('#EventManager', function() {
     expect(() => eventual.click = null).to.throw();
   })
   it('should issue warning about lack of action when warning is set to true', async function() {
-    const console = {};
+    const output = {};
     await withSilentConsole(async () => {
       const { on, eventual } = new EventManager({ warning: true });
       const handler = on.click;
       handler();
-    }, console);
-    expect(console.warn).to.be.a('string');
+    }, output);
+    expect(output.warn).to.be.a('string');
   })
   it('should issue warning about awaiting promise without corresponding handler', async function() {
-    const console = {};
+    const output = {};
     await withSilentConsole(async () => {
       const { on, eventual } = new EventManager({ warning: true });
       const promise = eventual.click;
       await Promise.race([ promise, Promise.resolve() ]);
-    }, console);
-    expect(console.warn).to.be.a('string');
+    }, output);
+    expect(output.warn).to.be.a('string');
   })
   it('should yield undefined when symbols are used to access properties', async function() {
     const { on, eventual } = new EventManager({});

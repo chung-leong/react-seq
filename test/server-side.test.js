@@ -259,8 +259,14 @@ describe('Hydration', function() {
       expect(hasSuspended(root)).to.be.false;
       expect(node.innerHTML).to.contain('<div>Rocky</div>');
     });
+    if (global.window) {
+      throw new Error('Window is left behind');
+    }
   })
   it('should correctly hydrate a component using a state hook', async function() {
+    if (global.window) {
+      throw new Error('Window is set');
+    }
     await withReactDOM(async ({ unmount, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
       function TestComponent() {
@@ -521,26 +527,26 @@ describe('#renderInChildProc()', function() {
 
 describe('#__relay_ssr_msg', function() {
   it(`should correctly output a log entry to the console`, async function() {
-    const console = {};
+    const output = {};
     await withSilentConsole(async () => {
       const entry = { type: 'log', args: [ 'Rendering to server' ] };
       __relay_ssr_msg(entry);
-    }, console);
-    expect(console.log).to.be.an('array');
-    expect(console.log[0]).to.equal('%c SSR ');
-    expect(console.log[2]).to.equal('Rendering to server');
+    }, output);
+    expect(output.log).to.be.an('array');
+    expect(output.log[0]).to.equal('%c SSR ');
+    expect(output.log[2]).to.equal('Rendering to server');
   })
   it('should not attach label when message is already employing formatting', async function () {
-    const console = {};
+    const output = {};
     await withSilentConsole(async () => {
       const entry = { type: 'log', args: [ '%cRendering to server', 'color: #999' ] };
       __relay_ssr_msg(entry);
-    }, console);
-    expect(console.log).to.be.an('array').with.lengthOf(2);
-    expect(console.log[0]).to.equal('%cRendering to server');
+    }, output);
+    expect(output.log).to.be.an('array').with.lengthOf(2);
+    expect(output.log[0]).to.equal('%cRendering to server');
   })
   it(`should correctly output an error to the console`, async function() {
-    const console = {};
+    const output = {};
     await withSilentConsole(async () => {
       const entry = {
         type: 'error',
@@ -563,10 +569,10 @@ describe('#__relay_ssr_msg', function() {
         ]
       };
       __relay_ssr_msg(entry);
-    }, console);
-    expect(console.error).to.be.an('array');
-    expect(console.error[0]).to.equal('%c SSR ');
-    expect(console.error[2]).to.be.an('Error').with.property('message').that
+    }, output);
+    expect(output.error).to.be.an('array');
+    expect(output.error[0]).to.equal('%c SSR ');
+    expect(output.error[2]).to.be.an('Error').with.property('message').that
       .contains('App.js:6:10')
       .contains('Pissing the night away')
   })

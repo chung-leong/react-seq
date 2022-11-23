@@ -1046,7 +1046,7 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.equal('Chicken');
     });
   })
-  skip.if.dom.is.absent.or.not.in.development.mode.
+  skip.if.not.in.development.mode.
   it('should work under strict mode', async function() {
     await withReactDOM(async ({ render, act, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
@@ -1085,7 +1085,7 @@ describe('#useSequential()', function() {
       expect(node.textContent).to.equal('Chicken');
     }, 10);
   })
-  skip.entirely.if(!global.gc).or.if(!global.WeakRef).or.dom.is.absent.or.not.in.development.mode.
+  skip.entirely.if(!global.gc).or.if(!global.WeakRef).or.not.in.development.mode.
   it('should allow spurious generator created by strict mode to be garbage-collected', async function() {
     await withReactDOM(async ({ render, act, node, unmount }) => {
       const steps = createSteps(), assertions = createSteps(act);
@@ -1148,7 +1148,7 @@ describe('#useSequential()', function() {
       expect(refs[1].deref()).to.be.undefined;
     });
   })
-  skip.if.dom.is.absent.or.not.in.development.mode.
+  skip.if.not.in.development.mode.
   it('should allow a container component to return a suspending component when a real DOM is involved', async function() {
     await withReactDOM(async ({ render, act, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
@@ -1189,7 +1189,6 @@ describe('#useSequential()', function() {
       expect(call).to.equal(4);
     });
   })
-  skip.if.dom.is.absent.
   it('should allow a container component to return a suspending component when strict mode is not used', async function() {
     await withReactDOM(async ({ render, act, node }) => {
       const steps = createSteps(), assertions = createSteps(act);

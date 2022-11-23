@@ -525,7 +525,7 @@ describe('#generateProps()', function() {
       animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
-      const console = {};
+      const output = {};
       await withSilentConsole(async () => {
         const generator = generateProps(props, { world: true, animals: true });
         const list = [];
@@ -539,9 +539,9 @@ describe('#generateProps()', function() {
           error = err;
         }
         expect(error).to.be.undefined;
-      }, console);
-      expect(console.error).to.be.an('error');
-      expect(console.error.message).to.contain('What the...');
+      }, output);
+      expect(output.error).to.be.an('error');
+      expect(output.error.message).to.contain('What the...');
     });
   })
 })

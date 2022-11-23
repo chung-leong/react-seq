@@ -85,7 +85,7 @@ describe('#PromiseLogger', function() {
     expect(result.map(e => e.type)).to.eql([ 'update', 'update' ]);
   })
   it('should dump errors encountered in onEvent to console', async function() {
-    const console = {};
+    const output = {};
     await withSilentConsole(async () => {
       class TestPromiseLogger extends PromiseLogger {
         onEvent(evt) {
@@ -94,8 +94,8 @@ describe('#PromiseLogger', function() {
       }
       const inspector = new TestPromiseLogger();
       inspector.dispatch({ type: 'resolve' });
-    }, console);
-    expect(console.error).to.be.an('error');
+    }, output);
+    expect(output.error).to.be.an('error');
   })
   it('should quit waiting for event after some time', async function() {
     const inspector = new PromiseLogger();
@@ -403,7 +403,7 @@ describe('#PromiseLogger', function() {
 describe('#ConsoleLogger', function() {
   it('should handle content update events', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -421,13 +421,13 @@ describe('#ConsoleLogger', function() {
         await assertions[0].done();
         await steps[1];
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Content update/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Content update/);
     });
   })
   it('should handle state update events', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -443,13 +443,13 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/State update/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/State update/);
     });
   })
   it('should handle timeout events', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -466,14 +466,14 @@ describe('#ConsoleLogger', function() {
         await create(cp);
         await delay(30);
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Timeout/)
-      expect(console.log).to.contain.something.that.matches(/Content update/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Timeout/)
+      expect(output.log).to.contain.something.that.matches(/Content update/);
     });
   })
   it('should handle error events', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -497,13 +497,13 @@ describe('#ConsoleLogger', function() {
         await steps[1];
         await assertions[1].fail(new Error('ERROR'))
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Error/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Error/);
     });
   })
   it('should handle abort event', async function() {
     await withTestRenderer(async ({ create, unmount, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -521,13 +521,13 @@ describe('#ConsoleLogger', function() {
         await create(cp);
         await unmount();
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/aborted/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/aborted/);
     });
   })
   it('should handle promise await events', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -544,13 +544,13 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Awaiting/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Awaiting/);
     });
   })
   it('should handle fulfillment events with no listener', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -568,14 +568,14 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Fulfillment/);
-      expect(console.log).to.contain.something.that.matches(/no one cared/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Fulfillment/);
+      expect(output.log).to.contain.something.that.matches(/no one cared/);
     });
   })
   it('should handle fulfillment events with important value', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -593,14 +593,14 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Fulfillment/);
-      expect(console.log).to.not.contain.something.that.matches(/no one cared/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Fulfillment/);
+      expect(output.log).to.not.contain.something.that.matches(/no one cared/);
     });
   })
   it('should handle rejection events with no listener', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -618,14 +618,14 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Rejection/);
-      expect(console.log).to.contain.something.that.matches(/no one cared/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Rejection/);
+      expect(output.log).to.contain.something.that.matches(/no one cared/);
     });
   })
   it('should handle rejection events with important error', async function() {
     await withTestRenderer(async ({ create, act }) => {
-      const console = { log: [] };
+      const output = { log: [] };
       await withSilentConsole(async () => {
         const inspector = new ConsoleLogger();
         const steps = createSteps(), assertions = createSteps(act);
@@ -643,18 +643,18 @@ describe('#ConsoleLogger', function() {
         const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
         await create(cp);
         inspector.stop();
-      }, console);
-      expect(console.log).to.contain.something.that.matches(/Rejection/);
-      expect(console.log).to.not.contain.something.that.matches(/no one cared/);
+      }, output);
+      expect(output.log).to.contain.something.that.matches(/Rejection/);
+      expect(output.log).to.not.contain.something.that.matches(/no one cared/);
     });
   })
   it('should handle unrecognized events', async function() {
-    const console = { log: [] };
+    const output = { log: [] };
     await withSilentConsole(async () => {
       const inspector = new ConsoleLogger();
       inspector.dispatch({ type: 'dingo' });
       inspector.stop();
-    }, console);
-    expect(console.log).to.contain.something.that.matches(/Unknown/);
+    }, output);
+    expect(output.log).to.contain.something.that.matches(/Unknown/);
   })
 })
