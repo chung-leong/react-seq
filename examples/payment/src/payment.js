@@ -10,7 +10,7 @@ export async function getPaymentMethods() {
 }
 
 export async function processPayment(method, details) {
-  await delay(2000);
+  await delay(1000);
   if (Math.random() > 0.5) {
     throw new Error('Unable to process payment for random reason');
   }

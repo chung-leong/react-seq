@@ -1,6 +1,6 @@
 {
   "name": "react-seq",
-  "version": "0.5.5",
+  "version": "0.5.8",
   "description": "React hooks for working with async generators and promises",
   "main": "index.js",
   "type": "module",
@@ -23,13 +23,15 @@
   "exports": {
     ".": "./index.js",
     "./client": "./client.js",
-    "./server": "./server.js"
+    "./server": "./server.js",
+    "./test-utils": "./test-utils.js"
   },
   "files": [
     "src/",
     "client.js",
     "index.js",
-    "server.js"
+    "server.js",
+    "test-utils.js"
   ],
   "author": "Chung Leong",
   "license": "MIT",
@@ -37,8 +39,8 @@
     "url": "https://github.com/chung-leong/react-seq/issues"
   },
   "homepage": "https://github.com/chung-leong/react-seq#readme",
-  "dependencies": {
-    "react": "^18.0.0"
+  "peerDependencies": {
+    "react": ">= 18.0"
   },
   "devDependencies": {
     "abort-controller": "^3.0.0",
@@ -50,6 +52,7 @@
     "mocha": "^10.0.0",
     "mocha-skip-if": "^1.0.2",
     "node-fetch": "^3.2.10",
+    "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-test-renderer": "^18.2.0",
     "sinon": "^14.0.1"

@@ -15,6 +15,7 @@ export async function withTestRenderer(el, cb, options = {}) {
     await cb({
       renderer,
       logger,
+      act,
       update: async (el) => {
         return act(() => renderer.update(el));
       },
@@ -79,6 +80,7 @@ export async function withReactDOM(el, cb, options = {}) {
       node,
       root,
       logger,
+      act,
       update: async (el) => {
         return act(() => root.render(el));
       },
