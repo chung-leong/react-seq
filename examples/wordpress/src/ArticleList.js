@@ -5,13 +5,11 @@ import Content from './Content.js';
 
 export default function ArticleList() {
   const wp = useWordPressPosts();
-  return useProgressive(async ({ fallback, defer, type, usable, manageEvents, mount, signal }) => {
+  return useProgressive(async ({ fallback, type, usable, manageEvents, signal }) => {
+    type(ArticleListUI);
     fallback(<div className="loading">Loading...</div>)
-    defer(100);
     usable(0);
     usable({ articles: 1 });
-    type(ArticleListUI);
-    await mount();
     const [ on, eventual ] = manageEvents();
     const {
       fetchAll,
@@ -54,7 +52,7 @@ function ArticleListUI({ articles = [], authors = [], categories = [], tags = []
           categories: categories.filter(c => article.categories.includes(c.id)),
           tags: tags.filter(t => article.tags.includes(t.id)),
           media: article.featured && media.find(m => article.featured_media === m.id),
-        }
+        };
         return <ArticleUI {...props} />
       })}
       <div ref={bottom} className="bottom"></div>

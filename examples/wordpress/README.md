@@ -1,70 +1,255 @@
-# Getting Started with Create React App
+# WordPress Example
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+In this example, we're going to build past that displays WordPress articles with infinite scrolling. For this purpose,
+we're going to employ the [`useProgress`](../../doc/useProgressive.md) hook. It's a specialized hook designed for
+loading data into a component. It acts sort of as a translator of data from the async world, turning promises into
+objects and async generators into arrays.
 
-## Available Scripts
+[Tech Crunch](https://techcrunch.com/) will serve as the data source for our example. The site has hundreds of
+thousands of articles. Even the most determined scroller will not manage to reach the end.
 
-In the project directory, you can run:
+## Seeing the code in action
 
-### `npm start`
+Go to the `examples/wordpress` folder. Run `npm install` then `npm start`. A browser window should automatically
+open up.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+![screenshot](./img/screenshot-1.jpg)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Article list, the synchronous part
 
-### `npm test`
+First, let us look at [the data recipient](./src/ArticleList.js#L33), a regular React component that expects five
+arrays and one handler as props:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```js
+function ArticleListUI({ articles = [], authors = [], categories = [], tags = [], media = [], onBottomReached }) {
+  const bottom = useRef();
+  useEffect(() => {
+    const observer = new IntersectionObserver(onBottomReached, {
+      rootMargin: '0px 0px 1000px 0px',
+      threshold: 0
+    });
+    observer.observe(bottom.current);
+    return () => {
+      observer.disconnect();
+    };
+  }, [ onBottomReached ]);
+  const { length, total } = articles;
+  return (
+    <ul className="ArticleList">
+      <div className="count">{length} of {total} articles</div>
+      {articles.map((article) => {
+        const props = {
+          key: article.id,
+          article,
+          authors: authors.filter(a => article.authors.includes(a.id)),
+          categories: categories.filter(c => article.categories.includes(c.id)),
+          tags: tags.filter(t => article.tags.includes(t.id)),
+          media: article.featured && media.find(m => article.featured_media === m.id),
+        }
+        return <ArticleUI {...props} />
+      })}
+      <div ref={bottom} className="bottom"></div>
+    </ul>
+  );
+}
+```
 
-### `npm run build`
+Using a useEffect hook, we attach an
+[IntersectionObserver](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) to a div that we
+draw at the bottom of the page. Whenever this div gets within 1000 pixels of the viewport, `onBottomReached` is called
+to trigger the loading of additional contents.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The rest of the code is pretty React. For each article we obtain its authors, its categories, and so forth from the
+respected arrays. There's no guarantee the objects will be there. The component `ArticleUI` is expected to deal with
+the absence of data.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Note the use of `articles.total`. This is the total number of articles available, as reported by WordPress. You'll
+see later how this number gets attached to the array.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Article list, the asynchronous part
 
-### `npm run eject`
+Now it's time to examine [the component that supplies the data](./src/ArticeList.js#L6):
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```js
+export default function ArticleList() {
+  const wp = useWordPressPosts();
+  return useProgressive(async ({ fallback, type, usable, manageEvents, signal }) => {
+    fallback(<div className="loading">Loading...</div>)
+    type(ArticleListUI);
+    usable(0);
+    usable({ articles: 1 });
+    const [ on, eventual ] = manageEvents();
+    const {
+      fetchAll,
+      fetchAuthors,
+      fetchCategories,
+      fetchTags,
+      fetchFeaturedMedia,
+    } = wp;
+    const options = { signal };
+    const articles = fetchAll(() => eventual.needForMore, options);
+    const authors = fetchAuthors(articles, options);
+    const categories = fetchCategories(articles, options);
+    const tags = fetchTags(articles, options);
+    const media = fetchFeaturedMedia(articles, options);
+    return { articles, authors, categories, tags, media, onBottomReached: on.needForMore };
+  }, [ wp ]);
+}
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+First, it calls `useWordPressPosts` to obtain a set of data retrieval functions. It then calls `useProgressive` with
+an anonymous async function. This function is expected to set up the generators to be used and configure the operation.
+It gets a number of config functions from React-seq by the way of destructuring. We use `fallback` to set a placeholder.
+We use `type` to indicate the target component. We call `usable` once to tell `useProgressive` that all props should
+be considered usable even when empty, then a second time, to put a minimum on `articles`. We want to have at least one
+article before we take down the fallback placeholder.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+We call `manageEvents` to gain event management functionalities. There's just one event to manage: `needForMore`. The
+promise of such an event is passed to `fetchAll` via an arrow function. When it is fulfilled, `fetchAll` knows a need
+for more data has arisen and will respond accordingly. This happens when the bottom of the list is reached.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## Fetch functions
 
-## Learn More
+Let's now look at [the fetch functions](./src/wordpress.js#L101):
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```js
+  function fetchAll(demand, options) {
+    return fetchObjectsContinual('wp/v2/posts', demand, options);
+  }
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+  function fetchAuthors(generator, options) {
+    return fetchObjectComponents('wp/v2/users', 'authors', generator, options);
+  }
 
-### Code Splitting
+  function fetchCategories(generator, options) {
+    return fetchObjectComponents('wp/v2/categories', 'categories', generator, options);
+  }
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+  function fetchTags(generator, options) {
+    return fetchObjectComponents('wp/v2/tags', 'tags', generator, options);
+  }
 
-### Analyzing the Bundle Size
+  function fetchFeaturedMedia(generator, options)  {
+    const mediaId = p => p.featured ? [ p.featured_media ] : [];
+    return fetchObjectComponents('wp/v2/media', mediaId, generator, options);
+  }
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+As you can see, they each just call a helper function with the path to the corresponding data. `fetchObjectComponents`
+is also given the location to the ids with in the source object. Note it accepts a generator as an argument. We'll
+come back to this. First we'll tackle [`fetchObjectsContinual`](./src/wordpress.js#L12), the function used to
+retrieve articles.
 
-### Making a Progressive Web App
+```js
+  function fetchObjectsContinual(path, demand, options) {
+    async function* generate() {
+      let page = 0;
+      for (;;) {
+        const list = await fetchObjectsByPage(path, ++page, options);
+        const pageCount = list.pages;
+        generator.total = list.total;
+        yield list.values();
+        if (page >= pageCount) {
+          break;
+        }
+        await demand();
+      }
+    }
+    const generator = generate();
+    return generator;
+  }
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+We use an inner function here to create the generator, so that we can attach a property to it. This function runs an
+infinite loop, fetching one page of data (10 articles) in each iteration. We expect from `fetchObjectsByPage` an array
+with two additional properties `pages` and `total`. These two numbers are extracted from the HTTP response object.
 
-### Advanced Configuration
+```js
+    array.total = parseInt(res.headers.get('X-WP-Total'));
+    array.pages = parseInt(res.headers.get('X-WP-TotalPages'));
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+`useProgressive` will transfer all enumerable properties from the generator to the destination array. Assigning to
+`generator.total` means the value showing up as `articles.total` in `ArticleListUI`.
 
-### Deployment
+Instead of yielding the array, the generator yields an iterator of it. This signals to `useProgressive` that the
+arrays should be concatenated together. Without the call to `values` we would end up with an array of arrays instead.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+After doing that it calls `demand` and waits for it to return, meaning it'll wait for the fulfillment of
+`eventual.needForMore` from `ArticleLIst`.
 
-### `npm run build` fails to minify
+Okay, I hope that wasn't hard to understand. Time to examine the other function, `fetchObjectComponents`. We use it to
+obtain records related to the articles we've retrieved like tags and authors. Here's where we run into a bit of a
+dilemma. The function doesn't actually get a list of articles, it gets a generator producing article objects. This is
+problematic since we can only iterate through a generator once. A second iteration would yield nothing. How can our
+function access the articles without disrupting others that also need to do the same?
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+The solution is the [stasi function](../../doc/stasi.js). It creates generators that spy on other generators,
+replicating what they produce. This allows multiple functions to access the output from the same generator.
+Calling it is therefore the first thing that we do:
+
+```js
+  function fetchObjectComponents(path, field, generator, options) {
+    generator = stasi(generator);
+    async function *generate() {
+      const fetched = {};
+      for await (const objects of generator) {
+        const fetching = [];
+        for (const object of objects) {
+          const ids = typeof(field) === 'function' ? field(object) : object[field];
+          // see which ones haven't been fetched yet
+          for (const id of ids) {
+            if (!fetched[id]) {
+              fetching.push(id);
+              fetched[id] = true;
+            }
+          }
+        }
+        if (fetching.length > 0) {
+          // some are still missing
+          const components = await fetchObjectsByIds(path, fetching, options);
+          yield components.values();
+        }
+      }
+    }
+    return generate();
+  }
+```
+
+
+
+
+```js
+// async generator function
+async function* functionA() {
+  console.log('first line');
+  yield 'Hello world';
+}
+
+// function returning an async generator
+function functionB() {
+  console.log('first line');
+  async function* generate() {
+    yield 'Hello world';
+  }
+  return generate();
+}
+
+(async () => {
+  const a = functionA();
+  console.log('functionA() called');
+  for await (const line of a) {}
+  console.log('-'.repeat(20));
+  const b = functionB();
+  console.log('functionB() called');
+  for await (const line of b) {}
+})();
+```
+
+```
+functionA() called
+first line
+--------------------
+first line
+functionB() called
+```
