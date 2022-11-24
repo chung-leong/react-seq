@@ -1,4 +1,3 @@
-import { renderToReadableStream } from 'react-dom/server';
 import { hydrateRoot } from 'react-dom/client';
 import { settings } from './settings.js';
 import { delay } from './utils.js';
@@ -17,6 +16,7 @@ export function hydrateRootReactSeq(container, element) {
 export async function renderToInnerHTML(element, node) {
   try {
     settings({ ssr: 'server' });
+    const { renderToReadableStream } = await import('react-dom/server');
     const stream = await renderToReadableStream(element);
     await stream.allReady;
     const reader = stream.getReader();
@@ -56,17 +56,18 @@ export async function renderToInnerHTML(element, node) {
 }
 
 export function renderToServer(element) {
-  (async () => {
+  async function render() {
     try {
       settings({ ssr: 'server' });
-      const promise = renderToReadableStream(element);
-      process.send(promise);
-      const stream = await promise;
+      const { renderToReadableStream } = await import('react-dom/server');
+      const stream = await renderToReadableStream(element);
       await stream.allReady;
+      return stream;
     } finally {
       settings({ ssr: false });
     }
-  })();
+  };
+  process.send(render());
 }
 
 export async function waitForHydration(root) {
