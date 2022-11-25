@@ -136,8 +136,8 @@ Let's now look at [the fetch functions](./src/wordpress.js#L101):
 ```
 
 As you can see, they each just call a helper function with the path to the corresponding data. `fetchObjectComponents`
-is also given the location to the ids with in the source object. Note it accepts a generator as an argument. We'll
-come back to this. First we'll tackle [`fetchObjectsContinual`](./src/wordpress.js#L12), the function used to
+is also given the location of the ids within the source object. Note it accepts a generator as an argument. We'll
+come back to this. First we'll tackle [`fetchObjectsContinual`](./src/wordpress.js#L12), the function we use to
 retrieve articles.
 
 ```js
@@ -186,7 +186,7 @@ function access the articles without disrupting others that also need to do the 
 
 The solution is the [stasi function](../../doc/stasi.js). It creates generators that spy on other generators,
 replicating what they produce. This allows multiple functions to access the output from the same generator.
-Calling it is therefore the first thing that we do:
+Calling it is the first thing that we do:
 
 ```js
   function fetchObjectComponents(path, field, generator, options) {
@@ -216,8 +216,20 @@ Calling it is therefore the first thing that we do:
   }
 ```
 
+The generator function iterates through the generator it's been given, receiving each time an synchronous
+iterator. It iterates through that, extracting the ids of the related objects in accordance to `field`. It checks
+to see which ones haven't yet been fetched and fetch them, yielding finally as before, an array iterator.
 
+Explaining why here too we're creating the generator with an inner function is a bit trickier. We have to digress
+for a moment and look at the subtle difference of generator functions from normal functions.
 
+## Generator functions vs normal functions
+
+Generator functions (async or otherwise) aren't just function that return generators. They behave differently in one
+subtle but critical way. When we call a generator function, nothing happens immediately. The generator just gets
+created. The first line of the function gets executed when we retrieve the first item from the generator.
+
+The following snippet demonstrates the behavior:
 
 ```js
 // async generator function
@@ -246,6 +258,7 @@ function functionB() {
 })();
 ```
 
+Result:
 ```
 functionA() called
 first line
@@ -253,3 +266,22 @@ first line
 first line
 functionB() called
 ```
+
+Had we declare `fetchObjectComponents` itself an async generator function, like so:
+
+```js
+  async function *fetchObjectComponents(path, field, generator, options) {
+    generator = stasi(generator);
+    const fetched = {};
+    for await (const objects of generator) {
+      /* ... */
+    }
+  }
+```
+
+It would not work correctly, as some items could have been extracted from the target generator before `stasi` gets
+a hand on it. We can't allow that. We want to give `stasi` the chance to install its apparatus as soon as possible.
+That's why we call it in a regular function and use an inner function to create the generator.
+
+This subtle behavioral difference is something you need to keep in mind when working with generators. Otherwise
+you'll go insane debugging.
