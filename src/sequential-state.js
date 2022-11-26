@@ -98,7 +98,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
           flushFn?.();
         }
       };
-      const em = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
+      const em = new EventManager({ ...options, signal, inspector, onAwaitStart });
       return [ em.on, em.eventual ];
     };
   }
