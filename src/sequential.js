@@ -96,24 +96,17 @@ export function sequential(cb, options = {}) {
   };
 
   // permit explicit request to use pending content
-  let flushFn, flushing = false;
-  methods.flush = () => {
-    if (flushFn) {
-      flushFn();
-    }
-  };
+  let flushFn;
+  methods.flush = () => flushFn?.();
 
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
     methods.manageEvents = (options = {}) => {
       const onAwaitStart = () => {
-        if (flushFn) {
-          flushFn();
+        // flush when deferment is infinite or we're doing ssr
+        if (iterator.delay === Infinity) {
+          flushFn?.();
         }
-        flushing = true;
-      };
-      const onAwaitEnd = () => {
-        flushing = false;
       };
       const em = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
       return [ em.on, em.eventual ];
@@ -255,7 +248,7 @@ export function sequential(cb, options = {}) {
 
     function updateContent({ conditional = false, reusable = false }) {
       if (conditional) {
-        if (iterator.delay > 0 && !unusedSlot && !flushing) {
+        if (iterator.delay > 0 && !unusedSlot) {
           // wait for next interruption
           return;
         }

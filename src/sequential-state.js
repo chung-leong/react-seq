@@ -86,24 +86,17 @@ export function sequentialState(cb, setState, setError, options = {}) {
   };
 
   // permit explicit request to use pending state
-  let flushFn, flushing = false;
-  methods.flush = () => {
-    if (flushFn) {
-      flushFn();
-    }
-  };
+  let flushFn;
+  methods.flush = () => flushFn?.();
 
   // let callback manages events with help of promises
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     methods.manageEvents = (options = {}) => {
       const onAwaitStart = () => {
-        if (flushFn) {
-          flushFn();
+        // flush when deferment is infinite
+        if (iterator.delay === Infinity) {
+          flushFn?.();
         }
-        flushing = true;
-      };
-      const onAwaitEnd = () => {
-        flushing = false;
       };
       const em = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
       return [ em.on, em.eventual ];
@@ -131,7 +124,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   function updateState({ conditional = false, reusable = false }) {
     if (conditional) {
-      if (iterator.delay > 0 && !unusedSlot && !flushing) {
+      if (iterator.delay > 0 && !unusedSlot) {
         // wait for interruption
         return;
       }
