@@ -4,9 +4,6 @@ import List from './List.js';
 export default function Character({ id }) {
   const [ state ] = useSWAPI('people', { id }, { refresh: 1 });
   const { person, homeworld, films, species, vehicles, starships } = state;
-  if (!person) {
-    return;
-  }
   return (
     <div>
       <h1>{person?.name}</h1>

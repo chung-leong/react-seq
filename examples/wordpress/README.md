@@ -280,8 +280,25 @@ Had we declare `fetchObjectComponents` itself an async generator function, like 
 ```
 
 It would not work correctly, as some items could have been extracted from the target generator before `stasi` gets
-a hand on it. We can't allow that. We want to give `stasi` the chance to install its apparatus as soon as possible.
+its hand on it. We can't allow that. We want to give `stasi` the chance to install its apparatus as soon as possible.
 That's why we call it in a regular function and use an inner function to create the generator.
 
 This subtle behavioral difference is something you need to keep in mind when working with generators. Otherwise
 you'll go insane debugging.
+
+## Recap
+
+Let's do quickly run-through of what actually happens in our component:
+
+* We have five async generators: `articles`, `authors`, `categories`, `tags`, and `media`. The last four are
+  stalled initially, waiting for `articles`.
+* `articles` obtains 10 records from the server and hands them to `useProgressive`. 10 articles meets the minimum
+  requirement of 1, so `<ArticleListUI />` gets rendered, replacing the loading placeholder.
+* At the same time, `authors`, `categories`, `tags`, and `media` are notified about the existence of these articles
+  by their `stasi` affiliates. They scan through the articles, load the related objects, and hand them to
+  `useProgressive`, which rerenders `<ArticleListUI />` with the added contents.
+* All five generators are stalled at this point.
+* When the user scrolls down, the `needForMore` is fulfilled.
+* `articles` is awakened and fetches the next ten articles.
+* `authors`, `categories`, `tags`, and `media` are awakened by `stasi` snitches and they the related objects needed
+  by the newly retrieved articles.

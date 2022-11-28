@@ -6,7 +6,7 @@ const baseURL = 'https://swapi.dev/api/';
 export function useSWAPI(type, params = {}, options = {}) {
   const {
     delay = 100,
-    refresh = Infinity,
+    refresh = 24 * 60,
   } = options;
   const { id } = params;
   const onRef = useRef();

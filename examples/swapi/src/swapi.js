@@ -27,7 +27,15 @@ export function* fetchMultiple(urls, options) {
 async function fetchJSON(url, options) {
   const res = await fetch(url, options);
   if (res.status !== 200) {
-    throw new Error(`${res.status} ${res.statusText}`);
+    throw new HTTPError(res.status, res.statusText);
   }
   return res.json();
+}
+
+class HTTPError extends Error {
+  constructor(status, statusText) {
+    super(`${status} ${statusText}`);
+    this.status = status;
+    this.statusText = statusText;
+  }
 }
