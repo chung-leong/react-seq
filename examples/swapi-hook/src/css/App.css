@@ -65,9 +65,13 @@ a:hover {
   animation: fadein 1s;
 }
 
-.error {
-	color: #f00;
+.Error {
 	text-align: center;
+}
+
+.Error img {
+  margin-top: 10vh;
+	height: 60vh;
 }
 
 @keyframes fadein {

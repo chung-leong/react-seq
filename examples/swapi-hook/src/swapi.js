@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { useSequentialState, manageEvents } from 'react-seq';
+import { useSequentialState } from 'react-seq';
 
 const baseURL = 'https://swapi.dev/api/';
 
@@ -13,7 +13,7 @@ export function useSWAPI(type, params = {}, options = {}) {
   const state = useSequentialState(async function*({ initial, defer, manageEvents, signal }) {
     initial({});
     const [ on, eventual ] = manageEvents();
-    onRef(on);
+    onRef.current = on;
     const opts = { signal };
     for (let i = 0;; i++) {
       defer(i === 0 ? delay : Infinity);
