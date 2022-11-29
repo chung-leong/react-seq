@@ -358,10 +358,10 @@ export class EventManager {
   }
 
   reportSettlement(promise) {
-    const { promises, warning } = this;
+    const { promises } = this;
     const { state, name } = promise;
     if (!(state & DERIVED) && !(state & STALE)) {
-      delete this.promises[name];
+      delete promises[name];
     }
   }
 

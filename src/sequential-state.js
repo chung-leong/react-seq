@@ -53,9 +53,13 @@ export function sequentialState(cb, setState, setError, options = {}) {
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal });
   let updateDelay = 0;
+  let unusedSlot = false;
   methods.defer = (ms) => {
     updateDelay = ms;
     iterator.setInterruption(updateDelay);
+    if (ms === Infinity) {
+      unusedSlot = false;
+    }
   };
 
   // allow callback to use side effects
@@ -119,7 +123,6 @@ export function sequentialState(cb, setState, setError, options = {}) {
   }
 
   let pendingState;
-  let unusedSlot = false;
   return { initialState, abortManager };
 
   function updateState({ conditional = false, reusable = false }) {

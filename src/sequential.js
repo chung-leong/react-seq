@@ -40,9 +40,13 @@ export function sequential(cb, options = {}) {
   // let callback set content update delay
   const iterator = new IntermittentIterator({ signal, inspector });
   let updateDelay = 0;
+  let unusedSlot = false;
   methods.defer = (ms) => {
     updateDelay = ms;
     iterator.setInterruption(updateDelay);
+    if (ms === Infinity) {
+      unusedSlot = false;
+    }
   };
 
   // let callback set timeout element (or its creation function), to be used when
@@ -146,7 +150,6 @@ export function sequential(cb, options = {}) {
   const Lazy = lazy(async () => {
     let pendingContent;
     let pendingError;
-    let unusedSlot = false;
 
     // retrieve initial contents
     let stop = false, finished = false, aborted = false;
