@@ -9,8 +9,7 @@ const DERIVED = 0x0008;
 class ManagedPromise extends Promise {
   constructor(cb) {
     super(cb);
-    this.resolve = null;
-    this.reject = null;
+    this.callbacks = null;
     this.manager = null;
     this.name = undefined;
     this.state = 0;
@@ -20,11 +19,10 @@ class ManagedPromise extends Promise {
   static create(manager, name, derived = false, source = null) {
     let resolve, reject;
     const promise = new ManagedPromise((r1, r2) => { resolve = r1; reject = r2; });
-    promise.resolve = resolve;
-    promise.reject = reject;
+    promise.callbacks = { resolve, reject };
     ManagedPromise.init(promise, manager, name, derived);
     if (source) {
-      source.then(promise.resolve, promise.reject);
+      source.then(resolve, reject);
     }
     return promise;
   }
@@ -35,6 +33,16 @@ class ManagedPromise extends Promise {
     promise.state = (derived) ? DERIVED : 0;
     promise.proxitize('or');
     promise.proxitize('and');
+  }
+
+  resolve(value) {
+    this.callbacks.resolve(value);
+    this.manager.reportSettlement(this);
+  }
+
+  reject(err) {
+    this.callbacks.reject(err);
+    this.manager.reportSettlement(this);
   }
 
   then(thenFn, catchFn) {
@@ -87,10 +95,13 @@ class ManagedPromise extends Promise {
           throw new Error(msg);
         }
         const delay = number * multipler;
-        if (delay !== Infinity) {
-          this.setTimeout(delay);
+        if (delay === Infinity) {
+          return this;
         }
-        return this;
+        this.state |= MERGING;
+        const promise = ManagedPromise.create(this.manager, `${this.name}.for(${number}).${name}`, true, this);
+        promise.setTimeout(delay);
+        return promise;
       },
       set: throwError,
     });
@@ -202,7 +213,7 @@ export class EventManager {
     const { handlers } = this;
     let handler = handlers[name];
     if (!handler) {
-      const fn = (value) => this.triggerFulfillment(name, value);
+      const fn = (value) => this.settlePromise(name, value);
       const valueHandlers = { hash: null, map: null };
       handlers[name] = handler = new Proxy(fn, {
         get: (fn, key) => this.getHandlerProp(fn, name, valueHandlers, key),
@@ -246,7 +257,7 @@ export class EventManager {
       }
       handler = handlers.map.get(value);
       if (!handler) {
-        handler = () => this.triggerFulfillment(name, value);
+        handler = () => this.settlePromise(name, value);
         handlers.map.set(value, handler);
       }
     } else {
@@ -264,7 +275,7 @@ export class EventManager {
             delete handlers.hash[key];
           }
         }
-        handler = () => this.triggerFulfillment(name, value);
+        handler = () => this.settlePromise(name, value);
         handlers.hash[key] = handler;
       }
     }
@@ -277,13 +288,13 @@ export class EventManager {
     }
     let handler = handlers.map.get(fn);
     if (!handler) {
-      handler = (value) => this.triggerFulfillment(name, fn(value));
+      handler = (value) => this.settlePromise(name, fn(value));
       handlers.map.set(fn, handler);
     }
     return handler;
   }
 
-  triggerFulfillment(name, value) {
+  settlePromise(name, value) {
     const { promises, warning } = this;
     let important = false, rejecting = false;
     for (;;) {
@@ -307,10 +318,7 @@ export class EventManager {
     }
     let handled = false;
     let promise = promises[name];
-    if (promise) {
-      // remove the promise once it is fulfilled or rejected so a new one will be created later
-      delete promises[name];
-    } else if (important) {
+    if (!promise && important) {
       // allow the value to be picked up later
       promises[name] = promise = ManagedPromise.create(this, name);
       promise.state |= STALE;
@@ -335,8 +343,8 @@ export class EventManager {
     if (this.inspector) {
       this.inspector.dispatch({ type: 'await', promise });
     } else if (this.warning && process.env.NODE_ENV === 'development') {
-      if (!promise.derived) {
-        const { name } = promise;
+      const { state, name } = promise;
+      if (!(state & DERIVED)) {
         if (!(name in this.handlers)) {
           console.warn(`Awaiting eventual.${name} without prior use of on.${name}`);
         }
@@ -347,6 +355,14 @@ export class EventManager {
 
   reportAwaitEnd(promise) {
     this.onAwaitEnd?.();
+  }
+
+  reportSettlement(promise) {
+    const { promises, warning } = this;
+    const { state, name } = promise;
+    if (!(state & DERIVED) && !(state & STALE)) {
+      delete this.promises[name];
+    }
   }
 
   abortAll() {

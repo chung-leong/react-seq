@@ -115,7 +115,7 @@ describe('#PromiseLogger', function() {
     await eventual.click.or.keyPress.for(10).milliseconds;
     const list = inspector.oldEvents({ type: 'await' });
     expect(list).to.have.lengthOf(1);
-    expect(list[0].promise).to.have.property('name', 'click.or.keyPress');
+    expect(list[0].promise).to.have.property('name', 'click.or.keyPress.for(10).milliseconds');
   })
   it('should receive notification from event manage when awaiting external promise', async function() {
     const inspector = new PromiseLogger();
@@ -124,7 +124,7 @@ describe('#PromiseLogger', function() {
     await eventual(promise).for(10).milliseconds;
     const list = inspector.oldEvents({ type: 'await' });
     expect(list).to.have.lengthOf(1);
-    expect(list[0].promise).to.have.property('name', '<promise>');
+    expect(list[0].promise).to.have.property('name', '<promise>.for(10).milliseconds');
   })
   it('should receive notification from event manage when an handler is called', async function() {
     const inspector = new PromiseLogger();

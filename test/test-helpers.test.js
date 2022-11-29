@@ -165,7 +165,7 @@ describe('#withTestRenderer()', function() {
     const el = createElement(Test);
     await withTestRenderer(el, async ({ renderer, awaiting, timeout }) => {
       expect(renderer.toJSON()).to.equal('Pig');
-      expect(awaiting()).to.equal('click');
+      expect(awaiting()).to.equal('click.for(5).seconds');
       await timeout();
       expect(renderer.toJSON()).to.equal('Tortoise');
       expect(awaiting()).to.be.undefined;
@@ -384,7 +384,7 @@ describe('#withReactDOM()', function() {
     const el = createElement(Test);
     await withReactDOM(el, async ({ node, awaiting, timeout }) => {
       expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.equal('click');
+      expect(awaiting()).to.equal('click.for(5).seconds');
       await timeout();
       expect(node.textContent).to.equal('Tortoise');
       expect(awaiting()).to.be.undefined;
