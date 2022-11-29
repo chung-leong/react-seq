@@ -479,5 +479,5 @@ I hope this example helped you gain some insight into what can be done with asyn
 generator is a very powerful addition to JavaScript. It's definitely far more useful than being just an array that
 you create dynamically. This example has nothing to do with arrays. We're using async generators to help us
 make a complex process with many moving parts more manageable, more understandable. I hope you managed to follow the
-code without difficulties. If there's anything unclear, please feel free to contact me or make use of the discussion
-board.
+code without difficulties. If there's anything unclear, please feel free to contact me or make use of the [discussion
+board](https://github.com/chung-leong/react-seq/discussions).

@@ -48,7 +48,7 @@ export default function App() {
                     throw404();
                 }
               } catch (err) {
-                return <NotFound />;
+                return <ErrorScreen error={err} />;
               }
             })}
           </Suspense>
@@ -107,7 +107,7 @@ function CharacterListUI({ people }) {
 }
 ```
 
-As an alternative to defining a separate component, we could have use [`element`](../../doc/element.md) instead:
+As an alternative to defining a separate component, we could have used [`element`](../../doc/element.md) instead:
 
 ```js
 export default function CharacterList() {
@@ -126,7 +126,9 @@ export default function CharacterList() {
 }
 ```
 
+## Character page
 
+The [character page](./src/Character.js) works largely the same way:
 
 ```js
 export default function Character({ id }) {
@@ -146,7 +148,15 @@ export default function Character({ id }) {
     };
   }, [ id ]);
 }
+```
 
+We need to fetch the record for the character in question to obtain the URLs to the related records. After that,
+the component is ready to show something to the user. Additional information will appear over time has it's
+retrieved from the server.
+
+`CharacterUI` is fairly basic:
+
+```js
 function CharacterUI({ person, homeworld, films, species, vehicles, starships }) {
   return (
     <div>
@@ -173,22 +183,38 @@ function CharacterUI({ person, homeworld, films, species, vehicles, starships })
 }
 ```
 
+## Fetch functions
+
+The function `fetchOne` couldn't be simpler. All it does is attach the base URL:
+
 ```js
 export async function fetchOne(url, options) {
   const absURL = (new URL(url, baseURL)).toString();
   return fetchJSON(absURL, options);
 }
+```
 
-/*...*/
+`fetchJSON` also doesn't do a whole lot. It throws an error when the status code is not 200:
 
+```js
 async function fetchJSON(url, options) {
   const res = await fetch(url, options);
   if (res.status !== 200) {
-    throw new Error(`${res.status} ${res.statusText}`);
+    throw new HTTPError(res.status, res.statusText);
   }
   return res.json();
 }
+
+class HTTPError extends Error {
+  constructor(status, statusText) {
+    super(`${status} ${statusText}`);
+    this.status = status;
+    this.statusText = statusText;
+  }
+}
 ```
+
+`fetchMultiple` is a generator function. It yields a list of promises that `useProgressive` will resolve to objects:
 
 ```js
 export function* fetchMultiple(urls, options) {
@@ -197,6 +223,11 @@ export function* fetchMultiple(urls, options) {
   }
 }
 ```
+
+Note that this is a *synchronous* generator. All the fetch requests are fired at the same time and not one after
+another. They could potentially be handled simultaneously if HTTP2 multiplexing is available.
+
+`fetchList` retrieves the paginated list in a loop:
 
 ```js
 export async function* fetchList(url, options) {
@@ -208,3 +239,43 @@ export async function* fetchList(url, options) {
   } while (absURL);
 }
 ```
+
+Instead of yielding the array `results`, we yield a iterator. This tells `useProgress` to push the items of the array
+and not the array itself into the resultant array.
+
+## Error handling
+
+What would happen if a fetch operation results in an error? Say we go to http://localhost:3000/people/500/. The server
+is going to respond with 404 Not Found. `fetchJSON` is going to throw an `HTTPError`. React-seq will catch this
+error and rethrow it during rerendering, so that it can be captured by an
+[error boundary](https://reactjs.org/docs/error-boundaries.html).
+
+In our case, an error boundary is provided by [array-router](https://github.com/chung-leong/array-router). The router
+will trigger a rerender of our `App` component. We end up here:
+
+```js
+            {provide((parts, query, { throw404 }) => {
+              try {
+                const [ section, id ] = parts;
+                switch (section) {
+                  /* ... */
+                }
+              } catch (err) {
+                return <ErrorScreen error={err} />;
+              }
+            })}
+```
+
+Our attempt to access the array `parts` (which is actually a
+[proxy object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy))
+will result in the captured error being thrown again. It lands in the catch block down below and is placed
+into an [`ErrorScreen`](./src/ErrorScreen.js):
+
+![screenshot](./img/screenshot-2.jpg)
+
+## Final Thoughts
+
+Well, that's all. React-seq is designed to help you quickly and easily build data-driven websites. I hope you walk
+away from this example thinking that is the case. I believe the code is self-explanatory to a large degree. If there's
+anything unclear, please feel free to contact me or make use of the [discussion
+board](https://github.com/chung-leong/react-seq/discussions).
