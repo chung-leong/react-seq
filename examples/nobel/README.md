@@ -1,70 +1,132 @@
-# Getting Started with Create React App
+# Nobel Prize API example
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This example demonstrates the use of [`useSequentialState`](../../doc/useSequentialState.md) in creating a custom
+data hook. Unlike [`useSequential`](../../doc/useSequential.md) which returns an element and is tied into React's
+suspension mechanism, `useSequentialState` just gives you what comes out of an async generator. It's more agnostic
+in a sense and can be employed in more situations. Basically, any time when your component needs some remote data
+set that requires multiple requests to retrieve.
 
-## Available Scripts
+The data source for this example is the [Nobel Prize API](https://www.nobelprize.org/about/developer-zone-2/). As
+the name implies, it provides information about Nobel prizes and laureates.
 
-In the project directory, you can run:
+## Seeing the code in action
 
-### `npm start`
+Go to the `examples/nobel` folder. Run `npm install` then `npm start`. A browser window should automatically
+open up.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+![screenshot](./img/screenshot-1.jpg)
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## The app
 
-### `npm test`
+The [example app](./src/App.js) is completely bare bone: just a pair of drop-drops for selecting the category
+and year:
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```js
+function App() {
+  const [ year, setYear ] = useState('');
+  const [ category, setCategory ] = useState('');
+  const prize = useNobelPrize(category, year);
+  return (
+    <div className="App">
+      <div className="toolbar">
+        <select onChange={evt => setCategory(evt.target.value)} value={category} required>
+          <option value="">Category</option>
+          {categories.map(({ code, name }) => <option key={code} value={code}>{name}</option>)}
+        </select>
+        {' '}
+        <select onChange={evt => setYear(evt.target.value)} value={year} required>
+          <option value="">Year</option>
+          {years.map(year => <option key={year} value={year}>{year}</option>)}
+        </select>
+      </div>
+      {prize && <Prize {...prize} />}
+    </div>
+  );
+}
+```
 
-### `npm run build`
+`useNobelPrize` is our custom hook. It returns `undefined` when it hasn't yet retrieved anything and an object
+containing information concerning the prize awarded on the given category and year.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## The hook
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+[Our hook](./src/nobel.js) fetches data in two stages. First, information about the prize itself is retrieved:
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```js
+export function useNobelPrize(category, year) {
+  return useSequentialState(async function*({ defer, signal }) {
+    if (!category || !year) {
+      return;
+    }
+    const prizeURL = new URL(`https://api.nobelprize.org/2.1/nobelPrize/${category}/${year}`);
+    const [ {
+      categoryFullName,
+      prizeAmount,
+      prizeAmountAdjusted,
+      laureates
+    } ] = await fetchJSON(prizeURL, { signal });
+    let prize = {
+      fullName: str(categoryFullName),
+      amount: prizeAmount,
+      amountAdjusted: prizeAmountAdjusted,
+      laureates: laureates?.map(({ fullName, orgName, motivation }) => {
+        return {
+          fullName: str(fullName) ?? str(orgName),
+          motivation: str(motivation),
+        };
+      }),
+    };
+    yield prize;
+    /* ... */
+```
 
-### `npm run eject`
+The prize endpoint only gives us the names of the laureates and the reason why they were awarded the prize. After
+yielding this initial information, we proceed to retrieve additional information about each laureate from the
+laureate endpoint:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```js
+    /* ... */
+    if (laureates) {
+      for (const [ index, laureate ] of laureates.entries()) {
+        const [ {
+          gender,
+          birth,
+          death,
+          nobelPrizes,
+          wikipedia,
+        } ] = await fetchJSON(laureate.links.href);
+        prize = { ...prize };
+        const target = prize.laureates[index];
+        target.gender = gender;
+        target.birth = formatDatePlace(birth);
+        target.death = formatDatePlace(death);
+        // find the relevant prize
+        const matchingPrize = nobelPrizes.find(p => p.awardYear === year);
+        target.affiliation = formatAffiliation(matchingPrize?.affiliations?.[0]);
+        target.wikipedia = wikipedia.english;
+        yield prize;
+      }
+    }
+  }, [ category, year ]);
+}
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+Note how we need to clone the object to ensure React will recognize it as a new state.
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Omitting event manager
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+That's it. One additional piece of information I would like to add is how to omit code of the event manager. All you
+need to do is set the environment variable `REACT_APP_SEQ_NO_EM` to non-zero when building:
 
-## Learn More
+```json
+    "build": "REACT_APP_SEQ_NO_EM=1 react-scripts build",
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+This will save you 2K, reducing the footprint of React-seq to about 3K (gzipped).
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Final thoughts
 
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Dealing with asynchronous operations in React can be a little tricky. React-seq helps you manage the process using
+a standard part of JavaScript: the async generator. I hope you'll consider using it in one of your projects. If
+you have any question or suggestion, feel free to contact me or make use of the [discussion
+board](https://github.com/chung-leong/react-seq/discussions).
