@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 import { createElement } from 'react';
 import { useSequential } from '../index.js';
+import { withJSDOM } from './dom-renderer.js';
 import { withSilentConsole } from './error-handling.js';
 
 import {
@@ -236,8 +237,10 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node }) => {
-      expect(node.textContent).to.equal('Pig');
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node }) => {
+        expect(node.textContent).to.equal('Pig');
+      });
     });
   })
   it('should rerender a component', async function() {
@@ -248,11 +251,13 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, update }) => {
-      expect(node.textContent).to.equal('Pig');
-      const el2 = createElement(Test, { animal: 'Turkey' });
-      await update(el2);
-      expect(node.textContent).to.equal('Turkey');
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, update }) => {
+        expect(node.textContent).to.equal('Pig');
+        const el2 = createElement(Test, { animal: 'Turkey' });
+        await update(el2);
+        expect(node.textContent).to.equal('Turkey');
+      });
     });
   })
   it('should unmount a component', async function() {
@@ -269,11 +274,13 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, unmount }) => {
-      expect(node.textContent).to.equal('Pig');
-      await unmount();
-      expect(node.textContent).to.equal('');
-      expect(unmounted).to.be.true;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, unmount }) => {
+        expect(node.textContent).to.equal('Pig');
+        await unmount();
+        expect(node.textContent).to.equal('');
+        expect(unmounted).to.be.true;
+      });
     });
   })
   it('should report correct stoppage points', async function() {
@@ -286,9 +293,11 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.equal('click');
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.equal('click');
+      });
     });
   })
   it('should throw when attempt to resolve an non-existent promise', async function() {
@@ -299,10 +308,12 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, resolve }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.be.undefined;
-      await expect(resolve()).to.eventually.be.rejected;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, resolve }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.be.undefined;
+        await expect(resolve()).to.eventually.be.rejected;
+      });
     });
   })
   it('should throw when attempt to reject an non-existent promise', async function() {
@@ -313,10 +324,12 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, reject }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.be.undefined;
-      await expect(reject(new Error('Doh'))).to.eventually.be.rejected;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, reject }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.be.undefined;
+        await expect(reject(new Error('Doh'))).to.eventually.be.rejected;
+      });
     });
   })
   it('should be able to trigger next steps', async function() {
@@ -332,15 +345,17 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, resolve }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.equal('click');
-      await resolve();
-      //expect(node.textContent).to.equal('Chicken');
-      expect(awaiting()).to.equal('keyPress');
-      await resolve();
-      expect(node.textContent).to.equal('Donkey');
-      expect(awaiting()).to.be.undefined;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, resolve }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.equal('click');
+        await resolve();
+        //expect(node.textContent).to.equal('Chicken');
+        expect(awaiting()).to.equal('keyPress');
+        await resolve();
+        expect(node.textContent).to.equal('Donkey');
+        expect(awaiting()).to.be.undefined;
+      });
     });
   })
   it('should see multi-promise await', async function() {
@@ -356,15 +371,17 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, resolve }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.equal('click.or.keyPress');
-      await resolve();
-      expect(node.textContent).to.equal('Chicken');
-      expect(awaiting()).to.equal('keyPress.and.selfDestruct.and.endOfWorld');
-      await resolve();
-      expect(node.textContent).to.equal('Donkey');
-      expect(awaiting()).to.be.undefined;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, resolve }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.equal('click.or.keyPress');
+        await resolve();
+        expect(node.textContent).to.equal('Chicken');
+        expect(awaiting()).to.equal('keyPress.and.selfDestruct.and.endOfWorld');
+        await resolve();
+        expect(node.textContent).to.equal('Donkey');
+        expect(awaiting()).to.be.undefined;
+      });
     });
   })
   it('should trigger timeout', async function() {
@@ -382,12 +399,14 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, timeout }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.equal('click.for(5).seconds');
-      await timeout();
-      expect(node.textContent).to.equal('Tortoise');
-      expect(awaiting()).to.be.undefined;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, timeout }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.equal('click.for(5).seconds');
+        await timeout();
+        expect(node.textContent).to.equal('Tortoise');
+        expect(awaiting()).to.be.undefined;
+      });
     });
   })
   it('should throw when timeout is used where it is not expected', async function() {
@@ -401,10 +420,12 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, timeout }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.equal('click');
-      await expect(timeout()).to.eventually.be.rejected;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, timeout }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.equal('click');
+        await expect(timeout()).to.eventually.be.rejected;
+      });
     });
   })
   it('should throw when timeout is used where no awaiting is occurring', async function() {
@@ -416,10 +437,12 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, timeout }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.undefined;
-      await expect(timeout()).to.eventually.be.rejected;
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, timeout }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.undefined;
+        await expect(timeout()).to.eventually.be.rejected;
+      });
     });
   })
   it('should be able to trigger error', async function() {
@@ -437,11 +460,13 @@ describe('#withReactDOM()', function() {
       }, []);
     }
     const el = createElement(Test);
-    await withReactDOM(el, async ({ node, awaiting, reject }) => {
-      expect(node.textContent).to.equal('Pig');
-      expect(awaiting()).to.equal('click');
-      await reject(new Error('Chicken shit'));
-      expect(node.textContent).to.equal('Chicken shit');
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, awaiting, reject }) => {
+        expect(node.textContent).to.equal('Pig');
+        expect(awaiting()).to.equal('click');
+        await reject(new Error('Chicken shit'));
+        expect(node.textContent).to.equal('Chicken shit');
+      });
     });
   })
   it('should allow normal error message through while suppressing act warning', async function() {
@@ -455,9 +480,11 @@ describe('#withReactDOM()', function() {
     const el = createElement(Test);
     const output = {};
     await withSilentConsole(async () => {
-      await withReactDOM(el, async ({ node, awaiting }) => {
-        expect(node.textContent).to.equal('Pig');
-        expect(awaiting()).to.be.undefined;
+      await withJSDOM(async () => {
+        await withReactDOM(el, async ({ node, awaiting }) => {
+          expect(node.textContent).to.equal('Pig');
+          expect(awaiting()).to.be.undefined;
+        });
       });
     }, output);
     expect(output.error).to.equal('Rats live on no evil star');
