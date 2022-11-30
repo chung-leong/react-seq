@@ -14,5 +14,4 @@ export async function processPayment(method, details) {
   if (Math.random() > 0.5) {
     throw new Error('Unable to process payment for random reason');
   }
-  console.log({ method, details });
 }

@@ -8,9 +8,7 @@ export default function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <p>
-          Payment Page Example
-        </p>
+        <p>Payment Page Example</p>
       </header>
       <InspectorContext.Provider value={logger}>
         <PaymentPage />
