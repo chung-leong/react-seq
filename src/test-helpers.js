@@ -3,70 +3,78 @@ import { InspectorContext, PromiseLogger } from './inspector.js';
 import { delay } from './utils.js';
 
 export async function withTestRenderer(el, cb, options = {}) {
-  const {
-    timeout = 2000
-  } = options;
   const { create, act } = await import('react-test-renderer');
-  const logger = new PromiseLogger();
-  const provider = createElement(InspectorContext.Provider, { value: logger }, el);
   let renderer;
-  try {
-    let lastPromise = (await stoppage(logger, act, timeout, () => renderer = create(provider))).promise;
-    await cb({
-      renderer,
-      logger,
-      act,
-      update: async (el) => {
-        return act(() => renderer.update(el));
-      },
-      unmount: async () => {
-        return act(() => renderer.unmount());
-      },
-      awaiting: () => {
-        return lastPromise?.name;
-      },
-      resolve: async (value) => {
-        if (!lastPromise) {
-          throw new Error('Not awaiting');
-        }
-        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve(value))).promise;
-      },
-      reject: async (err) => {
-        if (!lastPromise) {
-          throw new Error('Not awaiting');
-        }
-        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.reject(err))).promise;
-      },
-      timeout: async (err) => {
-        if (!lastPromise) {
-          throw new Error('Not awaiting');
-        }
-        if (!(lastPromise.timeout >= 0)) {
-          throw new Error('Not expecting timeout');
-        }
-        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve('timeout'))).promise;
-      }
-    });
-  } finally {
-    renderer.unmount();
-  }
+  const methods = {
+    act,
+    props: () => { return { renderer } },
+    render: (el) => renderer = create(el),
+    update: (el) => renderer.update(el),
+    unmount: () => renderer?.unmount(),
+    clean: () => {},
+  };
+  return withMethods(el, methods, cb, options);
 }
 
 export async function withReactDOM(el, cb, options = {}) {
-  const {
-    timeout = 2000,
-    ...jsDOMOpts
-  } = options;
-  if (typeof(window) !== 'object' && typeof(global) === 'object') {
-    await withJSDOM(async () => await withReactDOM(el, cb), jsDOMOpts);
-    return;
-  }
+  global.IS_REACT_ACT_ENVIRONMENT = true;
   const { createRoot } = await import('react-dom/client');
   const { act } = await import('react-dom/test-utils');
   const node = document.body.appendChild(document.createElement('div'));
+  const root = createRoot(node);
+  const methods = {
+    act,
+    props: () => { return { root, node } },
+    render: (el) => root.render(el),
+    update: (el) => root.render(el),
+    unmount: () => root.unmount(),
+    clean: () => { node.remove() },
+  };
+  return withMethods(el, methods, cb, options);
+}
+
+export async function withMethods(el, methods, cb, options) {
+  const {
+    timeout = 2000,
+  } = options;
+  const {
+    act,
+    props,
+    update,
+    render,
+    unmount,
+    clean,
+  } = methods;
+  // promise that the component is currently waiting for (start with a dummy)
+  let lastPromise = Promise.resolve();
+  let lastContents = [];
+  // function that applies a change, records content changes, and wait for a stoppage event
+  async function change(cb) {
+    if (!lastPromise) {
+      throw new Error('Not awaiting');
+    }
+    // remember the starting position
+    const startIndex = logger.eventLog.length;
+    // set up promises
+    const returning = logger.newEvent({ type: 'return' });
+    const waiting = logger.newEvent({ type: 'await' });
+    const rejecting = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Timeout after ${timeout}ms`));
+      }, timeout);
+    });
+    // apply the change
+    await act(() => cb());
+    const { promise } = await act(() => Promise.race([ returning, waiting, rejecting ]));
+    // get new contents from the log
+    const contentEvents = logger.eventLog.slice(startIndex).filter(e => e.type === 'content');
+    lastContents = contentEvents.map(e => e.content);
+    lastPromise = promise;
+  }
+  // render the element wrapped in a logger
   const logger = new PromiseLogger();
   const provider = createElement(InspectorContext.Provider, { value: logger }, el);
-  const root = createRoot(node);
+  await change(() => render(provider));
   // suppress "not wrapped in act" messages
   const errorFn = console.error;
   console.error = (...args) => {
@@ -75,88 +83,51 @@ export async function withReactDOM(el, cb, options = {}) {
     }
   };
   try {
-    let lastPromise = (await stoppage(logger, act, timeout, () => root.render(provider))).promise;
     await cb({
-      node,
-      root,
+      ...props?.(),
       logger,
       act,
       update: async (el) => {
-        return act(() => root.render(el));
+        return act(() => update(el));
       },
       unmount: async () => {
-        return act(() => root.unmount());
+        return act(() => unmount());
       },
       awaiting: () => {
         return lastPromise?.name;
       },
+      displaying: () => {
+        return lastContents[lastContents.length - 1];
+      },
+      displayed: () => {
+        return lastContents;
+      },
+      showing: () => {
+        return lastContents[lastContents.length - 1]?.type;
+      },
+      shown: () => {
+        return lastContents.map(e => e.type);
+      },
       resolve: async (value) => {
-        if (!lastPromise) {
-          throw new Error('Not awaiting');
-        }
-        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve(value))).promise;
+        return change(() => lastPromise.resolve(value));
       },
       reject: async (err) => {
-        if (!lastPromise) {
-          throw new Error('Not awaiting');
-        }
-        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.reject(err))).promise;
+        return change(() => lastPromise.reject(err));
       },
       timeout: async (err) => {
-        if (!lastPromise) {
-          throw new Error('Not awaiting');
-        }
-        if (!(lastPromise.timeout >= 0)) {
+        if (lastPromise?.timeout < 0) {
           throw new Error('Not expecting timeout');
         }
-        lastPromise = (await stoppage(logger, act, timeout, () => lastPromise.resolve('timeout'))).promise;
+        return change(() => lastPromise.resolve('timeout'));
       }
     });
+
   } finally {
-    root.unmount();
-    node.remove();
     console.error = errorFn;
-  }
-}
-
-async function stoppage(logger, act, ms, cb) {
-  const returning = logger.newEvent({ type: 'return' });
-  const waiting = logger.newEvent({ type: 'await' });
-  const timeout = delay(ms).then(() => { throw new Error(`Timeout after ${ms}ms`) });
-  await act(() => cb());
-  const event = await act(() => Promise.race([ returning, waiting, timeout ]));
-  await act(() => {});
-  return event;
-}
-
-export async function withJSDOM(cb, options) {
-  const { JSDOM } = await import('jsdom');
-  const jsdom = new JSDOM('<!doctype html><html><body></body></html>', options);
-  const { window } = jsdom;
-  const keysBefore = Object.keys(global);
-  global.globalThis = window;
-  global.window = window;
-  global.document = window.document;
-  global.navigator = { userAgent: 'node.js' };
-  /* c8 ignore next 3 */
-  global.requestAnimationFrame = function (callback) {
-    return setTimeout(callback, 0);
-  };
-  /* c8 ignore next 3 */
-  global.cancelAnimationFrame = function (id) {
-    clearTimeout(id);
-  };
-  global.jsdom = jsdom;
-  global.IS_REACT_ACT_ENVIRONMENT = true
-  copyProps(window, global);
-  try {
-    await cb();
-  } finally {
-    const keys = Object.keys(global);
-    for (const key of keys.slice(keysBefore.length)) {
-      delete global[key];
-    }
-    global.globalThis = global;
+    await act(() => {
+      unmount();
+      clean();
+    });
   }
 }
 
