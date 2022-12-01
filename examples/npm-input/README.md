@@ -131,3 +131,11 @@ Using `useSequentialState` adds about ~3kb (gzipped) to a codebase, while `usePr
 ![screenshot](./img/screenshot-2.jpg)
 
 ## Final thoughts
+
+As was said at the very beginning, this example involves a marginal usage scenario. We're not taking advantage of
+React-seq's key features, such as handling errors in async code using error boundary. Still, the library makes
+coding a bit easier, the code a little more intuitive. Whether the convenience is worth 3kb really depends on the
+nature of a given project.
+
+Thank you for your time. As usual, if you have any question or comment, feel free to make sure of the project's
+[discussion section](https://github.com/chung-leong/react-seq/discussions).
