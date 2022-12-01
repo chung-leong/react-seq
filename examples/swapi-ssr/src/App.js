@@ -17,7 +17,7 @@ const Starship = lazy(() => import('./Starship.js'));
 const StarshipList = lazy(() => import('./StarshipList.js'));
 const Vehicle = lazy(() => import('./Vehicle.js'));
 const VehicleList = lazy(() => import('./VehicleList.js'));
-const NotFound = lazy(() => import('./NotFound.js'));
+const ErrorScreen = lazy(() => import('./ErrorScreen.js'));
 
 export default function App() {
   const provide = useRouter({ trailingSlash: true });
@@ -49,7 +49,7 @@ export default function App() {
                     throw404();
                 }
               } catch (err) {
-                return <NotFound />;
+                return <ErrorScreen error={err} />;
               }
             })}
           </Suspense>
