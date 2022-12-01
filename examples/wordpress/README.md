@@ -300,5 +300,17 @@ Let's do quickly run-through of what actually happens in our component:
 * All five generators are stalled at this point.
 * When the user scrolls down, the `needForMore` is fulfilled.
 * `articles` is awakened and fetches the next ten articles.
-* `authors`, `categories`, `tags`, and `media` are awakened by `stasi` snitches and they the related objects needed
-  by the newly retrieved articles.
+* `authors`, `categories`, `tags`, and `media` are awakened by `stasi` snitches and fetch the related objects needed
+  by the newly arrived articles.
+
+And that gives us our infinite scroll.
+
+## Final thoughts
+
+I hope the code was not difficult to follow. It's all supposed to be easy and intuitive. `useProgressive` would take
+some async "stuff" and over time make it not async on behalf of a normal React component. The only tricky bit is
+where we need to use the same async generator in multiple contexts.
+
+Thank you for taking your time reading about React-seq. I hope you're intrigued by the possibilities the library offers.
+If you have any questions regarding this example or in general, please feel free to contact me or make use of the
+[discussion board](https://github.com/chung-leong/react-seq/discussions).
