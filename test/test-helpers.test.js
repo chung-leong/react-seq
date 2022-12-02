@@ -172,6 +172,17 @@ describe('#withTestRenderer()', function() {
       expect(awaiting()).to.be.undefined;
     });
   })
+  it('should throw when no stoppage point is reached after time limit is reached', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        await delay(1000);
+        yield 'Pig';
+      }, []);
+    }
+    const el = createElement(Test);
+    const promise = withTestRenderer(el, async () => {}, { timeout: 50 });
+    await expect(promise).to.be.eventually.be.rejectedWith('Timeout after 50ms');
+  })
   it('should throw when timeout is used where it is not expected', async function() {
     function Test() {
       return useSequential(async function*({ fallback, manageEvents }) {
