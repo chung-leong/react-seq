@@ -348,6 +348,53 @@ describe('Hydration', function() {
       expect(result).to.equal('finally');
     });
   })
+  it('should be able to rehydrate a CRA app', async function() {
+    const buildPath = resolve('./cra/test-12/build');
+    let messages;
+    const stream = renderInChildProc('http://example.test/', buildPath, { onMessages: m => messages = m });
+    const html = await readStream(stream);
+    function App() {
+      return useSequential(async function*({ fallback, defer }) {
+        fallback(createElement('div', {}, 'Loading...'));
+        defer(100);
+        for (let i = 1; i <= 10; i++) {
+          yield (
+            createElement('div', { className: 'App' },
+              createElement('header', { className: 'App-header' },
+                createElement('img', { src: '/static/media/logo.6ce24c58023cc2f8fd88fe9d219db6c6.svg', className: 'App-logo', alt: 'logo' }),
+                createElement('p', null,
+                  'Edit ',
+                  createElement('code', null, 'src/App.js'),
+                  ' and save to reload.'
+                ),
+                createElement('a', { className: 'App-link', href: 'https://reactjs.org', target: '_blank', rel: 'noopener noreferrer' },
+                  'Learn React'
+                ),
+                createElement("p", null, 'Iteration #', i)
+              )
+            )
+          );
+          await delay(50);
+        }
+      });
+    }
+    const output = {}
+    await withSilentConsole(async () => {
+      await withReactDOM(async ({ unmount, node }) => {
+        unmount();
+        document.open();
+        document.write(html);
+        document.close();
+        node = document.getElementById('root');
+        const el = createElement(App);
+        settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+        const root = hydrateRoot(node, el);
+        await waitForHydration(root);
+        settings({ ssr: false, ssr_time_limit: 3000 });
+      });
+    }, output);
+    expect(output.error[0]).to.not.contain('did not match');
+  })
 })
 
 describe('#renderInChildProc()', function() {
