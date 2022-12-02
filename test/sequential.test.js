@@ -4,7 +4,7 @@ import { withReactDOM } from './dom-renderer.js';
 import { createElement, Suspense, StrictMode } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary, withSilentConsole, caughtAt } from './error-handling.js';
-import { delay, Abort } from '../index.js';
+import { delay, settings, Abort } from '../index.js';
 import { isAbortError } from '../src/utils.js';
 
 import {
@@ -341,57 +341,56 @@ describe('#sequential()', function() {
     });
   })
   it('should render timeout content when time limit is breached', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
-      const { element: el, abortManager: am } = sequential(async function*({ defer, fallback, timeout }) {
-        defer(10);
-        fallback('Cow');
-        timeout(10, async () => 'Tortoise');
-        await assertions[0];
-        yield 'Pig';
-        steps[1].done();
+    try {
+      settings({
+        ssr: 'server',
+        ssr_timeout: 10,
+        ssr_timeout_handler: async () => 'Tortoise',
       });
-      await create(el);
-      am.onMount();
-      expect(toJSON()).to.equal('Cow');
-      await delay(15);
-      expect(toJSON()).to.equal('Tortoise');
-      await assertions[0].done();
-    });
-  })
-  it('should allow the timeout function to abort generator', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
-      let timeoutDuration;
-      const { element: el, abortManager: am } = sequential(async function*({ fallback, timeout }) {
-        fallback('Cow');
-        timeout(10, async ({ abort, limit }) => {
-          timeoutDuration = limit;
-          abort();
-          return 'Tortoise';
-        });
-        try {
+      await withTestRenderer(async ({ create, toJSON, act }) => {
+        const steps = createSteps(), assertions = createSteps(act);
+        const { element: el, abortManager: am } = sequential(async function*({ defer, fallback, timeout }) {
+          defer(10);
+          fallback('Cow');
           await assertions[0];
           yield 'Pig';
           steps[1].done();
-          await assertions[1];
-          yield 'Chicken';
-          steps[2].done('end');
-        } finally {
-          await assertions[0];
-          steps[3].done('finally');
-        }
+        });
+        await create(el);
+        am.onMount();
+        await delay(25);
+        expect(toJSON()).to.equal('Tortoise');
+        await assertions[0].done();
       });
-      await create(el);
-      am.onMount();
-      expect(toJSON()).to.equal('Cow');
-      await delay(15);
-      expect(toJSON()).to.equal('Tortoise');
-      expect(timeoutDuration).to.equal(10);
-      await assertions[0].done();
-      const results = await Promise.race([ steps[1], steps[3] ]);
-      expect(results).to.equal('finally');
-    });
+    } finally {
+      settings({ ssr: false });
+    }
+  })
+  it('should correctly deal with undefined as the timeout content', async function() {
+    try {
+      settings({
+        ssr: 'server',
+        ssr_timeout: 10,
+        ssr_timeout_handler: null,
+      });
+      await withTestRenderer(async ({ create, toJSON, act }) => {
+        const steps = createSteps(), assertions = createSteps(act);
+        const { element: el, abortManager: am } = sequential(async function*({ defer, fallback, timeout }) {
+          defer(10);
+          fallback('Cow');
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+        });
+        await create(el);
+        am.onMount();
+        await delay(25);
+        expect(toJSON()).to.be.null;
+        await assertions[0].done();
+      });
+    } finally {
+      settings({ ssr: false });
+    }
   })
   it('should allow creation of a suspending component', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
@@ -928,40 +927,6 @@ describe('#useSequential()', function() {
       await assertions[0].done();
       await steps[1];
       expect(toJSON()).to.equal(null);
-      await assertions[1].done();
-      await steps[2];
-      expect(toJSON()).to.equal('Pig');
-      await assertions[2].done();
-      await steps[3];
-      expect(toJSON()).to.equal('Chicken');
-    });
-  })
-  it('should correctly deal with undefined as the timeout content', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
-      function Test() {
-        return useSequential(async function*({ fallback, timeout }) {
-          fallback('Cow');
-          timeout(20, () => undefined);
-          await assertions[0];
-          yield 'Monkey';
-          steps[1].done();
-          await assertions[1];
-          yield 'Pig';
-          steps[2].done();
-          await assertions[2];
-          yield 'Chicken';
-          steps[3].done();
-        }, []);
-      }
-      const el = createElement(Test);
-      await create(el);
-      expect(toJSON()).to.equal('Cow');
-      await delay(30);
-      expect(toJSON()).to.equal(null);
-      await assertions[0].done();
-      await steps[1];
-      expect(toJSON()).to.equal('Monkey');
       await assertions[1].done();
       await steps[2];
       expect(toJSON()).to.equal('Pig');

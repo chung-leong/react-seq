@@ -41,21 +41,17 @@ export function sequential(cb, options = {}) {
   const iterator = new IntermittentIterator({ signal, inspector });
   let updateDelay = 0;
   let unusedSlot = false;
+  let ssr = setting('ssr');
+  if (ssr === 'server') {
+    iterator.setTimeLimit(setting('ssr_timeout'));
+  }
   methods.defer = (ms) => {
     updateDelay = ms;
-    iterator.setInterruption(updateDelay);
+    // infinite delay when ssr is active
+    iterator.setInterruption((ssr && updateDelay > 0) ? Infinity : updateDelay);
     if (ms === Infinity) {
       unusedSlot = false;
     }
-  };
-
-  // let callback set timeout element (or its creation function), to be used when
-  // we fail to retrieve the first item from the generator after time limit has been exceeded
-  let timeLimit = Infinity, timeoutEl;
-  methods.timeout = (ms, el) => {
-    timeLimit = ms;
-    timeoutEl = el;
-    iterator.setTimeLimit(timeLimit);
   };
 
   // allow the creation of suspending component
@@ -124,18 +120,6 @@ export function sequential(cb, options = {}) {
   iterator.fetch();
   sync = false;
 
-  // time limit due to server-side rendering, apply them now, after the generator function
-  // has a chance to call defer() and timeout()
-  const ssr = setting('ssr');
-  if (ssr) {
-    if (updateDelay > 0) {
-      // infinity deferment during SSR
-      iterator.setInterruption(Infinity);
-    }
-    const ssrTimeLimit = setting('ssr_time_limit');
-    iterator.setTimeLimit(Math.min(timeLimit, ssrTimeLimit));
-  }
-
   if (suspensionKey) {
     // suspensio is used, see if there's prior results
     const priorResult = findPrior(suspensionKey);
@@ -163,7 +147,7 @@ export function sequential(cb, options = {}) {
       try {
         const { value, done } = await iterator.next();
         if (!done) {
-          pendingContent = (value !== undefined) ? value : null;
+          pendingContent = value ?? null;
           if (iterator.delay === 0 || unusedSlot) {
             stop = true;
           }
@@ -174,14 +158,13 @@ export function sequential(cb, options = {}) {
         if (err instanceof Timeout) {
           // time limit has been reached--need to resolve the promise now
           if (pendingContent === undefined) {
-            // we got nothing to show--reach for the timeout element
-            if (typeof(timeoutEl) === 'function') {
-              const abort = () => abortManager.abort();
-              const { limit } = iterator;
-              timeoutEl = await timeoutEl({ limit, abort });
+            // we got nothing to show--call timeout handler
+            if (ssr) {
+              const handler = setting('ssr_timeout_handler');
+              const timeoutEl = await handler?.(generator);
+              pendingContent = timeoutEl ?? null;
+              inspector?.dispatch({ type: 'timeout', duration: iterator.limit, content: pendingContent });
             }
-            pendingContent = (timeoutEl !== undefined) ? timeoutEl : null;
-            inspector?.dispatch({ type: 'timeout', duration: iterator.limit, content: pendingContent });
           }
           stop = true;
         } else if (err instanceof Interruption) {
@@ -218,6 +201,7 @@ export function sequential(cb, options = {}) {
       } else {
         // set the interruption period back to normal and continue
         iterator.setInterruption(updateDelay);
+        ssr = false;
       }
     }
 

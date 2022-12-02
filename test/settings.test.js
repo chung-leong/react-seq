@@ -12,8 +12,11 @@ describe('#setting()', function() {
   it('should return false for "ssr" by default', function() {
     expect(setting('ssr')).to.be.false;
   })
-  it('should return 3000 for "ssr_time_limit" by default', function() {
-    expect(setting('ssr_time_limit')).to.equal(3000);
+  it('should return 3000 for "ssr_timeout" by default', function() {
+    expect(setting('ssr_timeout')).to.equal(3000);
+  })
+  it('should return null for "ssr_timeout_handler" by default', function() {
+    expect(setting('ssr_timeout_handler')).to.be.null;
   })
 })
 
@@ -27,7 +30,10 @@ describe('#settings()', function() {
   it('should throw when ssr is being set to an unknown value', function() {
     expect(() => settings({ ssr: 'cow' })).to.throw();
   })
-  it('should throw when ssr_time_limit is being set to a string', function() {
-    expect(() => settings({ ssr_time_limit: 'cow' })).to.throw();
+  it('should throw when ssr_timeout is being set to a string', function() {
+    expect(() => settings({ ssr_timeout: 'cow' })).to.throw();
+  })
+  it('should throw when ssr_timeout_handler is being set to a string', function() {
+    expect(() => settings({ ssr_timeout_handler: 'cow' })).to.throw();
   })
 })

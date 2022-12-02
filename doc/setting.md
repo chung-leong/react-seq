@@ -12,7 +12,7 @@ if (!setting('ssr')) {
 
 ## Parameters
 
-* `name` - `<string>` Name of setting. It can be "ssr", "ssr_time_limit", or "strict_mode_clean_up".
+* `name` - `<string>` Name of setting. It can be "ssr", "ssr_timeout", or "ssr_timeout_handler".
 * `return` `<string>` or `<number>` or `<boolean>`
 
 ## Notes

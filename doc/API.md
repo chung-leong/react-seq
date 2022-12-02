@@ -18,7 +18,6 @@
 * [mount](./mount.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [signal](./signal.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [suspend](./suspend.md) <sup>`useSequential`, `useProgressive`</sup>
-* [timeout](./timeout.md) <sup>`useSequential`, `useProgressive`</sup>
 * [type](./type.md) <sup>`useProgressive`</sup>
 * [usable](./usable.md) <sup>`useProgressive`, `useProgressiveState`</sup>
 

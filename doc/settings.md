@@ -17,14 +17,17 @@ const stream = await renderToReadableStream(element);
 
 ## Available settings
 
-* `ssr` - "server" or "hydrate" or `false`. When `ssr` is set to "server", components that use [defer](./defer.md) will see the delay gets extended to Infinity, causing all intermediate content updates to be ignored. In addition,
+* `ssr` - "server" or "hydrate" or `false`. When `ssr` is set to "server", components that use [defer](./defer.md)
+will see the delay gets extended to Infinity, causing all intermediate content updates to be ignored. In addition,
 generators created by [`useSequentialState`](./useSequentialState.md) and
 [`useProgressState`](./useProgressiveState) are immediately shutdown after returning their initial states. Setting
-`ssr` to "hydrate" has the same effect on rendering deferment but no impact on the state hooks.
-* `ssr_time_limit` - `<number>` Duration in milliseconds within which components must yield displayable contents
-during server-side rendering (i.e. `ssr` = "server" or "hydrate"). Failing to do so means the use of the [timeout](./timeout.md) content or blank if none is set. The default is 3000.
+`ssr` to "hydrate" has the same effect on rendering deferment but has no impact on the state hooks.
+* `ssr_timeout` - `<number>` Duration in milliseconds within which components must yield displayable contents
+during server-side rendering (i.e. `ssr` = "server"). The default is `3000`.
+* `ssr_timeout_handler` - `<AsyncFunction>` or `null`. Function that gets called when a timeout occurs. Its return
+value will be sent as the affected component's content. The default is `null` (component will be blank).
 
 ## Notes
 
-The helper functions provided by `react-seq/server` and `react-seq/client` will set `ssr` on your behalf. You
-have no need to worry about it if you choose to use these helpers.
+The helper functions provided by [`react-seq/server`](./server-side.md) and [`react-seq/client`](./client-side.md)
+will set `ssr` on your behalf. You have no need to worry about it if you choose to use the provided helpers.

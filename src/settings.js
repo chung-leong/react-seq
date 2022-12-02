@@ -1,6 +1,7 @@
 const currentSettings = {
   ssr: false,
-  ssr_time_limit: 3000
+  ssr_timeout: 3000,
+  ssr_timeout_handler: null,
 };
 
 export function setting(name) {
@@ -22,13 +23,18 @@ export function settings(values) {
           throw new TypeError(`ssr must be either "server", "hydrate", or false`);
         }
         break;
-      case 'ssr_time_limit':
+      case 'ssr_timeout':
         if (typeof(value) !== 'number') {
-          throw new TypeError(`ssr_time_limit must be a number`);
+          throw new TypeError(`ssr_timeout must be a number`);
+        }
+        break;
+      case 'ssr_timeout_handler':
+        if(value !== null && typeof(value) !== 'function') {
+          throw new TypeError(`ssr_timeout_handler must be a function or null`);
         }
         break;
       default:
-        throw new Error(`Unknown setting: ${value}`);
+        throw new Error(`Unknown setting: ${name}`);
     }
   }
   for (const [ name, value ] of Object.entries(values)) {

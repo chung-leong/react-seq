@@ -82,9 +82,8 @@ describe('Server-side rendering', function() {
   it('should yield timeout content when first item takes too long', async function() {
     await withServerSideRendering(async () => {
       function TestComponent() {
-        return useSequential(async function*({ fallback, timeout }) {
+        return useSequential(async function*({ fallback }) {
           fallback(createElement('div', {}, 'Cow'));
-          timeout(1000, async () => createElement('div', {}, 'Tortoise'));
           await delay(60);
           yield createElement('div', {}, 'Pig');
           await delay(50);
@@ -96,15 +95,14 @@ describe('Server-side rendering', function() {
       const el = createElement(TestComponent);
       const html = await renderToString(el);
       expect(html).to.contain('<div>Tortoise</div>');
-    }, 30);
+    }, 30, async () => createElement('div', {}, 'Tortoise'));
   })
   it('should use pending content instead of timeout content when available', async function() {
     await withServerSideRendering(async () => {
       function TestComponent() {
-        return useSequential(async function*({ fallback, defer, timeout }) {
+        return useSequential(async function*({ fallback, defer }) {
           fallback(createElement('div', {}, 'Cow'));
           defer(30)
-          timeout(1000, async () => createElement('div', {}, 'Tortoise'));
           await delay(20);
           yield createElement('div', {}, 'Pig');
           await delay(100);
@@ -116,7 +114,7 @@ describe('Server-side rendering', function() {
       const el = createElement(TestComponent);
       const html = await renderToString(el);
       expect(html).to.contain('<div>Pig</div>');
-    }, 35);
+    }, 35, async () => createElement('div', {}, 'Tortoise'));
   })
   it('should terminate generator after the first item when SSR is in effect on server', async function() {
     await withServerSideRendering(async () => {
@@ -246,7 +244,7 @@ describe('Hydration', function() {
       unmount();
       const el = createElement(TestComponent);
       node.innerHTML = '<!--$--><div>Rocky</div><!--/$-->';
-      settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+      settings({ ssr: 'hydrate' });
       try {
         const root = hydrateRoot(node, el);
         await assertions[0].done();
@@ -259,7 +257,7 @@ describe('Hydration', function() {
         expect(hasSuspended(root)).to.be.false;
         expect(node.innerHTML).to.contain('<div>Rocky</div>');
       } finally {
-        settings({ ssr: false, ssr_time_limit: 3000 });
+        settings({ ssr: false });
       }
     });
   })
@@ -288,10 +286,10 @@ describe('Hydration', function() {
       unmount();
       node.innerHTML = '<div>Cow</div>';
       const el = createElement(TestComponent);
-      settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+      settings({ ssr: 'hydrate' });
       const root = hydrateRoot(node, el);
       await waitForHydration(root);
-      settings({ ssr: false, ssr_time_limit: 3000 });
+      settings({ ssr: false });
       expect(node.innerHTML).to.contain('<div>Cow</div>');
       await assertions[0].done();
       await steps[1];
@@ -330,10 +328,10 @@ describe('Hydration', function() {
       unmount();
       node.innerHTML = '<!--$--><div>Pig</div><!--/$-->';
       const el = createElement(TestComponent);
-      settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+      settings({ ssr: 'hydrate' });
       const root = hydrateRoot(node, el);
       await delay(10);
-      settings({ ssr: false, ssr_time_limit: 3000 });
+      settings({ ssr: false });
       await assertions[0].done();
       await steps[1];
       expect(node.innerHTML).to.contain('<div>Pig</div>');
@@ -387,10 +385,10 @@ describe('Hydration', function() {
         document.close();
         node = document.getElementById('root');
         const el = createElement(App);
-        settings({ ssr: 'hydrate', ssr_time_limit: 1000 });
+        settings({ ssr: 'hydrate' });
         const root = hydrateRoot(node, el);
         await waitForHydration(root);
-        settings({ ssr: false, ssr_time_limit: 3000 });
+        settings({ ssr: false });
       });
     }, output);
     expect(output.error[0]).to.not.contain('did not match');

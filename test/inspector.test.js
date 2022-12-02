@@ -208,25 +208,33 @@ describe('#PromiseLogger', function() {
     });
   })
   it('should pick up timeout events from useSequential', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const inspector = new PromiseLogger();
-      const { oldEvent } = inspector;
-      const steps = createSteps(), assertions = createSteps(act);
-      function Test() {
-        return useSequential(async function*({ fallback, timeout }) {
-          fallback('Cow');
-          timeout(20, async () => 'Tortoise');
-          await assertions[0];
-          yield 'Pig';
-        }, []);
-      }
-      const el = createElement(Test);
-      const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
-      await create(cp);
-      await delay(30);
-      expect(oldEvent({ type: 'timeout' })).to.have.property('content', 'Tortoise');
-      expect(toJSON()).to.equal('Tortoise');
-    });
+    try {
+      settings({
+        ssr: 'server',
+        ssr_timeout: 20,
+        ssr_timeout_handler: async () => 'Tortoise',
+      });
+      await withTestRenderer(async ({ create, toJSON, act }) => {
+        const inspector = new PromiseLogger();
+        const { oldEvent } = inspector;
+        const steps = createSteps(), assertions = createSteps(act);
+        function Test() {
+          return useSequential(async function*({ fallback }) {
+            fallback('Cow');
+            await assertions[0];
+            yield 'Pig';
+          }, []);
+        }
+        const el = createElement(Test);
+        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+        await create(cp);
+        await delay(30);
+        expect(oldEvent({ type: 'timeout' })).to.have.property('content', 'Tortoise');
+        expect(toJSON()).to.equal('Tortoise');
+      });
+    } finally {
+      settings({ ssr: false, ssr_timeout: 3000, ssr_timeout_handler: null });
+    }
   })
   it('should pick up error events from useSequential', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
@@ -448,28 +456,36 @@ describe('#ConsoleLogger', function() {
     });
   })
   it('should handle timeout events', async function() {
-    await withTestRenderer(async ({ create, act }) => {
-      const output = { log: [] };
-      await withSilentConsole(async () => {
-        const inspector = new ConsoleLogger();
-        const steps = createSteps(), assertions = createSteps(act);
-        function Test() {
-          return useSequential(async function*({ fallback, timeout }) {
-            fallback('Cow');
-            timeout(20, async () => 'Tortoise');
-            await assertions[0];
-            yield 'Pig';
-          }, []);
-        }
-        const el = createElement(Test);
-        const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
-        await create(cp);
-        await delay(30);
-        inspector.stop();
-      }, output);
-      expect(output.log).to.contain.something.that.matches(/Timeout/)
-      expect(output.log).to.contain.something.that.matches(/Content update/);
-    });
+    try {
+      settings({
+        ssr: 'server',
+        ssr_timeout: 20,
+        ssr_timeout_handler: async () => 'Tortoise',
+      });
+      await withTestRenderer(async ({ create, act }) => {
+        const output = { log: [] };
+        await withSilentConsole(async () => {
+          const inspector = new ConsoleLogger();
+          const steps = createSteps(), assertions = createSteps(act);
+          function Test() {
+            return useSequential(async function*({ fallback }) {
+              fallback('Cow');
+              await assertions[0];
+              yield 'Pig';
+            }, []);
+          }
+          const el = createElement(Test);
+          const cp = createElement(InspectorContext.Provider, { value: inspector }, el);
+          await create(cp);
+          await delay(30);
+          inspector.stop();
+        }, output);
+        expect(output.log).to.contain.something.that.matches(/Timeout/)
+        expect(output.log).to.contain.something.that.matches(/Content update/);
+      });
+    } finally {
+      settings({ ssr: false, ssr_timeout: 3000, ssr_timeout_handler: null });
+    }
   })
   it('should handle error events', async function() {
     await withTestRenderer(async ({ create, act }) => {

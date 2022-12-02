@@ -24,16 +24,16 @@ export async function withReactDOM(cb) {
   }
 }
 
-export async function withServerSideRendering(cb, timeout = 1000) {
+export async function withServerSideRendering(cb, timeout = 1000, handler = null) {
   await withLock(async () => {
     let window;
     try {
-      settings({ ssr: 'server', ssr_time_limit: timeout });
+      settings({ ssr: 'server', ssr_timeout: timeout, ssr_timeout_handler: handler });
       window = global.window;
       delete global.window;
       await cb();
     } finally {
-      settings({ ssr: false, ssr_time_limit: 3000 });
+      settings({ ssr: false, ssr_timeout: 3000, ssr_timeout_handler: null });
       global.window = window;
     }
   });

@@ -12,7 +12,6 @@ export class IntermittentIterator {
   retrieving = false;
   tick = null;
   reject = null;
-  error = null;
 
   constructor(options) {
     const {
@@ -58,7 +57,7 @@ export class IntermittentIterator {
     if (this.reject) {
       this.reject(err);
     } else {
-      this.error = err;
+      this.tick = Promise.reject(err);
     }
   }
 
@@ -94,14 +93,9 @@ export class IntermittentIterator {
       }, err => {});
     }
     if (!this.tick && this.generator) {
-      if (this.error) {
-        this.tick = Promise.reject(this.error);
-        this.error = null;
-      } else {
-        this.tick = new Promise((_, reject) => {
-          this.reject = reject;
-        });
-      }
+      this.tick = new Promise((_, reject) => {
+        this.reject = reject;
+      });
       this.tick.catch(() => {
         this.tick = null;
         this.reject = null;
