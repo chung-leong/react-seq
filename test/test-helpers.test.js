@@ -1,6 +1,6 @@
 import { expect } from 'chai';
 import { createElement } from 'react';
-import { useSequential } from '../index.js';
+import { useSequential, delay } from '../index.js';
 import { withJSDOM } from './dom-renderer.js';
 import { withSilentConsole } from './error-handling.js';
 
@@ -384,6 +384,35 @@ describe('#withReactDOM()', function() {
       });
     });
   })
+  it('should see the content being displayed', async function() {
+    function Test() {
+      return useSequential(async function*({ fallback, manageEvents }) {
+        fallback('Cow');
+        const [ on, eventual ] = manageEvents();
+        yield createElement('span', {}, 'Pig');
+        await eventual.click.or.keyPress;
+        yield createElement('h3', {}, 'Chicken');
+        await delay(20);
+        yield createElement('h2', {}, 'Duck');
+        await eventual.keyPress.and.selfDestruct.and.endOfWorld;
+        yield createElement('span', {}, 'Donkey');
+      }, []);
+    }
+    const el = createElement(Test);
+    await withJSDOM(async () => {
+      await withReactDOM(el, async ({ node, showing, shown, displaying, displayed, resolve }) => {
+        expect(showing()).to.have.equal('span');
+        expect(displaying()).to.have.property('type', 'span');
+        expect(displaying()).to.have.property('props').that.eql({ children: 'Pig' });
+        await resolve();
+        expect(showing()).to.have.equal('h2');
+        expect(shown()).to.contains('h3');
+        expect(displayed()).to.contain.something.that.has.property('type', 'h3');
+        await resolve();
+        expect(displaying()).to.have.property('props').that.eql({ children: 'Donkey' });
+      });
+    });
+  })
   it('should trigger timeout', async function() {
     function Test() {
       return useSequential(async function*({ fallback, manageEvents }) {
@@ -471,7 +500,7 @@ describe('#withReactDOM()', function() {
   })
   it('should allow normal error message through while suppressing act warning', async function() {
     function Test() {
-      return useSequential(async function*({ fallback, manageEvents }) {
+      return useSequential(async function*({ fallback }) {
         fallback('Cow');
         console.error('Rats live on no evil star');
         yield 'Pig';

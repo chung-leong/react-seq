@@ -71,10 +71,6 @@ export async function withMethods(el, methods, cb, options) {
     lastContents = contentEvents.map(e => e.content);
     lastPromise = promise;
   }
-  // render the element wrapped in a logger
-  const logger = new PromiseLogger();
-  const provider = createElement(InspectorContext.Provider, { value: logger }, el);
-  await change(() => render(provider));
   // suppress "not wrapped in act" messages
   const errorFn = console.error;
   console.error = (...args) => {
@@ -82,6 +78,10 @@ export async function withMethods(el, methods, cb, options) {
       errorFn(...args);
     }
   };
+  // render the element wrapped in a logger
+  const logger = new PromiseLogger();
+  const provider = createElement(InspectorContext.Provider, { value: logger }, el);
+  await change(() => render(provider));
   try {
     await cb({
       ...props?.(),
@@ -129,11 +129,4 @@ export async function withMethods(el, methods, cb, options) {
       clean();
     });
   }
-}
-
-function copyProps(src, target) {
-  Object.defineProperties(target, {
-    ...Object.getOwnPropertyDescriptors(src),
-    ...Object.getOwnPropertyDescriptors(target),
-  });
 }
