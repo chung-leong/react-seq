@@ -1,4 +1,4 @@
-# defer([delay])
+# defer(delay)
 
 Specify the time interval between intermediate content updates
 
@@ -14,7 +14,7 @@ Specify the time interval between intermediate content updates
 ```js
 function Widget({ id }) {
   return useSequential(async function*({ defer, fallback }) {
-    defer(200, 1000);
+    defer(200);
     fallback(<Spinner />);
     yield <span>Performing A...</span>  // intermediate content
     await taskA();
@@ -29,8 +29,7 @@ function Widget({ id }) {
 
 ## Parameters
 
-* `delay` - `<number>` Duration of time in milliseconds. No change will be made if omitted.
-* return `<number>` The actual delay, taking into consideration the multiplier imposed by [`extendDelay`](./extendDelay.md). 
+* `delay` - `<number>` Duration of time in milliseconds.
 
 ## Deferment Explained
 
@@ -82,37 +81,35 @@ At 160ms, "Finished" appears as before.
 
 ## Notes
 
-You can use [extendDelay](./extendDelay.md) to extend the delay globally. This allows you to effectively disable the
-rendering of intermediate content during server-side rendering.
-
-You might also wish to disable progressive rendering after the component has reached a stage of readiness and the
+You might wish to disable progressive rendering after the component has reached a stage of readiness and the
 generator is kept active only to update it occasionally with fresh data from the server. The following example uses
-the [`useSequentialState`](./useSequentialState.md) hook with a infinite-loop generator to obtain
+the [`useSequentialState`](./useSequentialState.md) hook with a infinite-loop generator to obtain and
 maintain up-to-date information about a movie:
 
 ```js
 function MovieInfo({ id }) {
-  const [ info ] = useSequentialState(async function*({ defer, flush, initial, signal }) {
+  const [ info, update ] = useSequentialState(async function*({ defer, initial, manageEvents, signal }) {
     initial({});
+    const [ on, eventual ] = manageEvents();
+    const result = (info) => [ info, on.updateRequest ];
     for (let i = 0;; i++) {
       defer(i === 0 ? 100 : Infinity);
       try {
         const film = await fetch(`https://modernmoviessu.ck/films/${id}`, { signal });
-        yield { film };
+        yield result({ film });
         /* ... */
-        yield { film, actors, directors, producers };
-        flush();
+        yield result({ film, actors, directors, producers });
       } catch (err) {
         // try again later unless it's the first loop
         if (i === 0) {
           throw err;
         }
       } finally {
-        // wait an hour
-        await delay(1000 * 60 * 60, { signal });
+        // wait for update request or one hour
+        await eventual.updateRequest.for(1).hour;
       }
     }
-  })
+  }, []);
   /* ... */
 }
 ```

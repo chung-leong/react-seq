@@ -61,24 +61,6 @@ describe('Server-side rendering', function() {
       expect(html).to.contain('<div>Rocky</div>');
     });
   })
-  it('should not extend delay when deferment is not used', async function() {
-    await withServerSideRendering(async () => {
-      function TestComponent() {
-        return useSequential(async function*({ fallback }) {
-          fallback(createElement('div', {}, 'Cow'));
-          await delay(5);
-          yield createElement('div', {}, 'Pig');
-          await delay(5);
-          yield createElement('div', {}, 'Chicken');
-          await delay(5);
-          yield createElement('div', {}, 'Rocky');
-        }, []);
-      }
-      const el = createElement(TestComponent);
-      const html = await renderToString(el);
-      expect(html).to.contain('<div>Pig</div>');
-    });
-  })
   it('should yield timeout content when first item takes too long', async function() {
     await withServerSideRendering(async () => {
       function TestComponent() {
@@ -120,11 +102,12 @@ describe('Server-side rendering', function() {
     await withServerSideRendering(async () => {
       const steps = createSteps(), assertions = createSteps(act);
       function TestComponent() {
-        return useSequential(async function*({ fallback }) {
+        return useSequential(async function*({ fallback, flush }) {
           fallback(createElement('div', {}, 'Cow'));
           try {
             await assertions[0];
             yield createElement('div', {}, 'Pig');
+            flush();
             steps[1].done();
             await assertions[1];
             yield createElement('div', {}, 'Chicken');
@@ -143,7 +126,7 @@ describe('Server-side rendering', function() {
       await assertions[2].done();
       const html = await renderToString(el);
       expect(html).to.contain('<div>Pig</div>');
-      const result = await Promise.race([ steps[1], steps[2], steps[3], steps[4] ]);
+      const result = await Promise.race([ steps[2], steps[3], steps[4] ]);
       expect(result).to.equal('finally');
     });
   })
@@ -308,11 +291,12 @@ describe('Hydration', function() {
     await withReactDOM(async ({ unmount, node }) => {
       const steps = createSteps(), assertions = createSteps(act);
       function TestComponent() {
-        return useSequential(async function*({ fallback }) {
+        return useSequential(async function*({ fallback, flush }) {
           fallback(createElement('div', {}, 'Cow'));
           try {
             await assertions[0];
             yield createElement('div', {}, 'Pig');
+            flush();
             steps[1].done();
             await assertions[1];
             yield createElement('div', {}, 'Chicken');

@@ -17,11 +17,11 @@ const stream = await renderToReadableStream(element);
 
 ## Available settings
 
-* `ssr` - "server" or "hydrate" or `false`. When `ssr` is set to "server", components that use [defer](./defer.md)
-will see the delay gets extended to Infinity, causing all intermediate content updates to be ignored. In addition,
-generators created by [`useSequentialState`](./useSequentialState.md) and
-[`useProgressState`](./useProgressiveState) are immediately shutdown after returning their initial states. Setting
-`ssr` to "hydrate" has the same effect on rendering deferment but has no impact on the state hooks.
+* `ssr` - "server" or "hydrate" or `false`. When `ssr` is set to "server", content deferment delay becomes Infinity,
+causing all intermediate content updates to be ignored. In addition, generators created by
+[`useSequentialState`](./useSequentialState.md) and [`useProgressState`](./useProgressiveState) are immediately
+shutdown after returning their initial states. Setting `ssr` to "hydrate" has the same effect on rendering deferment
+but has no impact on state hooks.
 * `ssr_timeout` - `<number>` Duration in milliseconds within which components must yield displayable contents
 during server-side rendering (i.e. `ssr` = "server"). The default is `3000`.
 * `ssr_timeout_handler` - `<AsyncFunction>` or `null`. Function that gets called when a timeout occurs. Its return

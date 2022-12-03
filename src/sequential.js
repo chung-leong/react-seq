@@ -42,15 +42,21 @@ export function sequential(cb, options = {}) {
   let updateDelay = 0;
   let unusedSlot = false;
   let ssr = setting('ssr');
-  if (ssr === 'server') {
-    iterator.setTimeLimit(setting('ssr_timeout'));
+  if (ssr) {
+    // infinite delay when ssr is active
+    iterator.setInterruption(Infinity);
+    if (ssr === 'server') {
+      // apply time limit on server
+      iterator.setTimeLimit(setting('ssr_timeout'));
+    }
   }
   methods.defer = (ms) => {
     updateDelay = ms;
-    // infinite delay when ssr is active
-    iterator.setInterruption((ssr && updateDelay > 0) ? Infinity : updateDelay);
-    if (ms === Infinity) {
-      unusedSlot = false;
+    if (!ssr) {
+      iterator.setInterruption(updateDelay);
+      if (ms === Infinity) {
+        unusedSlot = false;
+      }
     }
   };
 
