@@ -10,7 +10,8 @@ ready, run `npm start` to star the HTTP server. A browser window should automati
 
 ![progress](./img/progress.jpg)
 
-The Welcome page has no contents so the transition from SSR to CSR will happen in the blink of an eye. You will need to navigate to a page with actual contents and do a page refresh to be able to notice its progress. Even
+The Welcome page has no contents so the transition from SSR to CSR will happen in the blink of an eye. You will need
+to navigate to a page with actual contents and do a page refresh to be able to notice its progress. Even
 then you'll need to enable bandwidth throttling to get a realistic feel.
 
 The server-side rendered contents has a reddish background. It's plain HTML. The CSS file has been loaded at
@@ -37,14 +38,14 @@ that you aren't physically there.
 
 Creating the impression that your website loads quickly is the key motivation of SSR. People dislike staring at
 a spinner or a progress bar. In theory, adding a 10 second load time to an article that takes 10 minutes to
-read should be immaterial. Of course, people don't think in that way, because we aren't completely rational
+read should be immaterial. Of course, people don't think in that way because we aren't completely rational
 beings. Unless a site produces meaningful contents within seconds, people will bolt.
 
 ## Server code
 
-Enough discussion about the human nature. Let us look at some code. For the purpose of this example, we're
+Enough discussion about human nature. Let us look at some code. For the purpose of this example, we're
 using [`Fastify`](https://www.fastify.io/), a more modern alternative to [`Express`](https://expressjs.com/).
-Our [HTTP server](./server/index.mjs) is initiated inside a IIAFE:
+Our [HTTP server](./server/index.mjs) is initiated inside an IIAFE:
 
 ```js
 (async () => {
@@ -99,11 +100,16 @@ The [next route](./server/index.mjs#L37) is where the real action takes place:
   });
 ```
 
+When there's a dot in the path, we assume it's a request for a static file. Otherwise we assume it's a path in
+our app. Regenerating the full URL, we pass it to [`renderInChildProc`](../../doc/client-side/renderInChildProc.md)
+along with the path to our CRA production build. A child instance of Node.js then runs the exact same code at the
+browser would.
 
+That's it on the server side. The rendering of SSR contents actually happens in clinet-side code.
 
-## App bootstrap
+## Clint-side bootstrap
 
-The [bootstrap code for the original example](../swapi/src/index.js) was basically what the boilerplate from
+The [bootstrap code for the original example](../swapi/src/index.js) was basically the boilerplate from
 [CRA](https://create-react-app.dev/):
 
 ```js
@@ -139,7 +145,7 @@ if (typeof(window) === 'object') {
 }
 ```
 
-We do a check for the presence of `window`. If it's there, the code is running on a browser. If not, the code is
+We do a check for the presence of `window`. If it's there, the code is running in a browser. If not, the code is
 running on the server. In the latter case, we simply call `renderToServer`, a helper function from `react-seq/client`.
 
 On the browser side, we perform SSR *on the client side* during development to make debugging easier.
@@ -160,3 +166,41 @@ if (typeof(window) === 'object') {
   renderToServer(app);
 }
 ```
+
+Fairly simple. It's worth noting that `renderToServer` imports `react-dom/server` dynamically. Inclusion of SSR
+rendering capability into the production build only increase the code size slightly when running on the browser.
+(The same is true for `renderToInnerHTML` but then dead-code removal would have eliminated the call altogether
+anyway.)
+
+And that's it on the client side. The rest of the codebase is basically unchanged. A couple lines in
+[`swapi.js`](./src/swapi.js) was changed to account for the fact that the app is now fetching data from the origin
+server instead of [swapi.dev](https://swapi.dev/). And a few lines was added to [`Character.js`](./src/Character.js)
+for demo purpose.
+
+## Error reporting
+
+React-seq will redirect console message from SSR to the client-side. You can see this in action by going to Species >
+Gungan > Jar Jar Binks and reloading the page:
+
+![console](./img/console.jpg#)
+
+As you can see, React-seq will make use of source maps to give you the precise location in the original source file
+when an error occurs.
+
+## Server-side packages
+
+The following npm packages are needed on the server side:
+
+* [abort-controller](https://www.npmjs.com/package/abort-controller) - for polyfilling Node.js version 14 and below
+* [node-fetch](https://www.npmjs.com/package/node-fetch) - for polyfilling Node.js version 16 and below
+
+## Final thoughts
+
+Enabling SSR is fairly easy when using React-seq. All you have to do is change a few lines and set up the server.
+Of course, in order to get the most out of SSR you will need to carefully configure proper caching. Spawning an
+instance of Node.js is a fairly expensive operation. You wouldn't want page generation to occur for every single
+visitor to your site. Cache manage is outside the scope of this example. Maybe in the future we'll deal with it
+in another example.
+
+Thank you for your time. Please make use of the [discussion board](https://github.com/chung-leong/react-seq/discussions)
+if you have any question or suggestion.
