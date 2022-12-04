@@ -9,7 +9,7 @@ if (typeof(window) === 'object') {
   (async () => {
     if (process.env.NODE_ENV === 'development') {
       // do "SSR" on client side to make it easier to debug code during development
-      await renderToInnerHTML(app, container);
+      await renderToInnerHTML(container, app);
     }
     const root = hydrateRoot(container, app);
     // indicate page is partially dynamic

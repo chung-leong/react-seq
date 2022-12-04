@@ -2,22 +2,22 @@ import { hydrateRoot } from 'react-dom/client';
 import { settings } from './settings.js';
 import { delay } from './utils.js';
 
-export function hydrateRootReactSeq(container, element) {
+export function hydrateRootReactSeq(container, element, options) {
   let root;
   try {
     settings({ ssr: 'hydrate' });
-    root = hydrateRoot(container, element);
+    root = hydrateRoot(container, element, options);
     return root;
   } finally {
     waitForHydration(root).then(() => settings({ ssr: false }));
   }
 }
 
-export async function renderToInnerHTML(element, node) {
+export async function renderToInnerHTML(container, element, options) {
   try {
     settings({ ssr: 'server' });
     const { renderToReadableStream } = await import('react-dom/server');
-    const stream = await renderToReadableStream(element);
+    const stream = await renderToReadableStream(element, options);
     await stream.allReady;
     const reader = stream.getReader();
     const chunks = [];
@@ -55,12 +55,12 @@ export async function renderToInnerHTML(element, node) {
   }
 }
 
-export function renderToServer(element) {
+export function renderToServer(element, options) {
   async function render() {
     try {
       settings({ ssr: 'server' });
       const { renderToReadableStream } = await import('react-dom/server');
-      const stream = await renderToReadableStream(element);
+      const stream = await renderToReadableStream(element, options);
       await stream.allReady;
       return stream;
     } finally {
