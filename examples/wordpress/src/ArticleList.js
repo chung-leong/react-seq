@@ -1,7 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { useProgressive } from 'react-seq';
 import { useWordPressPosts } from './wordpress.js';
-import Content from './Content.js';
 
 export default function ArticleList() {
   const wp = useWordPressPosts();
@@ -92,4 +91,12 @@ function Media({ media }){
   const url = new URL(media.source_url);
   url.searchParams.set('h', 75);
   return <img className="media" src={url} alt={media.alt_text} />;
+}
+
+function Content({ value }) {
+  if (value instanceof Object && 'rendered' in value) {
+    value = value.rendered;
+  }
+  const html = { __html: value };
+  return <span dangerouslySetInnerHTML={html} />;
 }
