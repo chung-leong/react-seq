@@ -71,8 +71,11 @@ export function renderToServer(element) {
 }
 
 export async function waitForHydration(root) {
+  if (!root) {
+    return;
+  }
   // wait hydrateRoot to finish its work
-  while (root?._internalRoot.callbackNode) {
+  while (root._internalRoot.callbackNode) {
     await delay(0);
   }
   // wait for all components to finish hydrating

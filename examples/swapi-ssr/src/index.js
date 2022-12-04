@@ -12,6 +12,8 @@ if (typeof(window) === 'object') {
       await renderToInnerHTML(app, container);
     }
     const root = hydrateRoot(container, app);
+    // indicate page is partially dynamic
+    document.body.classList.add('csr-partial');
     await waitForHydration(root);
     // indicate page is fully dynamic now
     document.body.classList.add('csr');

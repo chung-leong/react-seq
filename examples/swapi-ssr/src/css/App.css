@@ -4,6 +4,10 @@ body {
 	background-color: #faa;
 }
 
+body.csr-partial {
+	background-color: #afa;
+}
+
 body.csr {
 	background-color: #fff;
 }

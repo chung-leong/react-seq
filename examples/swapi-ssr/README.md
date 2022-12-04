@@ -1,70 +1,162 @@
-# Getting Started with Create React App
+# Star Wars SSR example
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+In this example we're going to enhance the [Star Wars API example](../swapi/README.md) with server-side rendering
+(SSR). As you will see, it does not require a lot of effort.
 
-## Available Scripts
+## Seeing the code in action
 
-In the project directory, you can run:
+Go to the `examples/swapi-ssr` folder. Run `npm install` and then `npm build`. Once the production build is
+ready, run `npm start` to star the HTTP server. A browser window should automatically open up.
 
-### `npm start`
+![progress](./img/progress.jpg)
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+The Welcome page has no contents so the transition from SSR to CSR will happen in the blink of an eye. You will need to navigate to a page with actual contents and do a page refresh to be able to notice its progress. Even
+then you'll need to enable bandwidth throttling to get a realistic feel.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+The server-side rendered contents has a reddish background. It's plain HTML. The CSS file has been loaded at
+this point but not the JS file. When that happens, our code will call
+[`hydrateRoot`](https://reactjs.org/docs/react-dom-client.html#hydrateroot) and change the background to green.
+At this point the page is partially client-side rendered. The top navigation bar is CSR now, but the main
+contents are still what came from the server since the component responsible for them has only just begun
+fetching data.
 
-### `npm test`
+The page will become white when all page contents are CSR.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+With the server still running, you can start the app in development server by running `npm run start-dev`. The
+browser will take on the role of the server and generates the initial SSR contents.
 
-### `npm run build`
+## SSR in a nut shell
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+As implemented by React-seq, SSR is very much a low-hanging fruit affair. It's not at all sophisticated.
+Basically we're just replacing an app's loading screen with a server-side generated snapshot of the app. It
+like putting a photo of yourself in front of the camera in a Zoom meeting. People will think you're there
+even though you're still in the shower. Since nothing gets discussed early on anyway, it doesn't really matter
+that you aren't physically there.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+![Cartman Zoom call](./img/cartman.jpg)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Creating the impression that your website loads quickly is the key motivation of SSR. People dislike staring at
+a spinner or a progress bar. In theory, adding a 10 second load time to an article that takes 10 minutes to
+read should be immaterial. Of course, people don't think in that way, because we aren't completely rational
+beings. Unless a site produces meaningful contents within seconds, people will bolt.
 
-### `npm run eject`
+## Server code
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+Enough discussion about the human nature. Let us look at some code. For the purpose of this example, we're
+using [`Fastify`](https://www.fastify.io/), a more modern alternative to [`Express`](https://expressjs.com/).
+Our [HTTP server](./server/index.mjs) is initiated inside a IIAFE:
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```js
+(async () => {
+  const fastify = Fastify({ ignoreTrailingSlash: true, trustProxy: true });
+  // use automatic etag generation
+  await fastify.register(Etag);
+  // use cache control
+  await fastify.register(Caching, { privacy: 'public', expiresIn: 300 });
+  // use compression
+  await fastify.register(Compression);
+  // allow CORS
+  await fastify.register(CORS, { origin: true });
+  // handle static files
+  await fastify.register(Static, { root: buildPath, serve: false });
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+The code above just sets up a bunch of middlewares. After that comes the routes. The first two routes are for
+servicing data requests:
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```js
+  // register routes
+  fastify.get('/api/:table', async (req, reply) => {
+    const origin = `${req.protocol}://${req.hostname}`;
+    const { table } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    return loadTablePage(origin, table, page);
+  });
+  fastify.get('/api/:table/:id', async (req) => {
+    const origin = `${req.protocol}://${req.hostname}`;
+    const { table, id } = req.params;
+    return loadTableObject(origin, table, id);
+  })
+```
 
-## Learn More
+Nothing interesting here. The functions involved just load data from different JSON files.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+The [next route](./server/index.mjs#L37) is where the real action takes place:
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+```js
+  fastify.get('/*', async (req, reply) => {
+    const path = req.params['*'];
+    if (path.includes('.')) {
+      // it's a request for a static file at the root-level probably
+      return reply.sendFile(path);
+    } else {
+      // render our app
+      reply.type('text/html');
+      const location = `${req.protocol}://${req.hostname}/${path}`;
+      console.log(`Generating ${location}`);
+      return renderInChildProc(location, buildPath);
+    }
+  });
+```
 
-### Code Splitting
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
 
-### Analyzing the Bundle Size
+## App bootstrap
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+The [bootstrap code for the original example](../swapi/src/index.js) was basically what the boilerplate from
+[CRA](https://create-react-app.dev/):
 
-### Making a Progressive Web App
+```js
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+To enable SSR, we changed it to this:
 
-### Advanced Configuration
+```js
+const app = <StrictMode><App /></StrictMode>;
+if (typeof(window) === 'object') {
+  const container = document.getElementById('root');
+  (async () => {
+    if (process.env.NODE_ENV === 'development') {
+      // do "SSR" on client side to make it easier to debug code during development
+      await renderToInnerHTML(app, container);
+    }
+    const root = hydrateRoot(container, app);
+    // indicate page is partially dynamic
+    document.body.classList.add('csr-partial');
+    await waitForHydration(root);
+    // indicate page is fully dynamic now
+    document.body.classList.add('csr');
+    reportWebVitals();
+  })();
+} else {
+  renderToServer(app);
+}
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+We do a check for the presence of `window`. If it's there, the code is running on a browser. If not, the code is
+running on the server. In the latter case, we simply call `renderToServer`, a helper function from `react-seq/client`.
 
-### Deployment
+On the browser side, we perform SSR *on the client side* during development to make debugging easier.
+`renderToInnerHTML`, like `renderToServer`, calls `renderToReadableStream` from
+[`react-dom/server`](https://reactjs.org/docs/react-dom-server.html) to render the app.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+We call React-seq's version of `hydrateRoot` to hydrate the app. The function changes the `ssr` setting to 'hydrate'
+prior to calling `react-dom/client`'s `hydrateRoot` and change it back to `false` when hydration completes.
 
-### `npm run build` fails to minify
+If we strip out code that's there for debug or demo purpose, we'd have the following:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```js
+const app = <StrictMode><App /></StrictMode>;
+if (typeof(window) === 'object') {
+  hydrateRoot(document.getElementById('root'), app);
+  reportWebVitals();
+} else {
+  renderToServer(app);
+}
+```
