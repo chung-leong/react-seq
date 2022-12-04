@@ -176,13 +176,16 @@ async function translateError(err, basePath) {
           if (map) {
             const org = map.originalPositionFor({ line, column });
             if (org) {
+              const { name, source, line, column } = org;
               if (!object.stack) {
                 object.stack = [];
               }
-              if (org.name) {
-                object.stack.push(`at ${org.name} (${org.source}:${org.line}:${org.column})`);
+              // resolve relative path
+              const { href } = new URL(source, `file://${basePath}`);
+              if (name) {
+                object.stack.push(`at ${name} (${href}:${line}:${column})`);
               } else {
-                object.stack.push(`at ${org.source}:${org.line}:${org.column}`);
+                object.stack.push(`at ${href}:${line}:${column}`);
               }
             }
           }

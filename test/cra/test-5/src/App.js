@@ -3,7 +3,7 @@ import './App.css';
 
 function App() {
   try {
-    throw new Error('Pissing the night away');
+    throw new Error(`Evil will always triumph, because Good is dumb`);
   } catch (err) {
     console.error(err);
   }
