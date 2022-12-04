@@ -1,15 +1,15 @@
 import { useRef, useEffect } from 'react';
-import { useProgressive } from 'react-seq';
-import { View, Text, FlatList, SafeAreaView, ActivityIndicator } from 'react-native';
-import HTML from "react-native-render-html";
+import { useProgressive, important } from 'react-seq';
+import { View, Text, FlatList, SafeAreaView, ActivityIndicator, TouchableHighlight, Linking } from 'react-native';
 import { useWordPressPosts } from './wordpress.js';
 import styles from './styles.js';
 
 export default function ArticleList() {
   const wp = useWordPressPosts();
-  return useProgressive(async ({ fallback, type, usable, manageEvents, signal }) => {
+  return useProgressive(async ({ fallback, type, defer, usable, manageEvents, signal }) => {
     type(ArticleListUI);
-    fallback(<ActivityIndicator size="large" />);
+    fallback(<ArticleLoading />);
+    defer(100);
     usable(0);
     usable({ articles: 1 });
     const [ on, eventual ] = manageEvents();
@@ -24,8 +24,16 @@ export default function ArticleList() {
     const authors = fetchAuthors(articles, options);
     const categories = fetchCategories(articles, options);
     const tags = fetchTags(articles, options);
-    return { articles, authors, categories, tags, onBottomReached: on.needForMore };
+    return { articles, authors, categories, tags, onBottomReached: on.needForMore.apply(important) };
   }, [ wp ]);
+}
+
+function ArticleLoading() {
+  return (
+    <SafeAreaView style={styles.loadingScreen}>
+      <ActivityIndicator size="large" />
+    </SafeAreaView>
+  );
 }
 
 function ArticleListUI({ articles = [], authors = [], categories = [], tags = [], onBottomReached }) {
@@ -34,7 +42,7 @@ function ArticleListUI({ articles = [], authors = [], categories = [], tags = []
     data: articles,
     styles: styles.articleList,
     onEndReached: onBottomReached,
-    onEndReachedThreshold: 0.25,
+    onEndReachedThreshold: 2,
     renderItem: ({ item: article }) => {
       const props = {
         key: article.id,
@@ -47,40 +55,62 @@ function ArticleListUI({ articles = [], authors = [], categories = [], tags = []
     },
   };
   return (
-    <SafeAreaView styles={styles.container}>
-      <View styles={[ styles.topBar ]}>
-        <Text>{length} of {total} articles</Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <Text style={styles.topBar}>{length} of {total} articles</Text>
       <FlatList {...listProps} />
     </SafeAreaView>
   );
 }
 
 function ArticleUI({ article, authors, categories, tags }) {
+  const onTitlePress = () => Linking.openURL(article.link);
   return (
-    <View styles={styles.article}>
-      <View>
-        {categories.map(c => <Content key={c.id} value={c.name} />)}
+    <View style={styles.article}>
+      <View style={styles.categories}>
+        {categories.map(c => <Content key={c.id} style={styles.category} value={c.name} />)}
       </View>
-      <View>
-        <Content value={article.title} />
+      <TouchableHighlight underlayColor="#DDDDDD" onPress={onTitlePress}>
+        <Content style={styles.title} value={article.title} />
+      </TouchableHighlight>
+      <Content style={styles.excerpt} value={article.excerpt} />
+      <View style={styles.authors}>
+        {authors.map(a => <Content key={a.id} style={styles.author} value={a.name} />)}
       </View>
-      <View>
-        <Content value={article.excerpt} />
-      </View>
-      <View>
-        {authors.map(a => <Content key={a.id} value={a.name} />)}
-      </View>
-      <View>
-        {tags.map(t => <Content key={t.id} value={t.name} />)}
+      <View style={styles.tags}>
+        {tags.map(t =>
+          <View key={t.id} style={styles.tag}>
+            <Content style={styles.tagLabel} value={t.name} />
+          </View>
+        )}
       </View>
     </View>
   );
 }
 
-function Content({ value }) {
+function Content({ style, value }) {
   if (value instanceof Object && 'rendered' in value) {
     value = value.rendered;
   }
-  return <HTML source={{ html: value }} />;
+  value = decodeEntitieS(value.replace(/<.*?>/g, '').trim());
+  return <Text style={style}>{value}</Text>;
+}
+
+const entities = {
+  lt: '<',
+  gt: '>',
+  amp: '&',
+  quot: '"',
+  apos: '\'',
+  hellip: '…',
+};
+
+function decodeEntitieS(s) {
+  return s.replace(/&(.*?);/g, (m0, m1) => {
+    if (m1.startsWith('#')) {
+      const code = parseInt(m1.substr(1));
+      return code ? String.fromCharCode(code) : '?';
+    } else {
+      return entities[m1] ?? '?';
+    }
+  });
 }

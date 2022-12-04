@@ -14,8 +14,7 @@
     "expo-status-bar": "~1.4.2",
     "react": "18.1.0",
     "react-native": "0.70.5",
-    "react-native-render-html": "^6.3.4",
-    "react-seq": "^0.6.2"
+    "react-seq": "^0.6.3"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9"
