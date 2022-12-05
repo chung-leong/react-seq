@@ -9,9 +9,9 @@ export default function ArticleList() {
   return useProgressive(async ({ fallback, type, defer, usable, manageEvents, signal }) => {
     type(ArticleListUI);
     fallback(<ArticleLoading />);
-    defer(100);
+    defer(200);
     usable(0);
-    usable({ articles: 1 });
+    usable({ articles: 1, categories: 1 });
     const [ on, eventual ] = manageEvents();
     const {
       fetchAll,
