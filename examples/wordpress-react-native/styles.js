@@ -1,7 +1,7 @@
 import { StyleSheet, StatusBar } from 'react-native';
 
 const styles = StyleSheet.create({
-  loadingScreen: {
+  loader: {
     flex: 1,
     justifyContent: 'center',
   },

@@ -30,7 +30,7 @@ export default function ArticleList() {
 
 function ArticleLoading() {
   return (
-    <SafeAreaView style={styles.loadingScreen}>
+    <SafeAreaView style={styles.loader}>
       <ActivityIndicator size="large" />
     </SafeAreaView>
   );
