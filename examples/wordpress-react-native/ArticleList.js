@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'react';
-import { useProgressive, important } from 'react-seq';
+import { useProgressive } from 'react-seq';
 import { View, Text, FlatList, SafeAreaView, ActivityIndicator, TouchableHighlight, Linking } from 'react-native';
 import { useWordPressPosts } from './wordpress.js';
 import styles from './styles.js';
@@ -24,7 +24,7 @@ export default function ArticleList() {
     const authors = fetchAuthors(articles, options);
     const categories = fetchCategories(articles, options);
     const tags = fetchTags(articles, options);
-    return { articles, authors, categories, tags, onBottomReached: on.needForMore.apply(important) };
+    return { articles, authors, categories, tags, onBottomReached: on.needForMore };
   }, [ wp ]);
 }
 
