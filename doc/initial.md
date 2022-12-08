@@ -1,6 +1,6 @@
 # initial(state)
 
-Specify the initial state returned by the hook, prior to completion of any async operation
+Specify the initial state of hook, before the async generator yielded anything
 
 ## Providers
 
@@ -12,8 +12,7 @@ Specify the initial state returned by the hook, prior to completion of any async
 ```js
 function useProductInfo(productId) {
   const [ info, on ] = useSequentialState(async function*({ initial }) {
-    // specify an empty object to keep destructuring from throwing
-    // we have nothing at this point
+    // specify an empty object to keep the destructure operator from throwing
     initial({});
     const product = await fetchProduct(productId);
     yield { product };

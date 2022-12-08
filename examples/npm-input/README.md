@@ -1,10 +1,10 @@
 # NPM data list example
 
-In this example, we're going to examine a marginal usage scenario for React-seq. The library is designed for situations
-where you have a long sequence of operations. What if you just a sequence of one? Is it still worthwhile to use
+In this example, we're going to examine a marginal usage scenario. React-seq is designed for situations
+where you have a long sequence of operations. What if you have a sequence of one? Is it still worthwhile to use
 React-seq when all you need to do is fetching a single JSON?
 
-What we're going to do is build a hook using just the standard hooks provided by React. Then we're going to create
+What we're going to do is build a hook using just standard hooks provided by React. Then we're going to create
 alternative implementations with the help of React-seq. The exercise should give us some useful insights.
 
 ## Seeing the code in action
@@ -89,7 +89,7 @@ fetch request when new user input makes it obsolete. Note the check on `signal.a
 `fetchPackages` capturing all errors.
 
 Implementing our hook using straight React is not particularly difficult. On the other hand, it's also not very
-intuitive. Special care needs to be taken to keep abandoned async operations from making unwanted state changes.
+intuitive. Special care needs to be taken to keep abandoned async operations from making unforeseen state changes.
 
 ## Hook using useSequentialState
 
@@ -121,8 +121,8 @@ function useNPMList3(search) {
 }
 ```
 
-This specialized hook is designed for retrieving data from multiple async generator. In this case, we don't have
-a single one so it's a complete overkill.
+This specialized hook is designed for retrieving data from multiple async generators. In this case, we don't even
+have a single one so this is complete overkill.
 
 ## Cost in code bloat
 
@@ -132,10 +132,10 @@ Using `useSequentialState` adds about ~3kb (gzipped) to a codebase, while `usePr
 
 ## Final thoughts
 
-As was said at the very beginning, this example involves a marginal usage scenario. We're not taking advantage of
-React-seq's key features, such as handling errors in async code using error boundary. Still, the library makes
+As was said at the beginning, this example involves a marginal usage scenario. We're not taking advantage of
+React-seq's key features, such as handling async errors using error boundaries. Still, the library makes
 coding a bit easier, the code a little more intuitive. Whether the convenience is worth 3kb really depends on the
 nature of a given project.
 
-Thank you for your time. As usual, if you have any question or comment, feel free to make sure of the project's
+Thank you for your time. As usual, if you have any question or comment, feel free to make use of the project's
 [discussion section](https://github.com/chung-leong/react-seq/discussions).

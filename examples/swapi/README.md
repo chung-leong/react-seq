@@ -79,9 +79,9 @@ export default function CharacterList() {
 ```
 
 All it does is call `useProgress`. The hook expects an async function as parameter. This function is responsible
-for setting up the async generators. It is given a number of config functions. We use [`type`](../../doc/type.md) to
+for setting up async generators. It is given a number of config functions. We use [`type`](../../doc/type.md) to
 specify the data recipient. We use [`defer`](../../doc/defer.md) to tell the hook that we don't it to rerender as soon
-as data becomes available but to check every 200ms instead. So if three HTTP requests are needed to complete the page
+as data becomes available but to instead check every 200ms. If three HTTP requests are needed to complete the page
 and all three complete in less than 200ms, only a single update would occur.
 
 We call [`usable`](../../doc/usable.md) to specify that the data set is valid when there's at least 10 items in every
@@ -183,6 +183,9 @@ function CharacterUI({ person, homeworld, films, species, vehicles, starships })
 }
 ```
 
+There's nothing left to say about the UI code. All the other pages work in the exact same manner. Let us turn our
+attention to the data retrieval functions.
+
 ## Fetch functions
 
 The function `fetchOne` couldn't be simpler. All it does is attach the base URL:
@@ -224,7 +227,7 @@ export function* fetchMultiple(urls, options) {
 }
 ```
 
-Note that this is a *synchronous* generator. All the fetch requests are fired at the same time and not one after
+Note that this is a *synchronous* generator. All the fetch requests are fired at the same time--not one after
 another. They could potentially be handled simultaneously if HTTP2 multiplexing is available.
 
 `fetchList` retrieves the paginated list in a loop:
@@ -247,7 +250,7 @@ and not the array itself into the resultant array.
 
 What would happen if a fetch operation results in an error? Say we go to http://localhost:3000/people/500/. The server
 is going to respond with 404 Not Found. `fetchJSON` is going to throw an `HTTPError`. React-seq will catch this
-error and rethrow it during rerendering, so that it can be captured by an
+error and rethrow it during rerendering, to allow its capture by an
 [error boundary](https://reactjs.org/docs/error-boundaries.html).
 
 In our case, an error boundary is provided by [array-router](https://github.com/chung-leong/array-router). The router

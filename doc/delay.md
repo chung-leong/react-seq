@@ -19,7 +19,7 @@ const value = await delay(50, { signal, value: 5 });
 
 * `ms` - `<number>` Duration in milliseconds
 * `options` - `{ value, signal }`
-* `return` `<undefined>` or `<any>`
+* `return` `<any>`
 
 ## Options
 

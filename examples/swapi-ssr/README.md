@@ -1,25 +1,25 @@
 # Star Wars SSR example
 
 In this example we're going to enhance the [Star Wars API example](../swapi/README.md) with server-side rendering
-(SSR). As you will see, it does not require a lot of effort.
+(SSR). As you will see, it does not require much effort.
 
 ## Seeing the code in action
 
 Go to the `examples/swapi-ssr` folder. Run `npm install` and then `npm build`. Once the production build is
-ready, run `npm start` to star the HTTP server. A browser window should automatically open up.
+ready, run `npm start` to star the HTTP server. A browser window should automatically open up:
 
 ![progress](./img/progress.jpg)
 
-The Welcome page has no contents so the transition from SSR to CSR will happen in the blink of an eye. You will need
-to navigate to a page with actual contents and do a page refresh to be able to notice its progress. Even
+The Welcome page has no contents so the transition from SSR to CSR will happen in the blink of an eye. You will
+need to navigate to a page with actual contents and do a reload to be able to notice its progress. Even
 then you'll need to enable bandwidth throttling to get a realistic feel.
 
 The server-side rendered contents has a reddish background. It's plain HTML. The CSS file has been loaded at
-this point but not the JS file. When that happens, our code will call
+this point but not the JS file. When the JS bundle loads, our code will call
 [`hydrateRoot`](https://reactjs.org/docs/react-dom-client.html#hydrateroot) and change the background to green.
-At this point the page is partially client-side rendered. The top navigation bar is CSR now, but the main
-contents are still what came from the server since the component responsible for them has only just begun
-fetching data.
+At this point the page is partially client-side rendered. The top navigation bar is CSR now, but the main component
+is still showing what came from the server. It has only just begun fetching data. It's basically at the stage where
+the original example is showing a loading screen.
 
 The page will become white when all page contents are CSR.
 
@@ -37,9 +37,9 @@ that you aren't physically there.
 ![Cartman Zoom call](./img/cartman.jpg)
 
 Creating the impression that your website loads quickly is the key motivation of SSR. People dislike staring at
-a spinner or a progress bar. In theory, adding a 10 second load time to an article that takes 10 minutes to
-read should be immaterial. Of course, people don't think in that way because we aren't completely rational
-beings. Unless a site produces meaningful contents within seconds, people will bolt.
+a spinner or a progress bar. In theory, adding a 10 second load time to an article that requires 10 minutes to
+read should be immaterial. Of course, people don't think in such a way because we aren't completely rational
+beings. Unless a site produces meaningful contents within seconds, visitors will bolt en masse.
 
 ## Server code
 
@@ -102,7 +102,7 @@ The [next route](./server/index.mjs#L37) is where the real action takes place:
 
 When there's a dot in the path, we assume it's a request for a static file. Otherwise we assume it's a path in
 our app. Regenerating the full URL, we pass it to [`renderInChildProc`](../../doc/client-side/renderInChildProc.md)
-along with the path to our CRA production build. A child instance of Node.js then runs the exact same code at the
+along with the path to our CRA production build. A child instance of Node.js then runs the exact same code that the
 browser would.
 
 That's it on the server side. The rendering of SSR contents actually happens in clinet-side code.
@@ -121,7 +121,7 @@ root.render(
 );
 ```
 
-To enable SSR, we changed it to this:
+To enable SSR, we changed it to the following:
 
 ```js
 const app = <StrictMode><App /></StrictMode>;
@@ -193,14 +193,15 @@ The following npm packages are needed on the server side:
 
 * [abort-controller](https://www.npmjs.com/package/abort-controller) - for polyfilling Node.js version 14 and below
 * [node-fetch](https://www.npmjs.com/package/node-fetch) - for polyfilling Node.js version 16 and below
+* [source-map](https://www.npmjs.com/package/source-map)
 
 ## Final thoughts
 
 Enabling SSR is fairly easy when using React-seq. All you have to do is change a few lines and set up the server.
-Of course, in order to get the most out of SSR you will need to carefully configure proper caching. Spawning an
+Of course, in order to get the most out of SSR you will need to carefully configure HTTP caching. Spawning an
 instance of Node.js is a fairly expensive operation. You wouldn't want page generation to occur for every single
-visitor to your site. Cache manage is outside the scope of this example. Maybe in the future we'll deal with it
-in another example.
+visitor to your website. Cache management is outside the scope of this example. Maybe in the future we'll deal
+with the topic in another example.
 
 Thank you for your time. Please make use of the [discussion board](https://github.com/chung-leong/react-seq/discussions)
 if you have any question or suggestion.

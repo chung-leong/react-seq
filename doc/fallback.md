@@ -1,7 +1,6 @@
 # fallback(element)
 
-Specify an element to be displayed while the React-seq hook in question retrieves the first element from the
-given generator function
+Specify an element to be shown while the React-seq hook in question retrieves the first generated element
 
 ## Providers
 
@@ -33,10 +32,10 @@ the fallback element
 
 ## Notes
 
-`element` will be handed to the [`<React.Suspend>`](https://reactjs.org/docs/react-api.html#suspense) element that
-wraps the lazily, asynchronously fulfilled component created by React-seq.
+`element` will be handed to the [`<React.Suspense>`](https://reactjs.org/docs/react-api.html#suspense)
+element wrapping the lazy component created by React-seq.
 
-`fallback()` and [`suspend`](suspend.md) cannot be used at the same time.
+`fallback` and [`suspend`](suspend.md) cannot be used at the same time.
 
 [`initial`](./initial.md) is the equivalent function for state hooks ([useSequentialState](useSequentialState.md),
 [useProgressiveState](useProgressiveState.md)).

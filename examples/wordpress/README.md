@@ -1,6 +1,6 @@
 # WordPress Example
 
-In this example, we're going to build past that displays WordPress articles with infinite scrolling. For this purpose,
+In this example, we're going to build page that displays WordPress articles with infinite scrolling. For this purpose,
 we're going to employ the [`useProgress`](../../doc/useProgressive.md) hook. It's a specialized hook designed for
 loading data into a component. It acts sort of as a translator of data from the async world, turning promises into
 objects and async generators into arrays.
@@ -57,14 +57,14 @@ function ArticleListUI({ articles = [], authors = [], categories = [], tags = []
 Using a useEffect hook, we attach an
 [IntersectionObserver](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API) to a div that we
 draw at the bottom of the page. Whenever this div gets within 1000 pixels of the viewport, `onBottomReached` is called
-to trigger the loading of additional contents.
+to trigger the loading of additional articles.
 
-The rest of the code is pretty React. For each article we obtain its authors, its categories, and so forth from the
-respected arrays. There's no guarantee the objects will be there. The component `ArticleUI` is expected to deal with
-the absence of data.
+The rest of the code is pretty much standard React. For each article we obtain its authors, its categories, and so
+forth from the respected arrays. There's no guarantee the objects will be there. The component `ArticleUI` is
+expected to deal with potential absence of data.
 
-Note the use of `articles.total`. This is the total number of articles available, as reported by WordPress. You'll
-see later how this number gets attached to the array.
+Note the use of `articles.total` one [line 42](./src/ArticleList.js#L42). This is the total number of articles
+available, as reported by WordPress. You'll see later how this number gets attached to the array.
 
 ## Article list, the asynchronous part
 
@@ -98,7 +98,7 @@ export default function ArticleList() {
 ```
 
 First, it calls `useWordPressPosts` to obtain a set of data retrieval functions. It then calls `useProgressive` with
-an anonymous async function. This function is expected to set up the generators to be used and configure the operation.
+an anonymous async function. This function is expected to set up the necessary generators and configure the operation.
 It gets a number of config functions from React-seq by the way of destructuring. We use `fallback` to set a placeholder.
 We use `type` to indicate the target component. We call `usable` once to tell `useProgressive` that all props should
 be considered usable even when empty, then a second time, to put a minimum on `articles`. We want to have at least one
@@ -138,7 +138,7 @@ Let's now look at [the fetch functions](./src/wordpress.js#L101):
 As you can see, they each just call a helper function with the path to the corresponding data. `fetchObjectComponents`
 is also given the location of the ids within the source object. Note it accepts a generator as an argument. We'll
 come back to this. First we'll tackle [`fetchObjectsContinual`](./src/wordpress.js#L12), the function we use to
-retrieve articles.
+generate a continual list of articles.
 
 ```js
   function fetchObjectsContinual(path, demand, options) {
@@ -172,17 +172,17 @@ with two additional properties `pages` and `total`. These two numbers are extrac
 `useProgressive` will transfer all enumerable properties from the generator to the destination array. Assigning to
 `generator.total` means the value showing up as `articles.total` in `ArticleListUI`.
 
-Instead of yielding the array, the generator yields an iterator of it. This signals to `useProgressive` that the
-arrays should be concatenated together. Without the call to `values` we would end up with an array of arrays instead.
+Instead of yielding the array, the generator yields an iterator of the array. This signals to `useProgressive` that
+the results should be concatenated. Without the call to `values` we would end up with an array of arrays instead.
 
 After doing that it calls `demand` and waits for it to return, meaning it'll wait for the fulfillment of
-`eventual.needForMore` from `ArticleLIst`.
+`eventual.needForMore` from `ArticleList`.
 
 Okay, I hope that wasn't hard to understand. Time to examine the other function, `fetchObjectComponents`. We use it to
 obtain records related to the articles we've retrieved like tags and authors. Here's where we run into a bit of a
 dilemma. The function doesn't actually get a list of articles, it gets a generator producing article objects. This is
-problematic since we can only iterate through a generator once. A second iteration would yield nothing. How can our
-function access the articles without disrupting others that also need to do the same?
+problematic since we can only iterate through a generator only once. A second iteration would yield nothing. How can
+our function access the articles without disrupting others that also need to do the same?
 
 The solution is the [stasi function](../../doc/stasi.js). It creates generators that spy on other generators,
 replicating what they produce. This allows multiple functions to access the output from the same generator.
@@ -216,12 +216,12 @@ Calling it is the first thing that we do:
   }
 ```
 
-The generator function iterates through the generator it's been given, receiving each time an synchronous
+The generator function iterates through the generator it's been given, receiving each time a synchronous
 iterator. It iterates through that, extracting the ids of the related objects in accordance to `field`. It checks
-to see which ones haven't yet been fetched and fetch them, yielding finally as before, an array iterator.
+to see which ones haven't yet been fetched and fetch them, yielding finally an array iterator.
 
-Explaining why here too we're creating the generator with an inner function is a bit trickier. We have to digress
-for a moment and look at the subtle difference of generator functions from normal functions.
+Explaining why here too we're creating the generator with an inner function is a bit tricky. We have to digress
+for a moment and look at how generator functions are subtly different from normal functions.
 
 ## Generator functions vs normal functions
 
@@ -280,7 +280,7 @@ Had we declare `fetchObjectComponents` itself an async generator function, like 
 ```
 
 It would not work correctly, as some items could have been extracted from the target generator before `stasi` gets
-its hand on it. We can't allow that. We want to give `stasi` the chance to install its apparatus as soon as possible.
+its hands on it. We can't allow that. We want to give `stasi` the chance to install its apparatus as soon as possible.
 That's why we call it in a regular function and use an inner function to create the generator.
 
 This subtle behavioral difference is something you need to keep in mind when working with generators. Otherwise
@@ -288,7 +288,7 @@ you'll go insane debugging.
 
 ## Recap
 
-Let's do quickly run-through of what actually happens in our component:
+Let's do a quick run-through of what actually happens in our component:
 
 * We have five async generators: `articles`, `authors`, `categories`, `tags`, and `media`. The last four are
   stalled initially, waiting for `articles`.
@@ -298,8 +298,8 @@ Let's do quickly run-through of what actually happens in our component:
   by their `stasi` affiliates. They scan through the articles, load the related objects, and hand them to
   `useProgressive`, which rerenders `<ArticleListUI />` with the added contents.
 * All five generators are stalled at this point.
-* When the user scrolls down, the `needForMore` is fulfilled.
-* `articles` is awakened and fetches the next ten articles.
+* When the user scrolls down, the `needForMore` promise is fulfilled.
+* `articles` is awakened and it fetches the next ten articles.
 * `authors`, `categories`, `tags`, and `media` are awakened by `stasi` snitches and fetch the related objects needed
   by the newly arrived articles.
 

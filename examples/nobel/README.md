@@ -18,7 +18,7 @@ open up.
 
 ## The app
 
-The [example app](./src/App.js) is completely bare bone: just a pair of drop-drops for selecting the category
+The [example app](./src/App.js) is completely bare bone: just a pair of drop-downs for selecting the category
 and year:
 
 ```js
@@ -45,8 +45,8 @@ function App() {
 }
 ```
 
-`useNobelPrize` is our custom hook. It returns `undefined` when it hasn't yet retrieved anything and an object
-containing information concerning the prize awarded on the given category and year.
+`useNobelPrize` is our custom hook. It returns an object containing information concerning the prize awarded
+in the given category and year--or `undefined` when it hasn't yet retrieved anything.
 
 ## The hook
 
@@ -81,7 +81,7 @@ export function useNobelPrize(category, year) {
 ```
 
 The prize endpoint only gives us the names of the laureates and the reason why they were awarded the prize. After
-yielding this initial information, we proceed to retrieve additional information about each laureate from the
+yielding this initial information, we proceed to obtain additional information about each laureate from the
 laureate endpoint:
 
 ```js
@@ -111,12 +111,12 @@ laureate endpoint:
 }
 ```
 
-Note how we need to clone the object to ensure React will recognize it as a new state.
+Note how we need to clone the object to ensure that React will recognize it as a new state.
 
 ## Omitting event manager
 
-That's it. One additional piece of information I would like to add is how to omit code of the event manager. All you
-need to do is set the environment variable `REACT_APP_SEQ_NO_EM` to non-zero when building:
+Well, that's it. One additional piece of information I would like to add is how to omit code of the event manager.
+All you need to do is set the environment variable `REACT_APP_SEQ_NO_EM` to non-zero when building:
 
 ```json
     "build": "REACT_APP_SEQ_NO_EM=1 react-scripts build",

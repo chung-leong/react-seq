@@ -49,20 +49,16 @@ which fulfills the promise returned by `eventual.click` when called.
 Upon fulfillment the promise `eventual.click` vanishes. Accessing `eventual.click` again would create a new,
 unfulfilled promise, waiting for `on.click` to be called.
 
-When `on.click` is called and there is no code awaiting `eventual.click`, the event simply goes ignored. You can
+When `on.click` is called and there is no code awaiting `eventual.click`, the event would go ignored. You can
 change this behavior using [`important`](./important.md).
 
 Error objects are treated like any other values. You can force the rejection of a promise using
 [`throwing`](./throwing.md).
 
-Generally, you'd access a handler and then await on a promise. The handler gets created before the promise.
-While this ordering is not required, the event manager will issue an warning (if warning is turned on) as there is
-a high chance the scenario is due to a typo.
+## Fulfillment value binding
 
-## Fulfillment Value Binding
-
-The fulfillment values of promises created by `eventual` are the argument passed to their handlers. Most often they
-will be event objects. You can make a promise return specific values with the help of `bind`:
+The fulfillment values of promises created by `eventual` are the arguments passed to their handlers. They
+will often be event objects. You can make a promise return a specific value with the help of `bind`:
 
 ```js
 yield (
@@ -74,9 +70,10 @@ yield (
 );
 ```
 
-Depending on which button is clicked, `eventual.click` would resolve to one of the three strings.
+Depending on which button gets clicked, `eventual.click` will resolve to one of the three strings.
 
-Functions created by `bind` are invariant, meaning the same function is returned when the same argument is given [[*](#notes)]:
+Functions created by `bind` are invariant, meaning the same function is returned when the same argument is
+given [[*](#notes)]:
 
 ```js
 console.log(on.click.bind('egg') === on.click.bind('egg'));
@@ -85,7 +82,7 @@ console.log(on.click.bind('egg') === on.click.bind('egg'));
 
 The standard `bind(null, value)` syntax, with its pointless `this` variable, is also supported.
 
-## String Binding Shorthand
+## String binding shorthand
 
 You can bind a string to a handler simply by referencing a property by that name:
 
@@ -99,14 +96,14 @@ yield (
 );
 ```
 
-The example above is the exact equivalent to the one in the previous section.
+The example above is the exact equivalent to the example in the previous section.
 
 Strings matching the names of the
 [Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)
 object's methods cannot to be used in this manner. These are `apply`, `bind`, `call`, `length`, `name`, `prototype`,
 and `toString`.
 
-## Promise Chaining
+## Promise chaining
 
 You can use the keyword `or` and `and` to chain multiple promises together. The former uses
 [Promise.race](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/race) to join
@@ -131,7 +128,7 @@ Promise.all([
 ]).then(arr => arr.flat());
 ```
 
-`or` and `and` are callable functions. You can use them to a promise not created by `eventual` to the chain:
+`or` and `and` are callable functions. You can use them to add a promise from elsewhere to the chain:
 
 ```js
 const res = await fetch(url, { signal });
@@ -150,40 +147,30 @@ await eventual(res.json()).and.click;
 You can use the `for` keyword to put a limit on waiting time:
 
 ```js
-await eventual.click.or.keyPress.for(3).minutes;
-```
-
-```js
-const json = await eventual(res.json()).for(1).second;
-if (json === 'timeout') {
+const evt = await eventual.click.or.keyPress.for(3).minutes;
+if (evt === 'timeout') {
   /* ... */
 }
 ```
 
-Valid time units are `millisecond`, `second`, `minute`, and `hour` (plus their plural forms).
-
-In the example above, the promise would resolve to "timeout" if `on.click` or `on.keyPress` are not invoked within
+In the example above, the promise will resolve to "timeout" if `on.click` or `on.keyPress` are not invoked within
 three minutes.
+
+Valid time units are `millisecond`, `second`, `minute`, and `hour` (plus their plural forms).
 
 ## Abandoning Promises
 
-When the component is unmounted, all outstanding promises will be rejected with an `Abort` error. To ensure that you
-code does not wait indefinitely for a promise to be fulfilled, wrap it with `eventual`:
-
-```js
-const promise = someProcess();
-await eventual(promise);
-```
-
-Promises from [`fetch`](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API) don't need this protection
-provided they're initiated with [signal]('./signal.md').
+When the component is unmounted, all outstanding promises will be rejected with an `Abort` error.
 
 ## Notes
 
 Handlers created by `bind` are invariant *in most usage scenarios*. There is a limit of 128 handlers when scalar
-arguments (i.e. not objects) are involved due to garbage accumulation concern. Handlers bounded to objects can be
+arguments (i.e. not objects) are involved due to garbage accumulation concerns. Handlers bounded to objects can be
 kept in a [`WeakMap`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 hence there is no limit to their number.
+
+Awaiting a promise from the event manager will cause an automatic [flush](./flush.md) when the
+[update delay](./defer.md) is infinite.
 
 If you're using React-seq in a library and have no need for sophisticated event handling, you can exclude the
 event manager from your build by setting the environment variable `REACT_APP_SEQ_NO_EM` to 1.

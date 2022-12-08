@@ -13,7 +13,7 @@ open up.
 
 Click on one of the buttons to open up a dialog box that captures a specific type of media.
 
-To see the final file sizes (after gzip), run `npm run build` then `npm run analyze`.
+To see the production file sizes (after gzip), run `npm run build` then `npm run analyze`.
 
 ## The hook consumer
 
@@ -41,8 +41,8 @@ export default function VideoDialogBox({ onClose, onCapture }) {
 ```
 
 The first thing it does is call the [`useMediaCapture`](./src/media-cap.js) hook, specifying that it wants the
-mic volume monitored. From the hook it receives a number of state variables (top half) and also functions to
-call (bottom half).
+mic volume monitored. From the hook it receives a number of state variables (top half) and also functions
+(bottom half).
 
 Going [further down](.//src/VideoDialogBox.js#L55), within the return statement we seeing the following IIFE:
 
@@ -151,7 +151,7 @@ The generator function begins by declaring variables that will get sent to the h
 
 As you can see, each of them will fulfill the [`eventual.userRequest`](../../doc/manageEvents.md) promise.
 
-We see next the function that will package our local variables into an object, to be delivered to the hook consumer:
+We see next the function that packages our local variables into an object, for delivery to the hook consumer:
 
 ```js
     function currentState() {

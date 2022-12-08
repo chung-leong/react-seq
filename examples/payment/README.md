@@ -1,5 +1,6 @@
 # Payment form example
 
+This example demonstrates form-handling using React-seq. 
 
 ## Seeing the code in action
 
