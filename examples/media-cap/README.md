@@ -115,7 +115,8 @@ We make use of three functions provided by `useSequentialState`: `initial` to se
 to run code during the `useEffect` phase of the component lifecycle, and `manageEvents` to manage events with the
 help of promises.
 
-The generator function begins by declaring variables that will get sent to the hook consumer. [Further down](./src/media-cap.js#L24), we see the functions that the hook consumer can call:
+The generator function begins by declaring variables that will get sent to the hook consumer.
+[Further down](./src/media-cap.js#L24), we see the functions that the hook consumer can call:
 
 ```js
     const [ on, eventual ] = manageEvents({});
@@ -194,15 +195,16 @@ What follow are functions that deal with the nitty-gritty of the capturing proce
 
 The function returns a promise that is fulfilled by the mounting of the component. In other words, when React
 invokes its `useEffect` hooks. We need to wait for this to happen whenever our code makes changes that need to
-eventually be reverted, for instance, attachment of event handlers to the DOM. Mounting means eventual unmounting,
-guaranteeing the triggering of the component's abort controller and the execution of its finally section.
+be reverted eventually. For instance, attachment of event handlers to the DOM. Mounting means unmounting some time
+in the future, guaranteeing the triggering of the component's abort controller and the execution of its finally
+section.
 
 To see what would happen otherwise, try commenting out the line. This example runs under
 [Strict Mode](https://reactjs.org/docs/strict-mode.html), which means during development React will call our
 component function twice. Two async generators will be created as a result. Only one of them will witness a mount. With
 the checkpoint in place, our code functions correctly. The second, spurious generator gets stopped in its track.
 Without it, the spurious generator continues onward, eventually acquiring for itself a feed from the camera (which
-you cannot see). When you close the video capture window then, you'll notice that your camera will remain active. The
+you cannot see). When you close the video capture window, you'll notice that your camera will remain active. The
 first generator has shut its feed down but the second generator is still holding onto its.
 
 After establishing the checkpoint, we proceed to attach event listeners to various parts of the browser:
@@ -259,7 +261,7 @@ Let us first examine the finally and catch blocks ([line 399](./src/media-cap.js
     }
 ```
 
-The finally block is quite simple. It's there to perform final clean up. If a recorder is active, it's shutdown. If
+The finally block is quite simple. It's there to perform final clean up. If a recorder is active, it's shut down. If
 a media stream is open, it gets closed. We don't need to use `removeEventListener` here to remove the listeners we
 had installed earlier--our abort controller will do this for us.
 
@@ -321,7 +323,7 @@ the catch block, described above.
 The user is now seeing the output from his camera. At this point, he might:
 
 * Click a button in the dialog box (fulfilling `eventual.userRequest`)
-* Select a different device using a dropdown (also fulfilling `eventual.userRequest`)
+* Select a different device using a drop-down (also fulfilling `eventual.userRequest`)
 * Rotate the camera (fulfilling `eventual.streamChange`)
 * Unplug the camera (also fulfilling `eventual.streamChange`)
 * Plug in a different camera (fulfilling `eventual.deviceChange`)
@@ -344,7 +346,7 @@ user's intention.
 
 If the volume level is different, we don't need to do anything, as the variable `volume` has already been updated. The
 yield statement at the bottom of the loop will deliver the new value to the hook consumer, which will adjust the
-volume bar accordingly.
+appearance of the volume bar accordingly.
 
 ## Status: "recording" ([line 346](./src/media-cap.js#L346))
 
@@ -423,7 +425,7 @@ user can resume recording and we're not anticipating changes in the video durati
 ```
 
 Okay, we have recorded something. The first thing we do is turn off volume monitoring, as showing the input
-from the mic doesn't make sense while the user is playing back the clip. At this stage, we're waiting for the user
+from the mic doesn't make sense while the user is playing back a clip. At this stage, we're waiting for the user
 to either accept the result, which would result in the component being unmounted and a shutdown of the generator, or
 request a do-over. In the latter case, we clear the `captured___` variables, reenable volume monitoring, and set the
 status to "previewing" once again--provided we still have the live stream. The user could potentially have unplugged
@@ -468,10 +470,10 @@ You can find the answer to that question in the [documentation of
 > combined with a try...finally block.
 
 Another thing that you might wonder about is the fate of the second generator, the one created due to strict mode.
-What happens when a piece of async code gets permanently stuck, waiting for a promise that would never get fulfilled?
-The answer is...it's pining for the fjords. Stone dead, in another word. There are no more external references to
-any part of the generator after it has reached the `await` statement. All associated objects therefore become
-eligible for garbage collection. The generator effectively is no longer there.
+What happens when a piece of async code gets permanently stuck waiting for a promise that would never get fulfilled?
+The answer is...it's pining for the fjords. Stone dead, in another word. The generator is no more. It has ceased to be.
+As there are no more external references to any part of the generator after it has reached the `await` statement, all
+associated objects become eligible for garbage collection. The generator has become an ex-generator.
 
 ## Final Thoughts
 
