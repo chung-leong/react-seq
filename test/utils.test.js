@@ -17,6 +17,7 @@ import {
   until,
   timeout,
   interval,
+  linearize,
 } from '../src/utils.js';
 
 describe('#delay()', function() {
@@ -234,6 +235,30 @@ describe('#stasi()', function() {
       list.push(item);
     }
     expect(list).to.eql([ 1, 2, 3 ]);
+  })
+})
+
+describe('#linearize()', function() {
+  it('should convert a generator that returns generators into a linear generator', async function() {
+    async function* generate1() {
+      for (let i = 0; i < 5; i++) {
+        await delay(10);
+        yield i;
+      }
+    }
+    async function* generate2() {
+      await delay(10);
+      yield 'Hello';
+      yield generate1();
+      await delay(10);
+      yield 'World';
+    }
+    const generator = linearize(generate2());
+    const list = [];
+    for await (const value of generator) {
+      list.push(value);
+    }
+    expect(list).to.eql([ 'Hello', 0, 1, 2, 3, 4, 'World' ]);
   })
 })
 

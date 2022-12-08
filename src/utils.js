@@ -171,6 +171,36 @@ export function stasi(generator) {
   return genS;
 }
 
+export async function* linearize(generator) {
+  const stack = [ generator ];
+  let source = null;
+  try {
+    for(;;) {
+      if (!source) {
+        source = stack.pop();
+        if (!source) {
+          break;
+        }
+      }
+      const { done, value } = await source.next();
+      if (!done) {
+        if (isAsyncGenerator(value)) {
+          stack.push(source);
+          source = value;
+        } else {
+          yield value;
+        }
+      } else {
+        source = null;
+      }
+    }
+  } finally {
+    if (source) {
+      await source.return();
+    }
+  }
+}
+
 export function isPromise(obj) {
   return (obj instanceof Object && typeof(obj) !== 'function' && typeof(obj.then) === 'function');
 }

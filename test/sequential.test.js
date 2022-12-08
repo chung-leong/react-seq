@@ -100,6 +100,40 @@ describe('#sequential()', function() {
       expect(toJSON()).to.equal('Chicken');
     });
   })
+  it('should handle generators from sub-functions', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      const { element: el, abortManager: am } = sequential(async function*() {
+        async function* generate1() {
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+        }
+        async function* generate2() {
+          await assertions[1];
+          yield 'Duck';
+          steps[2].done();
+          await assertions[2];
+          yield 'Chicken';
+          steps[3].done();
+        }
+        yield generate1();
+        yield generate2();
+      });
+      await create(el);
+      am.onMount();
+      expect(toJSON()).to.equal(null);
+      await assertions[0].done();
+      await steps[1];
+      expect(toJSON()).to.equal('Pig');
+      await assertions[1].done();
+      await steps[2];
+      expect(toJSON()).to.equal('Duck');
+      await assertions[2].done();
+      await steps[3];
+      expect(toJSON()).to.equal('Chicken');
+    });
+  })
   it('should allow deferrment to be turned off midway', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
