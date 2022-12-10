@@ -36,4 +36,17 @@ describe('#settings()', function() {
   it('should throw when ssr_timeout_handler is being set to a string', function() {
     expect(() => settings({ ssr_timeout_handler: 'cow' })).to.throw();
   })
+  it('should accept settings hook', function() {
+    try {
+      let set = false;
+      settings(() => {
+        return (set) ? { ssr: 'server' } : undefined;
+      });
+      expect(setting('ssr')).to.be.false;
+      set = true;
+      expect(setting('ssr')).to.equal('server');
+    } finally {
+      settings({ ssr: false });
+    }
+  })
 })

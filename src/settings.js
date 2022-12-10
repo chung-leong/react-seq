@@ -4,7 +4,23 @@ const currentSettings = {
   ssr_timeout_handler: null,
 };
 
+const hooks = [];
+
 export function setting(name) {
+  if (hooks.length > 0) {
+    const remove = [];
+    for (const hook of hooks) {
+      const values = hook();
+      if (values) {
+        settings(values);
+        remove.push(hook);
+      }
+    }
+    for (const hook of remove) {
+      const index = hooks.indexOf(hook);
+      hooks.splice(index, 1);
+    }
+  }
   const value = currentSettings[name];
   if (value === undefined) {
     throw new Error(`Unknown setting: ${name}`);
@@ -13,6 +29,10 @@ export function setting(name) {
 }
 
 export function settings(values) {
+  if (typeof(values) === 'function') {
+    hooks.push(values);
+    return;
+  }
   if (values && typeof(values) !== 'object') {
     throw new TypeError(`Invalid argument`);
   }

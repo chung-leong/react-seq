@@ -72,6 +72,14 @@ export function sequential(cb, options = {}) {
   };
 
   // allow callback to use side effects
+  let onMount;
+  abortManager.setEffect(() => {
+    if (suspensionKey) {
+      // we can remove the saved lazy element now that it has mounted
+      clearPrior(suspensionKey);
+    }
+    return onMount?.();
+  });
   methods.mount = (fn) => {
     if (fn !== undefined) {
       if (!sync) {
@@ -80,7 +88,7 @@ export function sequential(cb, options = {}) {
       if (typeof(fn) !== 'function') {
         throw new TypeError('Invalid argument');
       }
-      abortManager.setEffect(fn);
+      onMount = fn;
     }
     return abortManager.mounted;
   };
@@ -316,24 +324,15 @@ export function sequential(cb, options = {}) {
 }
 
 const savedResults = {};
-const savedResultsTickCounts = {};
-let tickCount = 0;
 
-function saveForLater(key, result) {
-  savedResults[key] = result;
-  savedResultsTickCounts[key] = tickCount;
-  // increase the tick count on the next tick
-  nextTick(() => tickCount++);
+function saveForLater(key, element) {
+  savedResults[key] = element;
 }
 
 function findPrior(key) {
-  const result = savedResults[key];
-  if (result && savedResultsTickCounts[key] !== tickCount) {
-    // remove it on the next tick
-    nextTick(() => {
-      delete savedResults[key];
-      delete savedResultsTickCounts[key];
-    });
-  }
-  return result;
+  return savedResults[key];
+}
+
+function clearPrior(key) {
+  delete savedResults[key];
 }

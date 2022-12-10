@@ -9,7 +9,14 @@ export function hydrateRootReactSeq(container, element, options) {
     root = hydrateRoot(container, element, options);
     return root;
   } finally {
-    waitForHydration(root).then(() => settings({ ssr: false }));
+    waitForCompletion(root).then(() => {
+      // set ssr back to false when there are no more suspended nodes
+      settings(() => {
+        if (!findSuspended(root)) {
+          return { ssr: false };
+        }
+      });
+    });
   }
 }
 
@@ -41,7 +48,7 @@ export async function renderToInnerHTML(container, element, options) {
     // convert to string
     const converter = new TextDecoder();
     const html = converter.decode(merged);
-    node.innerHTML = html;
+    container.innerHTML = html;
   } finally {
     settings({ ssr: false });
     // suppress irrelevant warning
@@ -71,18 +78,21 @@ export function renderToServer(element, options) {
 }
 
 export async function waitForHydration(root) {
-  if (!root) {
-    return;
-  }
-  // wait hydrateRoot to finish its work
-  while (root._internalRoot.callbackNode) {
-    await delay(0);
-  }
+  // wait for hydrateRoot to finish its work
+  await waitForCompletion(root);
   // wait for all components to finish hydrating
-  while (hydrating(root._internalRoot.current)) {
+  while (findSuspended(root)) {
     await delay(25);
   }
+}
 
+async function waitForCompletion(root) {
+  while (root?._internalRoot?.callbackNode) {
+    await delay(0);
+  }
+}
+
+function findSuspended(root) {
   function hydrating(node) {
     if (node?.memoizedState?.dehydrated) {
       return true;
@@ -94,6 +104,7 @@ export async function waitForHydration(root) {
     }
     return false;
   }
+  return hydrating(root._internalRoot.current);
 }
 
 export {

@@ -63,6 +63,8 @@ export function sequentialState(cb, setState, setError, options = {}) {
   };
 
   // allow callback to use side effects
+  let onMount;
+  abortManager.setEffect(() => onMount?.());
   methods.mount = (fn) => {
     if (fn !== undefined) {
       if (!sync) {
@@ -71,7 +73,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
       if (typeof(fn) !== 'function') {
         throw new TypeError('Invalid argument');
       }
-      abortManager.setEffect(fn);
+      onMount = fn;
     }
     return abortManager.mounted;
   };
