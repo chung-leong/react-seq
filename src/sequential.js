@@ -3,7 +3,7 @@ import { IntermittentIterator, Timeout, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { InspectorContext } from './inspector.js';
-import { Abort, nextTick, isAbortError } from './utils.js';
+import { Abort, isAbortError } from './utils.js';
 import { setting } from './settings.js';
 
 export function useSequential(cb, deps) {
