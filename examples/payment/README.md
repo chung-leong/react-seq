@@ -1,6 +1,7 @@
 # Payment form example
 
-This example demonstrates form-handling using React-seq. 
+This example demonstrates form handling using React-seq. It shows how the use of an async generator makes dynamic
+JS import both easy and natural. It also showcases React-seq's event management system.
 
 ## Seeing the code in action
 
@@ -19,16 +20,17 @@ export function PaymentPage() {
 The [first line of the function](./src/PaymentPage.js#L5) is a call to
 [`useSequential`](../../doc/useSequential.md). The argument is an anonymous async generator function, which will yield
 the contents of our component. Using object destructuring we obtain a pair of function from the hook: `fallback` and
-`manageEvents`. The former is used immediately on the next line:
+`manageEvents`. The former is called immediately on the next line:
 
 ```js
   fallback(<PaymentLoading />);
 ```
 
-This set the fallback placeholder. It'll be on screen until our generator produces the first content. Before that
-happens we need to know what payment methods are available to the user, which in real life might depend on he
-where lives, what the product is, and so forth. We load the code responsible dynamically and calls
-`getPaymentMethods` to obtain the list:
+This set the fallback placeholder. A loading message will be on screen until our generator output the payment method
+selection screen. For that to happen, we need to know what payment methods are available to the user. In real life,
+that could depend on he where lives, what the product is, and other factors. We would need to contact the server
+for this information. To do so, we dynamically load the module responsible for processing payment and call
+`getPaymentMethods` to obtain the list of methods:
 
 ```js
   // load code related to making payments
@@ -37,8 +39,8 @@ where lives, what the product is, and so forth. We load the code responsible dyn
   const methods = await getPaymentMethods();
 ```
 
-We then preload the form used for each method so that when the user select a method, we can display the correct form
-immediately:
+We then preload the form used each payment method so that when the user makes a selection, we can display the correct
+form without delay:
 
 ```js
   // load input forms for the different methods
@@ -49,7 +51,7 @@ immediately:
   }
 ```
 
-Finally we load the selection screen:
+Finally we load the selection screen itself:
 
 ```js
   const { PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
@@ -68,7 +70,7 @@ Now we're ready to take down the fallback placeholder and show some real content
     }
 ```
 
-Initially, we don't know what is the user's preferred method of payment. So we show the selection screen. Later, if
+Initially, we don't know what is the user's preferred payment method. So we show the selection screen. Later, if
 for some reason we need to start over, we skip this step.
 
 We use the `yield` operator to hand contents to React. Here we have a `<PaymentSelectionScreen />`. Its `onSelect` is
@@ -77,7 +79,7 @@ set to `on.selection`. Where is this `on.selection` coming from?
 The two objects returned by `manageEvents` on [line 20](./src/PaymentPage.js#L20), `on` and `eventual`, are
 [JavaScript proxy objects](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
 Their properties are dynamically generated. `eventual` automatically generates promises while `on` automatically
-generates handlers that resolve them.
+generates handlers that resolve these promises.
 
 This bit of magic provided by the event manager represents one of the key advantages of using React-seq. It allows
 you to use React in a more imperative fashion. Instead of passively reacting to events, you proactively seek out an
@@ -95,7 +97,7 @@ you might have written in your first-year CS class:
 ```
 
 This style of programming is easier to understand since it's closer to how we humans communicate. Debugging is easier
-too, the execution point doesn't jump all over the place.
+too, as the execution point doesn't jump all over the place.
 
 Anyway, let us move on. Now that the user has selected a method, we display the corresponding form, passing `on.response`
 as the `onSubmit` handler and `on.response.cancel` as the `onCancel` handler:
@@ -132,7 +134,7 @@ An alternative way to implement the logic above would be to await on a separate 
 We would still use `bind`, so that we're not dependent on the form calling the handler with the right argument.
 
 While the user is filling the form, we use the occasion to load in the next screen. In theory, if the user types
-really really fast, he could submit form before we start waiting for the response. There're ways we can fix this.
+really really fast, he could submit a response before we start waiting for it. There're ways we can fix this.
 Given how unlikely it is and how minor is the consequence, we'll just let it be.
 
 Once we have the user response, we call a function to process the payment, putting up a new screen first:
@@ -157,8 +159,7 @@ load `PaymentErrorScreen` and wait for the user to click a button before startin
 
 ## Logging
 
-If you open the Development Console, you'll see a log of various events that occur as you interact with the
-form:
+If you open the Development Console, you'll see various events that occur as you interact with the forms:
 
 ![screenshot](./img/screenshot-2.jpg)
 
@@ -202,9 +203,17 @@ test('payment with BLIK', async () => {
 });
 ```
 
-`withTestRenderer` will render a component and wait for it to reach a stoppage point, either an await on a promise
-from the event manager or termination of the generator. After checking that it's awaiting and showing what's expected,
-you can then force the component to go down a particular path by manually resolving the promise it's waiting for.
+`withTestRenderer` will render a component and wait for it to reach a stoppage point: an await on a promise
+from the event manager or termination of the generator. After checking that it's awaiting what's expected and
+showing what's expected, you can then force the component to go down a particular path by manually resolving
+the awaited promise.
 
 The test script above will fail half the time due to the random failure built into the example. A real test
-script, with proper mocking, would haven't this kind of unpredictability.
+script, with proper mocking, wouldn't have this kind of unpredictability.
+
+## Final thoughts
+
+In a typical web application (or any computer program, for that matter), we would have code that reacts to user input
+and code that acts on the user's behalf. React-seq basically lets you deal with this second part too within React. I
+hope you find this approach potentially useful. Thank you for your time. As always
+[comments and suggestions](https://github.com/chung-leong/react-seq/discussions) are totally welcomed.
