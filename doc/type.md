@@ -34,14 +34,14 @@ function Product({ id }) {
 
     if (product.archived) {
       // product is not longer available--use a different UI
-      type(await './ArchivedProductUI.js');
+      type(await import('./ArchivedProductUI.js'));
       return {
         product,
         producer: fetchProducer(product.producer_id, { signal }),
       };
     }
 
-    type(await './ProductUI.js');
+    type(await import('./ProductUI.js'));
     return {
       product,
       producer: fetchProducer(product.producer_id, { signal }),
@@ -60,4 +60,5 @@ export will be used.
 ## Notes
 
 In theory, `arg` can be a string as well (meaning a plain-old HTML element will get created). Such usage is highly
-improbable, however. [`element`](./element.js) is function to use if you don't wish to define a component.
+improbable, however. [`element`](./element.js) is the function to use if you don't wish to define a
+separate component.

@@ -1,6 +1,6 @@
 # usable(arg)
 
-Control whether content update occur when the data set is incomplete
+Control whether content update occurs when the data set is incomplete
 
 ## Providers
 
@@ -60,7 +60,7 @@ not very progressive. A visitor would end up staring at a spinner for a long tim
 is capable of handling missing data.
 
 The first example above uses `usable(0)` to indicate that all props can be empty. `product` would never be empty,
-of course, since it's been retrieved already, but the others props will be at the beginning, assuming `fetchProducer`
+of course, since it's retrieved already, but the others props will be empty at the beginning, assuming `fetchProducer`
 returns a promise to an object, `fetchProductReviews` returns a promise to an array, and `fetchProductCategories`
 returns an async generator. `useProgressive` immediately creates a `<ProductUI />` with the following props:
 

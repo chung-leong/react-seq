@@ -164,7 +164,7 @@ describe('Server-side rendering', function() {
   })
   skip.entirely.if(!global.gc).
   it('should not leak memory', async function() {
-    this.timeout(60000);
+    this.timeout(120000);
     await withServerSideRendering(async () => {
       async function step() {
         function TestComponent() {

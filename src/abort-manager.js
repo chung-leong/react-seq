@@ -33,9 +33,7 @@ export class AbortManager extends AbortController {
 
     // call effect function if there's one
     const result = this.apply?.();
-    if (typeof(result) === 'function') {
-      this.revert = result;
-    }
+    this.revert = (typeof(result) === 'function') ? result : null;
   }
 
   onUnmount() {
@@ -43,35 +41,7 @@ export class AbortManager extends AbortController {
     this.mounting?.cancel();
     this.mountState = false;
     this.unmounting = nextTick(() => this.mounted = createTrigger());
-
-    // run clean-up function
-    let abortDelay, abortPromise, abortCanceled = false, abortCount = 0;
-    function check() {
-      if (abortCount > 0) {
-        throw new Error('keep(), keepFor(), and keepUntil() cannot be used at the same time');
-      }
-      abortCount++;
-    }
-    this.revert?.({
-      keep() {
-        check();
-        abortCanceled = true;
-      },
-      keepFor(delay) {
-        check();
-        abortDelay = delay;
-      },
-      keepUntil(promise) {
-        check();
-        abortPromise = promise;
-      },
-    });
-    if (abortDelay) {
-      this.aborting = timeout(abortDelay, () => this.abort());
-    } else if (abortPromise) {
-      this.aborting = until(abortPromise, () => this.abort());
-    } else if (!abortCanceled) {
-      this.aborting = nextTick(() => this.abort());
-    }
+    this.aborting = nextTick(() => this.abort());
+    this.revert?.();
   }
 }

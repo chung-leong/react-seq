@@ -63,9 +63,9 @@ export function sequentialState(cb, setState, setError, options = {}) {
   };
 
   // allow callback to use side effects
-  let onMount;
-  abortManager.setEffect(() => onMount?.());
-  methods.mount = (fn) => {
+  let effectFn;
+  abortManager.setEffect(() => effectFn?.());
+  methods.effect = (fn) => {
     if (fn !== undefined) {
       if (!sync) {
         throw new Error('Function must be set prior to any yield or await statement');
@@ -73,10 +73,12 @@ export function sequentialState(cb, setState, setError, options = {}) {
       if (typeof(fn) !== 'function') {
         throw new TypeError('Invalid argument');
       }
-      onMount = fn;
+      effectFn = fn;
     }
-    return abortManager.mounted;
   };
+
+  // let callback wait for mount
+  methods.mount = (fn) => abortManager.mounted;
 
   // let callback set initial state
   let initialState;

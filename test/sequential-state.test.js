@@ -371,14 +371,14 @@ describe('#useSequentialState()', function() {
       });
     });
   })
-  it('should throw when mount is called after an await statement', async function() {
+  it('should throw when effect is called after an await statement', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
       function Test() {
-        const state = useSequentialState(async function*({ mount }) {
+        const state = useSequentialState(async function*({ effect }) {
           await assertions[0];
           setTimeout(() => steps[1].done(), 0);
-          mount(() => {});
+          effect(() => {});
         }, []);
         return state;
       }
@@ -394,11 +394,11 @@ describe('#useSequentialState()', function() {
       });
     });
   })
-  it('should throw when mount is given a non-function', async function() {
+  it('should throw when effect is given a non-function', async function() {
     await withTestRenderer(async ({ create, toJSON }) => {
       function Test() {
-        const state = useSequentialState(async function*({ mount }) {
-          mount(1);
+        const state = useSequentialState(async function*({ effect }) {
+          effect(1);
         }, []);
         return state;
       }
@@ -521,12 +521,12 @@ describe('#useSequentialState()', function() {
       await assertions[2].done();
     });
   })
-  it('should run callback provided through mount', async function() {
+  it('should run callback provided through effect', async function() {
     let mounted = false, unmounted = false;
     await withTestRenderer(async ({ create, unmount }) => {
       function Test() {
-        const state = useSequentialState(async function*({ mount }) {
-          mount(() => {
+        const state = useSequentialState(async function*({ effect }) {
+          effect(() => {
             mounted = true;
             return () => {
               unmounted = true;
@@ -542,6 +542,22 @@ describe('#useSequentialState()', function() {
       expect(unmounted).to.be.false;
       unmount();
       expect(unmounted).to.be.true;
+    });
+  })
+  it('should fulfill promise returned by mount', async function() {
+    let promise;
+    await withTestRenderer(async ({ create }) => {
+      function Test() {
+        const state = useSequentialState(async function*({ mount }) {
+          promise = mount();
+          yield 'Chicken';
+        }, []);
+        return state;
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(promise).to.be.a('promise');
+      await expect(promise).to.eventually.be.fulfilled;
     });
   })
   it('should flush state when awaiting on a promise', async function() {

@@ -1,6 +1,6 @@
 # stasi(generator) <sup>async generator</sup>
 
-Create an async generator that yields values from another generator
+Create an async generator that replicates the output of another generator
 
 ## Syntax
 
@@ -36,9 +36,8 @@ such a situation.
 
 Calling `stasi` on a stasi-generator produces the same result as calling it on the original generator.
 
-`stasi` should not be used in an async generator function, since its code would start running when the first item is
-retrieved from the generator and not when the function is called. By then some items could have been removed from
-the target already.
+`stasi` should not be called inside an async generator function, as execution of generator functions is deferred til
+the retrieval of the first item, by which time some items could have been removed from the target already.
 
 Instead of doing this:
 
@@ -65,5 +64,3 @@ function fetchAuthors(articleGenerator) {
   return generate();
 }
 ```
-
-Or leave it to the caller to call `stasi`.

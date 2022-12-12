@@ -29,7 +29,7 @@ function useProgressiveState(cb, deps) {
 * `cb` - `<AsyncFunction>` User-provided function that creates a set of async props
 * `setState` - `<Function>` Callback function for setting a new state
 * `setError` - `<Function>` Callback function for reporting any error encountered during execution
-* `return` `{ initialState, abortManager }`I nitial state of the hook and the abort manager that can put a stop to
+* `return` `{ initialState, abortManager }` Initial state of the hook and the abort manager that can put a stop to
 any further state updates
 
 ## notes

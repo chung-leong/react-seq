@@ -23,7 +23,7 @@ await eventual.imageLoad;
 ## Notes
 
 Error objects are normally returned by promises of `eventual` just like any other value. Wrapping the value with
-`throwing` tells the event manager that the promise should reject with the error instead.
+`throwing` tells the event manager that the promise should be rejected with the error instead.
 
 If the object given is a `<ErrorEvent>`, its `.error` property will be used as the rejection value.
 

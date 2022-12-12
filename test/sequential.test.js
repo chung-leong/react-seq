@@ -256,13 +256,13 @@ describe('#sequential()', function() {
       });
     });
   })
-  it('should throw when mount is called after an await statement', async function() {
+  it('should throw when effect is called after an await statement', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
-      const { element: el, abortManager: am } = sequential(async function*({ mount, defer }) {
+      const { element: el, abortManager: am } = sequential(async function*({ effect, defer }) {
         await assertions[0];
         setTimeout(() => steps[1].done(), 0);
-        mount(() => {});
+        effect(() => {});
         yield 'Pig';
         steps[2].done();
       });
@@ -278,10 +278,10 @@ describe('#sequential()', function() {
       });
     });
   })
-  it('should throw when mount is called with a non function', async function() {
+  it('should throw when effect is called with a non function', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
-      const { element: el, abortManager: am } = sequential(async function*({ mount, defer }) {
-        mount('Rushmore');
+      const { element: el, abortManager: am } = sequential(async function*({ effect, defer }) {
+        effect('Super');
       });
       await withSilentConsole(async () => {
         const boundary = createErrorBoundary(el);
@@ -1236,12 +1236,12 @@ describe('#useSequential()', function() {
       expect(call).to.equal(2);
     });
   })
-  it('should run callback provided through mount', async function() {
+  it('should run callback provided through effect', async function() {
     let mounted = false, unmounted = false;
     await withTestRenderer(async ({ create, unmount }) => {
       function Test() {
-        return useSequential(async function*({ mount }) {
-          mount(() => {
+        return useSequential(async function*({ effect }) {
+          effect(() => {
             mounted = true;
             return () => {
               unmounted = true;
@@ -1251,49 +1251,26 @@ describe('#useSequential()', function() {
         }, []);
       }
       const el = createElement(Test);
-      create(el);
+      await create(el);
       expect(mounted).to.be.true;
       expect(unmounted).to.be.false;
-      unmount();
+      await unmount();
       expect(unmounted).to.be.true;
     });
   })
-  it('should allow generator to keep running when keep is used', async function() {
-    await withTestRenderer(async ({ create, unmount, toJSON, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
+  it('should fulfill promise returned by mount', async function() {
+    let promise;
+    await withTestRenderer(async ({ create }) => {
       function Test() {
-        return useSequential(async function*({ fallback, mount }) {
-          fallback('Cow');
-          mount(() => {
-            return ({ keep }) => keep();
-          });
-          try {
-            await assertions[0];
-            yield 'Monkey';
-            steps[1].done();
-            await assertions[1];
-            yield 'Pig';
-            steps[2].done();
-            await assertions[2];
-            yield 'Chicken';
-            steps[3].done('end');
-          } finally {
-            steps[4].done('finally')
-          }
+        return useSequential(async function*({ mount }) {
+          promise = mount();
+          yield 'Chicken';
         }, []);
       }
       const el = createElement(Test);
       await create(el);
-      expect(toJSON()).to.equal('Cow');
-      await assertions[0].done();
-      await steps[1];
-      expect(toJSON()).to.equal('Monkey');
-      await unmount();
-      expect(toJSON()).to.equal(null);
-      await assertions[1].done();
-      await assertions[2].done();
-      const results = await Promise.race([ Promise.all([ steps[3], steps[4] ]), delay(20) ]);
-      expect(results).to.eql([ 'end', 'finally' ]);
+      expect(promise).to.be.a('promise');
+      await expect(promise).to.eventually.be.fulfilled;
     });
   })
   it('should not trigger flush when delay is set to 0', async function() {

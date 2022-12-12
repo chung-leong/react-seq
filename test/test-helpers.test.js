@@ -40,9 +40,9 @@ describe('#withTestRenderer()', function() {
   it('should unmount a component', async function() {
     let unmounted = false;
     function Test() {
-      return useSequential(async function*({ fallback, mount }) {
+      return useSequential(async function*({ fallback, effect }) {
         fallback('Cow');
-        mount(() => {
+        effect(() => {
           return () => {
             unmounted = true;
           };
@@ -274,9 +274,9 @@ describe('#withReactDOM()', function() {
   it('should unmount a component', async function() {
     let unmounted = false;
     function Test() {
-      return useSequential(async function*({ fallback, mount }) {
+      return useSequential(async function*({ fallback, effect }) {
         fallback('Cow');
-        mount(() => {
+        effect(() => {
           return () => {
             unmounted = true;
           };

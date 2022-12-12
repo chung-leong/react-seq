@@ -10,6 +10,7 @@
 ## Configuration and management functions
 
 * [defer](./defer.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
+* [effect](./effect.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
 * [element](./element.md) <sup>`useProgressive`</sup>
 * [fallback](./fallback.md) <sup>`useSequential`, `useProgressive`</sup>
 * [flush](./flush.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
