@@ -1,5 +1,7 @@
 # useSequential(cb, deps)
 
+Return a React element that obtains its contents from an async generator.
+
 ## Syntax
 
 ```js
@@ -32,3 +34,16 @@ function ProductPage({ productId }) {
 * `cb` - `<AsyncGeneratorFunction>`
 * `deps` - `<any[]>`
 * `return` `<Element>`
+
+## Configuration and management functions
+
+* [defer](./defer.md)
+* [effect](./effect.md)
+* [fallback](./fallback.md)
+* [flush](./flush.md)
+* [manageEvents](./manageEvents.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>
+* [mount](./mount.md)
+* [signal](./signal.md)
+* [suspend](./suspend.md)
+
+## Notes

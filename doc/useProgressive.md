@@ -1,5 +1,7 @@
 # useProgressive(cb, deps)
 
+Return a React element that displays partially completed views as data arrives
+
 ## Syntax
 
 ```js
@@ -21,9 +23,23 @@ function ProductPageUI(product, relatedProducts = []) {
 
 ## Parameters
 
-* `cb` - `<AsyncFunction>`
-* `deps` - `<any[]>`
+* `cb` - `<AsyncFunction>` An async function that sets up data sources and configure the operation
+* `deps` - `<any[]>` Variables that the async function depends on, whose changes will cause it to be rerun
 * `return` `<Element>`
+
+## Configuration and management functions
+
+* [defer](./defer.md)
+* [effect](./effect.md)
+* [element](./element.md)
+* [fallback](./fallback.md)
+* [flush](./flush.md)
+* [manageEvents](./manageEvents.md)
+* [mount](./mount.md)
+* [signal](./signal.md)
+* [suspend](./suspend.md)
+* [type](./type.md)
+* [usable](./usable.md)
 
 ## Examples
 

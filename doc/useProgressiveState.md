@@ -28,4 +28,15 @@ function ProductPage({ productId }) {
 
 * `cb` - `<AsyncFunction>`
 * `deps` - `<any[]>`
-* `return` `[ state, on, eventual ]`
+* `return` `<Object>`
+
+## Configuration and management functions
+
+* [defer](./defer.md)
+* [effect](./effect.md)
+* [flush](./flush.md)
+* [initial](./initial.md)
+* [manageEvents](./manageEvents.md)
+* [mount](./mount.md)
+* [signal](./signal.md)
+* [usable](./usable.md)
