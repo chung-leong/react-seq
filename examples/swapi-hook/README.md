@@ -1,70 +1,144 @@
-# Getting Started with Create React App
+# Star Wars API example
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+React-seq provides four hooks. Each of these is designed for particular usage scenarios. In this example, we're
+going to reimplement the previous [Star Wars API example](../swapi/README.md) using
+[useSequentialState](../../doc/useSequentialState.md). It's not the optimal tool for the task. We're going to
+discuss what the shortcomings are.
 
-## Available Scripts
 
-In the project directory, you can run:
+## Seeing the code in action
 
-### `npm start`
+Go to the `examples/swapi-hook` folder. Run `npm install` then `npm start`. A browser window should automatically
+open up.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Character list component
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```js
+export default function CharacterList() {
+  const [ { people } ] = useSWAPI('people', {}, { refresh: 1 });
+  return (
+    <div>
+      <h1>Characters</h1>
+      <List items={people} />
+    </div>
+  );
+}
+```
 
-### `npm test`
+## Character component
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+```js
+export default function Character({ id }) {
+  const [ state ] = useSWAPI('people', { id }, { refresh: 1 });
+  const { person, homeworld, films, species, vehicles, starships } = state;
+  return (
+    <div>
+      <h1>{person?.name}</h1>
+      <div>Height: {person?.height} cm</div>
+      <div>Mass: {person?.mass} kg</div>
+      <div>Hair color: {person?.hair_color}</div>
+      <div>Skin color: {person?.skin_color}</div>
+      <div>Hair color: {person?.hair_color}</div>
+      <div>Eye color: {person?.eye_color}</div>
+      <div>Birth year: {person?.birth_year}</div>
+      <h2>Homeworld</h2>
+      <List urls={person?.homeworld} items={homeworld} />
+      <h2>Films</h2>
+      <List urls={person?.films} items={films} field="title" />
+      <h2>Species</h2>
+      <List urls={person?.species} items={species} />
+      <h2>Vehicles</h2>
+      <List urls={person?.vehicles} items={vehicles} />
+      <h2>Starships</h2>
+      <List urls={person?.starships} items={starships} />
+    </div>
+  );
+}
+```
 
-### `npm run build`
+## The hook
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+```js
+export function useSWAPI(type, params = {}, options = {}) {
+  const {
+    delay = 100,
+    refresh = 24 * 60,
+  } = options;
+  const { id } = params;
+  const onRef = useRef();
+  const state = useSequentialState(async function*({ initial, defer, manageEvents, signal }) {
+    initial({});
+    const [ on, eventual ] = manageEvents();
+    onRef.current = on;
+```
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```js
+  return [ state, onRef.current.updateRequest ];
+}
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```json
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "react-hooks/exhaustive-deps": [
+        "warn",
+        {
+          "additionalHooks": "use(Progressive(State)?|Sequential(State)?)"
+        }
+      ]
+    }
+  },
+```
 
-### `npm run eject`
+```js
+    for (let i = 0;; i++) {
+      defer(i === 0 ? delay : Infinity);
+      try {
+        const opts = { signal };
+        switch (type) {
+          case 'people':
+            if (id) {
+              const person = await fetchOne(`people/${id}`, opts);
+              yield { person };
+              const films = await fetchMultiple(person.films, opts);
+              yield { person, films };
+              const species = await fetchMultiple(person.species, opts);
+              yield { person, films, species };
+              const homeworld = await fetchOne(person.homeworld, opts);
+              yield { person, films, species, homeworld };
+              const vehicles = await fetchMultiple(person.vehicles, opts);
+              yield { person, films, species, homeworld, vehicles };
+              const starships = await fetchMultiple(person.starships, opts);
+              yield { person, films, species, homeworld, vehicles, starships };
+            } else {
+              const people = await fetchList('people/', opts);
+              yield { people };
+            }
+            break;
+          // ...other cases...
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```js
+        } // end of switch
+      } catch (err) {
+        if (i === 0) {
+          throw err;
+        }
+```        
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```js
+      } finally {
+        await eventual.updateRequest.for(refresh).minutes;
+        console.log(`refreshing (${i + 1})...`)
+      }
+```  
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+```js             
+    } // end of try-catch-finally
+  }, [ delay, id, refresh, type ]);
+```

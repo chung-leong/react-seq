@@ -1,9 +1,10 @@
-import { useSWAPI } from './swapi.js';
+import { useSWAPI } from './swapi-uss.js';
 import List from './List.js';
 
 export default function Character({ id }) {
   const [ state ] = useSWAPI('people', { id }, { refresh: 1 });
   const { person, homeworld, films, species, vehicles, starships } = state;
+  console.log(state);
   return (
     <div>
       <h1>{person?.name}</h1>

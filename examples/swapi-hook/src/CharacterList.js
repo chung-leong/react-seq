@@ -1,4 +1,4 @@
-import { useSWAPI } from './swapi.js';
+import { useSWAPI } from './swapi-uss.js';
 import List from './List.js';
 
 export default function CharacterList() {

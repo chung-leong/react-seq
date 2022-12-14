@@ -14,10 +14,10 @@ export function useSWAPI(type, params = {}, options = {}) {
     initial({});
     const [ on, eventual ] = manageEvents();
     onRef.current = on;
-    const opts = { signal };
     for (let i = 0;; i++) {
       defer(i === 0 ? delay : Infinity);
       try {
+        const opts = { signal };
         switch (type) {
           case 'people':
             if (id) {

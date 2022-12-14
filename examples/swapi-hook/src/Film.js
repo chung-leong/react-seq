@@ -1,8 +1,8 @@
-import { useSWAPI } from './swapi.js';
+import { useSWAPI } from './swapi-ups.js';
 import List from './List.js';
 
 export default function Film({ id }) {
-  const [ state ] = useSWAPI('films', { id }, { refresh: 1 });
+  const [ state ] = useSWAPI('films', { id });
   const { film, characters, species, planets, vehicles, starships } = state;
   return (
     <div>

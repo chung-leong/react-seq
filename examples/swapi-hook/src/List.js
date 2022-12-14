@@ -1,4 +1,4 @@
-import { trimURL } from './swapi.js';
+import { trimURL } from './swapi-uss.js';
 
 export default function List({ urls, items, field = 'name' }) {
   if (typeof(urls) === 'string') {
