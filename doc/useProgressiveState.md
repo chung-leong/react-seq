@@ -33,7 +33,6 @@ function ProductPage({ productId }) {
 ## Configuration and management functions
 
 * [defer](./defer.md)
-* [effect](./effect.md)
 * [flush](./flush.md)
 * [initial](./initial.md)
 * [manageEvents](./manageEvents.md)

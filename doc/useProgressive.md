@@ -30,7 +30,6 @@ function ProductPageUI(product, relatedProducts = []) {
 ## Configuration and management functions
 
 * [defer](./defer.md)
-* [effect](./effect.md)
 * [element](./element.md)
 * [fallback](./fallback.md)
 * [flush](./flush.md)

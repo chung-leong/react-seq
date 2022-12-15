@@ -38,7 +38,6 @@ function ProductPage({ productId }) {
 ## Configuration and management functions
 
 * [defer](./defer.md)
-* [effect](./effect.md)
 * [fallback](./fallback.md)
 * [flush](./flush.md)
 * [manageEvents](./manageEvents.md) <sup>`useSequential`, `useProgressive`, `useSequentialState`, `useProgressiveState`</sup>

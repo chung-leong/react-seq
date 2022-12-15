@@ -38,15 +38,11 @@ describe('#withTestRenderer()', function() {
     });
   })
   it('should unmount a component', async function() {
-    let unmounted = false;
+    let m;
     function Test() {
-      return useSequential(async function*({ fallback, effect }) {
+      return useSequential(async function*({ fallback, mount }) {
         fallback('Cow');
-        effect(() => {
-          return () => {
-            unmounted = true;
-          };
-        })
+        m = mount;
         yield 'Pig';
       }, []);
     }
@@ -55,7 +51,8 @@ describe('#withTestRenderer()', function() {
       expect(renderer.toJSON()).to.equal('Pig');
       await unmount();
       expect(renderer.toJSON()).to.equal(null);
-      expect(unmounted).to.be.true;
+      const result = await Promise.race([ m(), delay(20, { value: 'timeout' }) ]);
+      expect(result).to.equal('timeout');
     });
   })
   it('should report correct stoppage points', async function() {
@@ -272,15 +269,11 @@ describe('#withReactDOM()', function() {
     });
   })
   it('should unmount a component', async function() {
-    let unmounted = false;
+    let m;
     function Test() {
-      return useSequential(async function*({ fallback, effect }) {
+      return useSequential(async function*({ fallback, mount }) {
         fallback('Cow');
-        effect(() => {
-          return () => {
-            unmounted = true;
-          };
-        })
+        m = mount;
         yield 'Pig';
       }, []);
     }
@@ -290,7 +283,8 @@ describe('#withReactDOM()', function() {
         expect(node.textContent).to.equal('Pig');
         await unmount();
         expect(node.textContent).to.equal('');
-        expect(unmounted).to.be.true;
+        const result = await Promise.race([ m(), delay(20, { value: 'timeout' }) ]);
+        expect(result).to.equal('timeout');
       });
     });
   })

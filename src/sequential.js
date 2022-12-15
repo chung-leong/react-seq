@@ -70,25 +70,12 @@ export function sequential(cb, options = {}) {
     suspending = true;
     suspensionKey = key;
   };
-
-  // allow callback to use side effects
-  let effectFn;
   abortManager.setEffect(() => {
     if (suspensionKey) {
       // we can remove the saved lazy element now that it has mounted
       clearPrior(suspensionKey);
     }
-    return effectFn?.();
   });
-  methods.effect = (fn) => {
-    if (!sync) {
-      throw new Error('Function must be set prior to any yield or await statement');
-    }
-    if (typeof(fn) !== 'function') {
-      throw new TypeError('Invalid argument');
-    }
-    effectFn = fn;
-  };
 
   // let callback wait for mount
   methods.mount = (fn) => abortManager.mounted;

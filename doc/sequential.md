@@ -35,8 +35,6 @@ aside from ensuring that `sequential` is only called again when dependencies cha
 of [`useEffect`](https://reactjs.org/docs/hooks-reference.html#useeffect)).
 
 `AbortManager` is a subclass of [`AbortController`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController).
-It has added methods related to the React component lifecycle. `onMount` is responsible for invoking the function
-given to [`effect`](./effect.md). It will trigger fulfillment of the promise returned by [`mount`](./mount.md).
-`onUnmount` is responsible for invoking the clean-up function returned by the function given to
-[`effect`](./effect.md). It will initiate an abort of the generator unless the component is immediately remounted
-(something that happens when [strict mode](https://reactjs.org/docs/strict-mode.html) is used).
+It has added methods related to the React component lifecycle. `onMount` triggers the fulfillment of the promise
+returned by [`mount`](./mount.md). `onUnmount` initiates an abort of the generator (unless the component is immediately
+remounted, something that happens when [strict mode](https://reactjs.org/docs/strict-mode.html) is used).

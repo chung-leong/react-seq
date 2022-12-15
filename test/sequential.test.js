@@ -256,42 +256,6 @@ describe('#sequential()', function() {
       });
     });
   })
-  it('should throw when effect is called after an await statement', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
-      const { element: el, abortManager: am } = sequential(async function*({ effect, defer }) {
-        await assertions[0];
-        setTimeout(() => steps[1].done(), 0);
-        effect(() => {});
-        yield 'Pig';
-        steps[2].done();
-      });
-      await withSilentConsole(async () => {
-        const boundary = createErrorBoundary(el);
-        await create(boundary);
-        am.onMount();
-        expect(toJSON()).to.equal(null);
-        await assertions[0].done();
-        await steps[1];
-        expect(toJSON()).to.equal('ERROR');
-        expect(caughtAt(boundary)).to.be.an('error');
-      });
-    });
-  })
-  it('should throw when effect is called with a non function', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const { element: el, abortManager: am } = sequential(async function*({ effect, defer }) {
-        effect('Super');
-      });
-      await withSilentConsole(async () => {
-        const boundary = createErrorBoundary(el);
-        await create(boundary);
-        am.onMount();
-        expect(toJSON()).to.equal('ERROR');
-        expect(caughtAt(boundary)).to.be.an('error');
-      });
-    });
-  })
   it('should allow management of events using promises', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
@@ -1234,28 +1198,6 @@ describe('#useSequential()', function() {
       await steps[5];
       expect(node.textContent).to.equal('Chicken');
       expect(call).to.equal(2);
-    });
-  })
-  it('should run callback provided through effect', async function() {
-    let mounted = false, unmounted = false;
-    await withTestRenderer(async ({ create, unmount }) => {
-      function Test() {
-        return useSequential(async function*({ effect }) {
-          effect(() => {
-            mounted = true;
-            return () => {
-              unmounted = true;
-            };
-          });
-          yield 'Chicken';
-        }, []);
-      }
-      const el = createElement(Test);
-      await create(el);
-      expect(mounted).to.be.true;
-      expect(unmounted).to.be.false;
-      await unmount();
-      expect(unmounted).to.be.true;
     });
   })
   it('should fulfill promise returned by mount', async function() {

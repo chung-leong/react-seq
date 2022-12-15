@@ -371,46 +371,6 @@ describe('#useSequentialState()', function() {
       });
     });
   })
-  it('should throw when effect is called after an await statement', async function() {
-    await withTestRenderer(async ({ create, toJSON, act }) => {
-      const steps = createSteps(), assertions = createSteps(act);
-      function Test() {
-        const state = useSequentialState(async function*({ effect }) {
-          await assertions[0];
-          setTimeout(() => steps[1].done(), 0);
-          effect(() => {});
-        }, []);
-        return state;
-      }
-      await withSilentConsole(async () => {
-        const el = createElement(Test);
-        const boundary = createErrorBoundary(el);
-        await create(boundary);
-        expect(toJSON()).to.equal(null);
-        await assertions[0].done();
-        await steps[1];
-        expect(toJSON()).to.equal('ERROR');
-        expect(caughtAt(boundary)).to.be.an('error');
-      });
-    });
-  })
-  it('should throw when effect is given a non-function', async function() {
-    await withTestRenderer(async ({ create, toJSON }) => {
-      function Test() {
-        const state = useSequentialState(async function*({ effect }) {
-          effect(1);
-        }, []);
-        return state;
-      }
-      await withSilentConsole(async () => {
-        const el = createElement(Test);
-        const boundary = createErrorBoundary(el);
-        await create(boundary);
-        expect(toJSON()).to.equal('ERROR');
-        expect(caughtAt(boundary)).to.be.an('error');
-      });
-    });
-  })
   it('should silently ignore any fetch abort error', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
@@ -519,29 +479,6 @@ describe('#useSequentialState()', function() {
       await delay(5);
       expect(results).to.eql([ undefined, 'Vodka drink' ]);
       await assertions[2].done();
-    });
-  })
-  it('should run callback provided through effect', async function() {
-    let mounted = false, unmounted = false;
-    await withTestRenderer(async ({ create, unmount }) => {
-      function Test() {
-        const state = useSequentialState(async function*({ effect }) {
-          effect(() => {
-            mounted = true;
-            return () => {
-              unmounted = true;
-            };
-          });
-          yield 'Cider drink';
-        }, []);
-        return state;
-      }
-      const el = createElement(Test);
-      create(el);
-      expect(mounted).to.be.true;
-      expect(unmounted).to.be.false;
-      unmount();
-      expect(unmounted).to.be.true;
     });
   })
   it('should fulfill promise returned by mount', async function() {
