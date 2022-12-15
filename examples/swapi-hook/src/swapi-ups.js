@@ -1,5 +1,7 @@
 import { useProgressiveState } from 'react-seq';
 
+const baseURL = 'https://swapi.dev/api/';
+
 export function useSWAPI(type, params = {}, options = {}) {
   const {
     delay = 100,
@@ -90,8 +92,6 @@ export function useSWAPI(type, params = {}, options = {}) {
   }, [ delay, id, type ]);
   return [ state, () => {} ];
 }
-
-const baseURL = 'https://swapi.dev/api/';
 
 export function trimURL(url) {
   return url.substr(baseURL.length - 1);
