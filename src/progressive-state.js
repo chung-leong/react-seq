@@ -28,8 +28,6 @@ export function progressiveState(cb, setState, setError, options) {
 
     const asyncProps = await cb(methods);
     checkAsyncProps(asyncProps, usables, usableDefault);
-    for await (const props of generateProps(asyncProps, usables)) {
-      yield props;
-    }
+    yield generateProps(asyncProps, usables);
   }, setState, setError, options);
 }
