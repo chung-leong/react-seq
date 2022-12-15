@@ -188,7 +188,8 @@ update the page:
         }
 ```        
 
-In the `finally` block, we wait for an update request or until the refresh time is reached:
+In the `finally` block, we wait for an update request (triggered by the function returned to the hook
+consumer) or until the refresh time is reached:
 
 ```js
       } finally {
@@ -200,3 +201,73 @@ In the `finally` block, we wait for an update request or until the refresh time 
 You can verify that the does refresh itself by opening the development console.
 
 ## Downsides of using state hooks
+
+As said at the beginning, the state hooks require less of a buy-in. The element returning hooks
+([useSequential](../../useSequential.md) and [useProgressive](../../useProgressive.md)), by their nature, are
+closer to the presentation layer. More of your code needs to conform to React-seq's way of doing things. The use
+of React-seq state hooks can be easily isolated to a single file, as we've done so in this example. If sudden you
+decide that this library stinks, you could remove the dependency without much effort.
+
+What are the downsides then? The state hooks are not integrated into React's
+[suspension scheme](https://reactjs.org/docs/react-api.html#reactsuspense). That means the component wouldn't
+trigger the display of a fallback when it's in a busy state. The `<Suspense>...</Suspese>` in [`App`](./src/App.js)
+only handles the lazy loading of the components, not data retrieval.
+
+The lack of suspension also means the component cannot be fully rendered on the server side. Only its initial state
+will get rendered.
+
+Page transition is also poorer, since React cannot wait just a little bit for the component to get into its ready
+state.
+
+Clicking around in the example app, you'll notice the experience does not feel as smooth as the original example.
+A large part of that is due to the way we have implemented our hook. It doesn't yield data in a terribly progressive
+fashion. The hook would wait for a dozen HTTP requests and return the results all at once.
+
+If you go to the **Films** page, you'll notice that it shows things more progressively. This is because that page
+uses an alternate implementation that uses [`useProgressiveState`](../../doc/useProgressiveState.md).
+
+## Using useProgressive
+
+Here's the abbreviated code for [the alternate implementation](./src/swapi-usp.js):
+
+```js
+export function useSWAPI(type, params = {}, options = {}) {
+  const {
+    delay = 100,
+  } = options;
+  const { id } = params;
+  const state = useProgressiveState(async ({ initial, defer, signal }) => {
+    initial({});
+    defer(delay);
+    const opts = { signal };
+    switch (type) {
+      // ...other cases...
+      case 'films':
+        if (id) {
+          const film = await fetchOne(`films/${id}`, opts);
+          return {
+            film,
+            characters: fetchMultiple(film.characters, opts),
+            species: fetchMultiple(film.species, opts),
+            planets: fetchMultiple(film.planets, opts),
+            vehicles: fetchMultiple(film.vehicles, opts),
+            starships: fetchMultiple(film.starships, opts),
+          };
+        } else {
+          return { films: fetchList('films/', opts) };
+        }
+      // ...other cases...
+    }
+  }, [ delay, id, type ]);
+  return [ state ];
+}
+```
+
+Note the hook's return statement: Only the state is returned here. No update function is returned.
+`useProgressiveState` is simply not designed for that. It's designed for loading data only once.
+
+A [third implementation](./src/swapi-uss-gp.js) is available that gives you both improved progressive
+display and the ability to refresh the data. Just change the import statement to `'./swapi-uss-gp.js'`. This
+hook is basically a combination of the other two. I'll leave it up to you to figure out how it works :-)
+
+## Final thoughts

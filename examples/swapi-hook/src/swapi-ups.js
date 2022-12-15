@@ -90,7 +90,7 @@ export function useSWAPI(type, params = {}, options = {}) {
         throw new Error(`Unknown object type: ${type}`);
     }
   }, [ delay, id, type ]);
-  return [ state, () => {} ];
+  return [ state ];
 }
 
 export function trimURL(url) {
