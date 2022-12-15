@@ -55,4 +55,16 @@ describe('#AbortManager', function() {
     const result = await Promise.race([ promise, delay(20, { value: 'timeout' }) ]);
     expect(result).to.equal('timeout');
   })
+  it('should invoke effect function', async function() {
+    const manager = new AbortManager();
+    let called = false, cleanedUp = false;
+    manager.setEffect(() => {
+      called = true;
+      return () => cleanedUp = true;
+    });
+    manager.onMount();
+    manager.onUnmount();
+    expect(called).to.be.true;
+    expect(cleanedUp).to.be.true;
+  })
 })
