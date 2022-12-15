@@ -1,10 +1,13 @@
 # Star Wars API example
 
 React-seq provides four hooks. Each of these is designed for particular usage scenarios. In this example, we're
-going to reimplement the previous [Star Wars API example](../swapi/README.md) using
-[useSequentialState](../../doc/useSequentialState.md). It's not the optimal tool for the task. We're going to
-discuss what the shortcomings are.
+going to reimplement the previous [Star Wars API example](../swapi/README.md) the two state hooks:
+[useSequentialState](../../doc/useSequentialState.md) and [useProgressiveState](../../doc/useProgressiveState.md).
+Neither is the optimal tool for the task. We're going to discuss what the shortcomings are.
 
+State hooks have the advantage of requiring less "buy-in". They're just hook functions that return data. You can use
+them whenever you need results from some asynchronous operation. When you're creating custom hooks, one of the two
+will probably be what you need.
 
 ## Seeing the code in action
 
@@ -13,9 +16,12 @@ open up.
 
 ## Character list component
 
+The [character list component](./src/CharacterList.js) is quite simple:
+
 ```js
 export default function CharacterList() {
-  const [ { people } ] = useSWAPI('people', {}, { refresh: 1 });
+  const [ state ] = useSWAPI('people', {}, { refresh: 1 });
+  const { people } = state;
   return (
     <div>
       <h1>Characters</h1>
@@ -25,7 +31,15 @@ export default function CharacterList() {
 }
 ```
 
+It uses the custom hook [useSWAPI](./src/swapi-uss.js) to obtain a list of characters, requesting that a refresh
+should happen every minute (a short time for demo purpose).
+
+Note that the component is unaware that React-seq is being used, unlike
+[the component in the original example](../swapi/src/CharacterList.js), which was fully designed around the library.
+
 ## Character component
+
+The [character component](./src/CharacterList.js) is also trivial:
 
 ```js
 export default function Character({ id }) {
@@ -56,7 +70,15 @@ export default function Character({ id }) {
 }
 ```
 
+It uses the same hook to obtain information about the character in question. Initially, `state` will be an
+empty object. We use the `?.` optional chaining operator to deal with that fact.
+
+Note again that the component is unaware React-seq is being used. From its point of view, it's just getting
+an object from a React hook. In this example, all data retrieval functionality is isolated in the useSWAPI hook. Let us examine what it does.
+
 ## The hook
+
+Here's the [opening section of the hook](./src/swapi-uss.js#L6):
 
 ```js
 export function useSWAPI(type, params = {}, options = {}) {
@@ -72,27 +94,53 @@ export function useSWAPI(type, params = {}, options = {}) {
     onRef.current = on;
 ```
 
+We use [`initial`](../../doc/initial.md) to set the hook's initial state to an empty object.
+
+We use a `useRef` hook to create a state variable for holding a copy of `on` from
+[`manageEvents`](../../doc/manageEvents.md). We need to do this because the hook is going to return a handler:
+
 ```js
   return [ state, onRef.current.updateRequest ];
 }
 ```
 
+The hook consumer will receive a function that triggers a refresh of the data manually.
+
+The use of `useRef` is necessary, since the callback given to `useSequentialState` doesn't always run. It does
+so only when there are changes to the hook's dependencies. If we naively had written the following instead:
+
+```js
+  let updateRequest;
+  const state = useSequentialState(async function*({ initial, defer, manageEvents, signal }) {
+    initial({});
+    const [ on, eventual ] = manageEvents();
+    updateRequest = on.updateRequest;
+    /* ... */
+  }
+  return [ state, onUpdateRequest ];
+```
+
+ESLint would gives us a helpful warning:
+
+> Assignments to the 'onUpdateRequest' variable from inside React Hook useSequentialState will be lost after
+> each render. To preserve the value over time, store it in a useRef Hook and keep the mutable value in the
+> '.current' property. Otherwise, you can move this variable directly inside useSequentialState
+> `react-hooks/exhaustive-deps`
+
+To configure ESLint to recognize React-seq's hooks, add "react-seq" to the "eslintConfig"
+section in [package.json](./package.json):
+
 ```json
   "eslintConfig": {
     "extends": [
       "react-app",
-      "react-app/jest"
-    ],
-    "rules": {
-      "react-hooks/exhaustive-deps": [
-        "warn",
-        {
-          "additionalHooks": "use(Progressive(State)?|Sequential(State)?)"
-        }
-      ]
-    }
+      "react-app/jest",
+      "react-seq"
+    ]
   },
 ```
+
+Okay, moving on. `useSWAPI` runs a infinite loop:
 
 ```js
     for (let i = 0;; i++) {
@@ -122,6 +170,16 @@ export function useSWAPI(type, params = {}, options = {}) {
           // ...other cases...
 ```
 
+In the first iteration, we use the deferment delay specified by `options` (100ms by default). Subsequently we
+use `Infinity` so that intermediate states get ignored. We want to display incomplete data set when the page
+loads, not when it refreshes.
+
+Assuming a slow connection, the hook consumer will first get `person`. Then it gets `films` as well. Then
+`species` and so forth. More and more information becomes available as it's fetched from the server.
+
+If an error occurs (no Internet access for instance), we choose to ignore it if we're only trying to
+update the page:
+
 ```js
         } // end of switch
       } catch (err) {
@@ -130,6 +188,8 @@ export function useSWAPI(type, params = {}, options = {}) {
         }
 ```        
 
+In the `finally` block, we wait for an update request or until the refresh time is reached:
+
 ```js
       } finally {
         await eventual.updateRequest.for(refresh).minutes;
@@ -137,8 +197,6 @@ export function useSWAPI(type, params = {}, options = {}) {
       }
 ```  
 
+You can verify that the does refresh itself by opening the development console.
 
-```js             
-    } // end of try-catch-finally
-  }, [ delay, id, refresh, type ]);
-```
+## Downsides of using state hooks

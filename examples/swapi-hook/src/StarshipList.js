@@ -2,7 +2,8 @@ import { useSWAPI } from './swapi-uss.js';
 import List from './List.js';
 
 export default function StarshipList() {
-  const [ { starships } ] = useSWAPI('starships', {}, { refresh: 1 });
+  const [ state ] = useSWAPI('starships', {}, { refresh: 1 });
+  const { starships } = state;
   return (
     <div>
       <h1>Starships</h1>
