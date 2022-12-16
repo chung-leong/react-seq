@@ -40,13 +40,13 @@ export function progressive(cb, options = {}) {
       elementFn = fn;
     };
 
-    let usableDefault = false;
-    let usables = {};
+    let usableDefault;
+    let usability = {};
     methods.usable = (arg) => {
       if (arg instanceof Object) {
         for (const [ name, value ] of Object.entries(arg)) {
           if (typeof(value) === 'number' || typeof(value) === 'function') {
-            usables[name] = value;
+            usability[name] = value;
           } else {
             throw new Error('usable() expects object properties to be numbers or functions');
           }
@@ -59,34 +59,34 @@ export function progressive(cb, options = {}) {
     };
 
     const asyncProps = await cb(methods);
-    checkAsyncProps(asyncProps, usables, usableDefault);
+    checkAsyncProps(asyncProps, usability, usableDefault);
     if (!elementType && !elementFn) {
       throw new Error('Callback function did not call type() to set the element type');
     }
     if (!elementFn) {
       elementFn = (props) => createElement(elementType, props);
     }
-    for await (const props of generateProps(asyncProps, usables)) {
+    for await (const props of generateProps(asyncProps, usability)) {
       yield elementFn(props);
     }
   }, options);
 }
 
-export function checkAsyncProps(asyncProps, usables, usableDefault) {
+export function checkAsyncProps(asyncProps, usability, usableDefault) {
   if (!(asyncProps instanceof Object)) {
     throw new Error('Callback function did not return an object');
   }
   if (process.env.NODE_ENV === 'development') {
-    for (const name of Object.keys(usables)) {
+    for (const name of Object.keys(usability)) {
       if (!(name in asyncProps)) {
         console.warn(`The prop "${name}" is given a usability criteria but is absent from the object returned`);
       }
     }
   }
-  if (usableDefault !== false) {
+  if (usableDefault !== undefined) {
     for (const name of Object.keys(asyncProps)) {
-      if (!(name in usables)) {
-        usables[name] = usableDefault;
+      if (!(name in usability)) {
+        usability[name] = usableDefault;
       }
     }
   }

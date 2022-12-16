@@ -221,7 +221,7 @@ describe('#generateProps()', function() {
       hello: Promise.resolve('Hello'),
       world: delay(5).then(() => 'World'),
     };
-    const generator = generateProps(props, {});
+    const generator = generateProps(props, { hello: 1, world: 1 });
     const list = await getList(generator);
     expect(list).to.have.lengthOf(1);
     expect(list[0]).to.eql({ hello: 'Hello', world: 'World' });
@@ -232,7 +232,7 @@ describe('#generateProps()', function() {
       world: delay(5).then(() => 'World'),
       cats: 5,
     };
-    const generator = generateProps(props, {});
+    const generator = generateProps(props, { hello: 1, world: 1 });
     const list = await getList(generator);
     expect(list).to.have.lengthOf(1);
     expect(list[0]).to.eql({ hello: 'Hello', world: 'World', cats: 5 });
@@ -253,7 +253,7 @@ describe('#generateProps()', function() {
       animals: createAnimals(),
     };
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, {});
+      const generator = generateProps(props, { hello: 1, world: 1, animals: NaN });
       const list = await getList(generator);
       expect(list).to.have.lengthOf(1);
       expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
@@ -273,7 +273,7 @@ describe('#generateProps()', function() {
     animals.total = 3;
     const props = { animals };
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, {});
+      const generator = generateProps(props, { animals: NaN });
       const list = await getList(generator);
       const { animals } = list[0];
       expect(animals).to.have.property('total', 3);
@@ -290,7 +290,7 @@ describe('#generateProps()', function() {
       world: delay(5).then(() => 'World'),
       animals: createAnimals(),
     };
-    const generator = generateProps(props, {});
+    const generator = generateProps(props, { hello: 1, world: 1, animals: NaN });
     const list = await getList(generator);
     expect(list).to.have.lengthOf(1);
     expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
@@ -300,7 +300,7 @@ describe('#generateProps()', function() {
       hello: Promise.resolve('Hello'),
       world: delay(5).then(() => 'World'),
     };
-    const generator = generateProps(props, { world: true });
+    const generator = generateProps(props, { hello: 1 });
     const list = await getList(generator);
     expect(list).to.have.lengthOf(2);
     expect(list[0]).to.eql({ hello: 'Hello', world: undefined });
@@ -322,7 +322,7 @@ describe('#generateProps()', function() {
       animals: createAnimals(),
     };
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, { animals: 2 });
+      const generator = generateProps(props, { hello: 1, world: 1, animals: 2 });
       const list = await getList(generator);
       expect(list).to.have.lengthOf(2);
       expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig' ] });
@@ -351,7 +351,7 @@ describe('#generateProps()', function() {
       return arr.length >= 2;
     }
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, { animals: checkArray });
+      const generator = generateProps(props, { hello: 1, world: 1, animals: checkArray });
       const list = await getList(generator);
       expect(list).to.have.lengthOf(2);
       expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig' ] });
@@ -374,7 +374,7 @@ describe('#generateProps()', function() {
       animals: createAnimals(),
     };
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, { world: 1, animals: 0 });
+      const generator = generateProps(props, { world: 1, animals: 1 });
       const list = await getList(generator);
       expect(list).to.have.lengthOf(3);
       expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow' ] });
@@ -398,7 +398,7 @@ describe('#generateProps()', function() {
       animals: createAnimals(),
     };
     await loopThrough(steps, 5, async() => {
-      const generator = generateProps(props, { animals: Infinity });
+      const generator = generateProps(props, { hello: 1, world: 1, animals: Infinity });
       const list = await getList(generator);
       expect(list).to.have.lengthOf(1);
       expect(list[0]).to.eql({ hello: 'Hello', world: 'World', animals: [ 'Cow', 'Pig', 'Chicken' ] });
@@ -409,7 +409,7 @@ describe('#generateProps()', function() {
       hello: Promise.resolve('Hello'),
       world: delay(5).then(() => 'World'),
     };
-    const generator = generateProps(props, { hello: 0, world: 0 });
+    const generator = generateProps(props, {});
     const list = await getList(generator);
     expect(list).to.have.lengthOf(3);
     expect(list[0]).to.eql({ hello: undefined, world: undefined });
@@ -433,7 +433,7 @@ describe('#generateProps()', function() {
       names: createAnimals(),
     };
     await loopThrough(steps, 5, async() => {
-      const generator = generateProps(props, { animals: 2 });
+      const generator = generateProps(props, { hello: 1, world: 1, animals: NaN, names: NaN });
       const list = await getList(generator);
       expect(list).to.have.lengthOf(1);
       expect(list[0]).to.eql({
@@ -460,7 +460,7 @@ describe('#generateProps()', function() {
       animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, {});
+      const generator = generateProps(props, { hello: 1, world: 1, animals: NaN });
       const list = await getList(generator);
       expect(list).to.have.lengthOf(1);
       expect(list[0]).to.eql({
@@ -486,7 +486,7 @@ describe('#generateProps()', function() {
       animals: createNumbers(),
     };
     await loopThrough(steps, 5, async () => {
-      const generator = generateProps(props, { world: 0, animals: 0 });
+      const generator = generateProps(props, { hello: 1 });
       const list = [];
       let error;
       try {
@@ -527,7 +527,7 @@ describe('#generateProps()', function() {
     await loopThrough(steps, 5, async () => {
       const output = {};
       await withSilentConsole(async () => {
-        const generator = generateProps(props, { world: true, animals: true });
+        const generator = generateProps(props, { hello: 1 });
         const list = [];
         let error;
         try {

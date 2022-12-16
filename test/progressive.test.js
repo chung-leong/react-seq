@@ -67,9 +67,10 @@ describe('#progressive', function() {
       function TestComponent({ animals }) {
         return animals.join(', ');
       }
-      const { element: el, abortManager: am } = progressive(async ({ fallback, type }) => {
+      const { element: el, abortManager: am } = progressive(async ({ fallback, type, usable }) => {
         fallback('None');
         type(TestComponent);
+        usable(NaN);
         return { animals: generate() };
       });
       await create(el);

@@ -8,13 +8,13 @@ export function useProgressiveState(cb, deps) {
 
 export function progressiveState(cb, setState, setError, options) {
   return sequentialState(async function* (methods) {
-    let usableDefault = false;
-    let usables = {};
+    let usableDefault;
+    let usability = {};
     methods.usable = (arg) => {
       if (arg instanceof Object) {
         for (const [ name, value ] of Object.entries(arg)) {
           if (typeof(value) === 'number' || typeof(value) === 'function') {
-            usables[name] = value;
+            usability[name] = value;
           } else {
             throw new Error('usable() expects object properties to be numbers or functions');
           }
@@ -27,7 +27,7 @@ export function progressiveState(cb, setState, setError, options) {
     };
 
     const asyncProps = await cb(methods);
-    checkAsyncProps(asyncProps, usables, usableDefault);
-    yield generateProps(asyncProps, usables);
+    checkAsyncProps(asyncProps, usability, usableDefault);
+    yield generateProps(asyncProps, usability);
   }, setState, setError, options);
 }

@@ -1,11 +1,11 @@
 import { isPromise, isAsyncGenerator, isSyncGenerator } from './utils.js';
 
-export async function* generateProps(asyncProps, usables) {
+export async function* generateProps(asyncProps, usability = {}) {
   const propSet = [];
   try {
     // see which props need to be handled asynchronously
     for (const [ name, value ] of Object.entries(asyncProps)) {
-      const usable = usables[name];
+      const usable = usability[name] ?? 0;
       if (isComplex(value)) {
         // create a generator that yield the value of this prop as time progresses
         // (i.e. an array becomes bigger as values are retrieved from generator)
@@ -42,20 +42,16 @@ export async function* generateProps(asyncProps, usables) {
         if (!p.resolved) {
           // see if the prop is usable despite not having been fully resolved
           let propUsable = false;
-          if (p.usable !== undefined) {
-            if (typeof(p.usable) === 'function') {
-              propUsable = !!p.usable(p.value, props);
-            } else if (typeof(p.usable) === 'number') {
-              let length = 0;
-              if (p.value instanceof Array) {
-                length = p.value.length;
-              } else {
-                length = (p.value != null) ? 1 : 0;
-              }
-              propUsable = length >= p.usable;
+          if (typeof(p.usable) === 'function') {
+            propUsable = !!p.usable(p.value, props);
+          } else if (typeof(p.usable) === 'number') {
+            let length = 0;
+            if (p.value instanceof Array) {
+              length = p.value.length;
             } else {
-              propUsable = !!p.usable;
+              length = (p.value != null) ? 1 : 0;
             }
+            propUsable = length >= p.usable;
           }
           if (!propUsable) {
             setUsable = false;
