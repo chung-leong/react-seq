@@ -132,10 +132,9 @@ The [character page](./src/Character.js) works largely the same way:
 
 ```js
 export default function Character({ id }) {
-  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, suspend, signal }) => {
     type(CharacterUI);
     defer(200);
-    usable(0);
     suspend(`character-${id}`);
     const person = await fetchOne(`people/${id}`, { signal });
     return {

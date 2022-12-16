@@ -31,11 +31,10 @@ This component is largely the same as [the original](../wordpress/src/ArticleLis
 ```js
 export default function ArticleList() {
   const wp = useWordPressPosts();
-  return useProgressive(async ({ fallback, type, defer, usable, manageEvents, signal }) => {
+  return useProgressive(async ({ fallback, type, defer, manageEvents, signal }) => {
     type(ArticleListUI);
     fallback(<ArticleLoading />);
     defer(200);
-    usable(0);
     usable({ articles: 1, categories: 1 });
     const [ on, eventual ] = manageEvents();
     const {

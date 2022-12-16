@@ -7,7 +7,6 @@ export default function ArticleList() {
   return useProgressive(async ({ fallback, type, usable, manageEvents, signal }) => {
     type(ArticleListUI);
     fallback(<div className="loading">Loading...</div>)
-    usable(0);
     usable({ articles: 1 });
     const [ on, eventual ] = manageEvents();
     const {

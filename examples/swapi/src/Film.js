@@ -3,10 +3,9 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Film({ id }) {
-  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, suspend, signal }) => {
     type(FilmUI);
     defer(200);
-    usable(0);
     suspend(`film-${id}`);
     const film = await fetchOne(`films/${id}`, { signal });
     return {

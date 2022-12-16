@@ -3,11 +3,10 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Vehicle({ id }) {
-  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, suspend, signal }) => {
     type(VehicleUI);
     defer(200);
     suspend(`vehicles-${id}`);
-    usable(0);
     const vehicle = await fetchOne(`vehicles/${id}`, { signal });
     return {
       vehicle,

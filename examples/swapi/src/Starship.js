@@ -3,10 +3,9 @@ import { fetchOne, fetchMultiple } from './swapi.js';
 import List from './List.js';
 
 export default function Starship({ id }) {
-  return useProgressive(async ({ type, defer, usable, suspend, signal }) => {
+  return useProgressive(async ({ type, defer, suspend, signal }) => {
     type(StarshipUI);
     defer(200);
-    usable(0);
     suspend(`starship-${id}`);
     const starship = await fetchOne(`starships/${id}`, { signal });
     return {

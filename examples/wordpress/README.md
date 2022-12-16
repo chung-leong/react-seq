@@ -73,10 +73,9 @@ Now it's time to examine [the component that supplies the data](./src/ArticeList
 ```js
 export default function ArticleList() {
   const wp = useWordPressPosts();
-  return useProgressive(async ({ fallback, type, usable, manageEvents, signal }) => {
+  return useProgressive(async ({ fallback, type, manageEvents, signal }) => {
     fallback(<div className="loading">Loading...</div>)
     type(ArticleListUI);
-    usable(0);
     usable({ articles: 1 });
     const [ on, eventual ] = manageEvents();
     const {
@@ -100,9 +99,8 @@ export default function ArticleList() {
 First, it calls `useWordPressPosts` to obtain a set of data retrieval functions. It then calls `useProgressive` with
 an anonymous async function. This function is expected to set up the necessary generators and configure the operation.
 It gets a number of config functions from React-seq by the way of destructuring. We use `fallback` to set a placeholder.
-We use `type` to indicate the target component. We call `usable` once to tell `useProgressive` that all props should
-be considered usable even when empty, then a second time, to put a minimum on `articles`. We want to have at least one
-article before we take down the fallback placeholder.
+We use `type` to indicate the target component. We call `usable` to impose a minimum number of items on `articles`.
+We want to have at least one article before we take down the fallback placeholder.
 
 We call `manageEvents` to gain event management functionalities. There's just one event to manage: `needForMore`. The
 promise of such an event is passed to `fetchAll` via an arrow function. When it is fulfilled, `fetchAll` knows a need
