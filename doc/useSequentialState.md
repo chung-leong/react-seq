@@ -1,5 +1,7 @@
 # useSequentialState(cb, deps)
 
+Return the latest value coming from an async generator
+
 ## Syntax
 
 ```js
@@ -18,9 +20,14 @@ function ProductPage({ productId }) {
 
 ## Parameters
 
-* `cb` - `<AsyncGeneratorFunction>`
-* `deps` - `<any[]>`
-* `return` `[ state, on, eventual ]`
+* `cb` - `<AsyncGeneratorFunction>` An async generator function that returns different states over time
+* `deps` - `<any[]>` Variables that the async generator function depends on, changes of which will cause it to be rerun
+* `return` `<any>`
+
+## Callback function
+
+* `funcs` `<Object>` An object containing configuration functions
+* `yield`  `<any>` or `<AsyncGenerator>`
 
 ## Configuration and management functions
 

@@ -24,8 +24,13 @@ function ProductPageUI(product, relatedProducts = []) {
 ## Parameters
 
 * `cb` - `<AsyncFunction>` An async function that sets up data sources and configure the operation
-* `deps` - `<any[]>` Variables that the async function depends on, whose changes will cause it to be rerun
+* `deps` - `<any[]>` Variables that the async function depends on, changes of which will cause it to be rerun
 * `return` `<Element>`
+
+## Callback function
+
+* `funcs` `<Object>` An object containing configuration functions
+* `return` `{ [key]: <Promise>|<AsyncGenerator>|<Generator>|<any> }`
 
 ## Configuration and management functions
 
@@ -40,7 +45,9 @@ function ProductPageUI(product, relatedProducts = []) {
 * [type](./type.md)
 * [usable](./usable.md)
 
-## Examples
+## Notes
+
+Uses [`useSequential`](./useSequential.md) and [`generateProps`](./generateProps.md) internally. You can
 
 ```js
 function ProductPage({ productId }) {

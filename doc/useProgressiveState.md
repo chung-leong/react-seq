@@ -1,5 +1,7 @@
 # useProgressiveState(cb, deps)
 
+Return a object whose properties that grow over time as data arrives
+
 ## Syntax
 
 ```js
@@ -29,6 +31,11 @@ function ProductPage({ productId }) {
 * `cb` - `<AsyncFunction>`
 * `deps` - `<any[]>`
 * `return` `<Object>`
+
+## Callback function
+
+* `funcs` `<Object>` An object containing configuration functions
+* `return` `{ [key]: <Promise>|<AsyncGenerator>|<Generator>|<any> }`
 
 ## Configuration and management functions
 
