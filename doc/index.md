@@ -1,4 +1,4 @@
-# API
+# React-seq Reference
 
 ## Hooks
 

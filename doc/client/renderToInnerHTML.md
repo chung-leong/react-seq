@@ -1,5 +1,7 @@
 # renderToInnerHTML(container, element[, options]) <sup>async</sup>
 
+Render a React element into HTML, assigning it afterward to a DOM node's innerHTML property
+
 ## Syntax
 
 ```js
@@ -14,3 +16,7 @@ const root = hydrateRoot(container, app);
 * `container` - `<DOMElement>`
 * `element` - `<ReactElement>`
 * `options` - `<object>`
+
+## Notes
+
+Used for performing server-side rendering in the browser during development.
