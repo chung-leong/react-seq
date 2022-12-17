@@ -11,8 +11,7 @@ const asyncProps = {
   categories: fetchCategories(),  // async generator
 };
 const usables = {
-  products: 0,
-  categories: 0,
+  shop: 1
 };
 const generator = generateProps(asyncProps, usables);
 for await (const props of generator) {
@@ -27,4 +26,4 @@ for await (const props of generator) {
 
 ## Notes
 
-See documentation for [`useProgressive`] for more details.
+See documentation for [`useProgressive`](./useProgressive.md) for more details.

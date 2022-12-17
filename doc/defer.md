@@ -31,7 +31,7 @@ function Widget({ id }) {
 
 * `delay` - `<number>` Duration of time in milliseconds.
 
-## Deferment Explained
+## Deferment explained
 
 The time required to perform a given asynchronous operation can vary greatly. A fetch, for instance, might require
 several seconds when a remote resource is accessed for the first time then only a few milliseconds once it's

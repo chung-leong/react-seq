@@ -46,3 +46,11 @@ function ProductPage({ productId }) {
 * [mount](./mount.md)
 * [signal](./signal.md)
 * [usable](./usable.md)
+
+## Notes
+
+`useProgressiveState` works in a completely analogous way as [`useProgressive`](./useProgressive.md).
+Consult its documentation for more information.
+
+Since states returned by `useProgressiveState` are always objects, its default initial state is `{}`, unlike
+[`useSequentialState`](./useSequentialState.md), which has `undefined` as its default initial state.
