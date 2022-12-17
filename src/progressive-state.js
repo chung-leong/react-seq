@@ -26,6 +26,8 @@ export function progressiveState(cb, setState, setError, options) {
       }
     };
 
+    // empty object as initial state by default, since progressiveState() always yield objects
+    methods.initial({});
     const asyncProps = await cb(methods);
     checkAsyncProps(asyncProps, usability, usableDefault);
     yield generateProps(asyncProps, usability);
