@@ -1,4 +1,4 @@
-# React-seq ![ci](https://img.shields.io/github/workflow/status/chung-leong/react-seq/Node.js%20CI?label=Node.js%20CI&logo=github) ![nycrc config on GitHub](https://img.shields.io/nycrc/chung-leong/react-seq)
+# React-seq ![ci](https://img.shields.io/github/actions/workflow/status/chung-leong/react-seq/node.js.yml?branch=main&label=Node.js%20CI&logo=github) ![nycrc config on GitHub](https://img.shields.io/nycrc/chung-leong/react-seq)
 
 React-seq is a light-weight library that helps you take full advantage of async functions and generators while
 developing React apps. It provides a set of hooks for managing processes that complete over time, such as loading
