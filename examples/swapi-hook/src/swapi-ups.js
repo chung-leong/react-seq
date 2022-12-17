@@ -7,8 +7,7 @@ export function useSWAPI(type, params = {}, options = {}) {
     delay = 100,
   } = options;
   const { id } = params;
-  const state = useProgressiveState(async ({ initial, defer, signal }) => {
-    initial({});
+  const state = useProgressiveState(async ({ defer, signal }) => {
     defer(delay);
     const opts = { signal };
     switch (type) {

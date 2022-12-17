@@ -101,6 +101,39 @@ describe('#useProgressiveState', function() {
       expect(state).to.eql({ drinks: [ 'Whiskey drink', 'Vodka drink', 'Lager drink', 'Cider drink' ], sober: false });
     });
   })
+  it('should have an empty object as it initial state by default', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      const createDrinks = async function*() {
+        await assertions[0];
+        yield 'Whiskey drink';
+        steps[1].done();
+        await assertions[1];
+        yield 'Vodka drink';
+        steps[2].done();
+        await assertions[2];
+        yield 'Lager drink';
+        steps[3].done();
+        await assertions[3];
+        yield 'Cider drink';
+        steps[4].done();
+      };
+      let state;
+      function Test() {
+        const cb = async () => {
+          return { drinks: createDrinks(), sober: false };
+        };
+        state = useProgressiveState(cb, []);
+        const { drinks, sober } = state;
+        return (sober) ? ':-(' : '8-)';
+      }
+      const el = createElement(Test);
+      const promise = create(el);
+      expect(state).to.eql({});
+      await promise;
+      expect(state).to.eql({ drinks: undefined, sober: false });
+    });
+  })
   it('should allowing usability to be set for specific prop', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
