@@ -29,6 +29,19 @@ describe('#EventManager', function() {
     const result = await promise;
     expect(result).to.eql({ click: 5 });
   })
+  it('should return just the fulfillment value when value is called', async function() {
+    const { on, eventual } = new EventManager({});
+    const handler = on.click;
+    const promise = eventual.click.value();
+    setTimeout(() => handler(6), 10);
+    const result = await promise;
+    expect(result).to.eql(6);
+  })
+  it('should return plain-old promise when value is called', async function() {
+    const { on, eventual } = new EventManager({});
+    const promise = eventual.click.value();
+    expect(promise.constructor).to.equal(Promise);
+  })
   it('should create a handler that triggers fulfillment with specified value', async function() {
     const { on, eventual } = new EventManager({});
     const handler = on.click.bind(6);

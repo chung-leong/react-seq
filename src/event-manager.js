@@ -65,6 +65,10 @@ class ManagedPromise extends Promise {
     return promise;
   }
 
+  value() {
+    return Promise.resolve(this.then(obj => Object.values(obj)[0]));
+  }
+
   setTimeout(delay) {
     const result = { timeout: delay };
     const timeout = setTimeout(() => this.resolve(result), delay);
