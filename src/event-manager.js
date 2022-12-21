@@ -156,13 +156,7 @@ class ManagedPromise extends Promise {
     if (op === 'or') {
       combined = Promise.race([ this, promise ]);
     } else {
-      combined = Promise.all([ this, promise ]).then(arr => {
-        const result = {};
-        for (const obj of arr.flat()) {
-          Object.assign(result, obj);
-        }
-        return result;
-      });
+      combined = Promise.all([ this, promise ]).then(arr => arr.flat().reduce((a, i) => Object.assign(a, i), {}));
     }
     const name = (this.name) ? `${this.name}.${op}.${suffix}` : suffix;
     combined = ManagedPromise.create(this.manager, name, true, combined);

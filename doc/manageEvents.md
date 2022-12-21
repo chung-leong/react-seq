@@ -109,13 +109,7 @@ Meanwhile, `eventual.click.and.keyPress.and.mouseOver` is equivalent to:
 Promise.all([
   Promise.all([ eventual.click, eventual.keyPress ]).then(arr => arr.flat()),
   eventual.mouseOver
-]).then(arr => {
-  const result = {};
-  for (const obj of arr.flat()) {
-    Object.assign(result, obj);
-  }
-  return result;
-});
+]).then(arr => arr.flat().reduce((a, i) => Object.assign(a, i), {}));
 ```
 
 The result of the expression above will be `{ click: [Event], keyPress: [Event], mouseOver: [Event] }`.
@@ -147,7 +141,7 @@ if (res.timeout) {
 }
 ```
 
-In the example above, the promise will resolve to `{ timeout: 180000 }` if `on.click` or `on.keyPress` are not invoked 
+In the example above, the promise will resolve to `{ timeout: 180000 }` if `on.click` or `on.keyPress` are not invoked
 within three minutes.
 
 Valid time units are `millisecond`, `second`, `minute`, and `hour` (plus their plural forms).
