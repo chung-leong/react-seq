@@ -20,15 +20,14 @@ function Widget({ id }) {
     yield (
       <div>
         <h1>{message}</h1>
-        <button onClick={on.click.alpha}>Alpha</button>
-        <button onClick={on.click.beta}>Beta</button>
-        <button onClick={on.click.gamma}>Gamma</button>
+        <button onClick={on.alpha}>Alpha</button>
+        <button onClick={on.beta}>Beta</button>
+        <button onClick={on.gamma}>Gamma</button>
       </div>
     );
-    const selection = await eventual.click;
-    switch (selection) {
-      case 'alpha':
-        /* ... */
+    const click = await eventual.alpha.or.beta.or.gamma;
+    if (click.alpha) {
+      /* ... */
     }
   })
 }
@@ -44,7 +43,9 @@ a handler without a corresponding promise is called or a promise without a corre
 `manageEvent` returns two objects, `on` and `eventual`. They are JavaScript
 [`Proxy`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects.
 Their properties are dynamically generated. When `on.click` is accessed, a handler gets automatically created,
-which fulfills the promise returned by `eventual.click` when called.
+which fulfills the promise returned by `eventual.click` when called. The value given to the handler will be placed
+in a object, keyed by the name of the handler/promise. So `on.click(1)` would result in `eventual.click` resolving
+to `{ click: 1 }`.
 
 Upon fulfillment the promise `eventual.click` vanishes. Accessing `eventual.click` again would create a new,
 unfulfilled promise, waiting for `on.click` to be called.
@@ -57,8 +58,8 @@ Error objects are treated like any other values. You can force the rejection of 
 
 ## Fulfillment value binding
 
-The fulfillment values of promises created by `eventual` are the arguments passed to their handlers. They
-will often be event objects. You can make a promise return a specific value with the help of `bind`:
+The fulfillment values of promises created by `eventual` are objects containing the arguments passed to their
+handlers. They will often be event objects. You can make a promise return a specific value with the help of `bind`:
 
 ```js
 yield (
@@ -70,7 +71,8 @@ yield (
 );
 ```
 
-Depending on which button gets clicked, `eventual.click` will resolve to one of the three strings.
+Depending on which button gets clicked, `eventual.click` will resolve to either `{ click: 'alpha' }`,
+`{ click: 'beta' }` or `{ click: 'gamma' }`.
 
 Functions created by `bind` are invariant, meaning the same function is returned when the same argument is
 given [[*](#notes)]:
@@ -81,27 +83,6 @@ console.log(on.click.bind('egg') === on.click.bind('egg'));
 ```
 
 The standard `bind(null, value)` syntax, with its pointless `this` variable, is also supported.
-
-## String binding shorthand
-
-You can bind a string to a handler simply by referencing a property by that name:
-
-```js
-yield (
-  <div>
-    <button onClick={on.click.alpha)}>Alpha</button>
-    <button onClick={on.click.beta}>Beta</button>
-    <button onClick={on.click.gamma}>Gamma</button>
-  </div>
-);
-```
-
-The example above is the exact equivalent to the example in the previous section.
-
-Strings matching the names of the
-[Function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Function)
-object's methods cannot to be used in this manner. These are `apply`, `bind`, `call`, `length`, `name`, `prototype`,
-and `toString`.
 
 ## Promise chaining
 
@@ -119,27 +100,40 @@ Promise.race([
 ]);
 ```
 
+The result of the expression above will be either `{ click: [Event] }`, `{ keyPress: [Event] }`, or
+`{ mouseOver: [Event] }`.
+
 Meanwhile, `eventual.click.and.keyPress.and.mouseOver` is equivalent to:
 
 ```js
 Promise.all([
   Promise.all([ eventual.click, eventual.keyPress ]).then(arr => arr.flat()),
   eventual.mouseOver
-]).then(arr => arr.flat());
+]).then(arr => {
+  const result = {};
+  for (const obj of arr.flat()) {
+    Object.assign(result, obj);
+  }
+  return result;
+});
 ```
+
+The result of the expression above will be `{ click: [Event], keyPress: [Event], mouseOver: [Event] }`.
 
 `or` and `and` are callable functions. You can use them to add a promise from elsewhere to the chain:
 
 ```js
 const res = await fetch(url, { signal });
-await eventual.click.or(res.json()).or.keyPress;
+await eventual.click.or('json', res.json()).or.keyPress;
 ```
+
+A name for the external promise is required.
 
 `eventual` itself can be called to start a chain:
 
 ```js
 const res = await fetch(url, { signal });
-await eventual(res.json()).and.click;
+await eventual('json', res.json()).and.click;
 ```
 
 ## Imposing Time Limit
@@ -147,14 +141,14 @@ await eventual(res.json()).and.click;
 You can use the `for` keyword to put a limit on waiting time:
 
 ```js
-const evt = await eventual.click.or.keyPress.for(3).minutes;
-if (evt === 'timeout') {
+const res = await eventual.click.or.keyPress.for(3).minutes;
+if (res.timeout) {
   /* ... */
 }
 ```
 
-In the example above, the promise will resolve to "timeout" if `on.click` or `on.keyPress` are not invoked within
-three minutes.
+In the example above, the promise will resolve to `{ timeout: 180000 }` if `on.click` or `on.keyPress` are not invoked 
+within three minutes.
 
 Valid time units are `millisecond`, `second`, `minute`, and `hour` (plus their plural forms).
 
