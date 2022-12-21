@@ -85,7 +85,11 @@ export function sequential(cb, options = {}) {
   let sync = true;
   methods.fallback = (el) => {
     if (!sync) {
-      throw new Error('Fallback component must be set prior to any yield or await statement');
+      if (!placeholder) {
+        throw new Error('Fallback component must be set prior to any yield or await statement');
+      } else {
+        return;
+      }
     }
     if (suspending) {
       throw new Error('fallback() cannot be used together with suspend()');

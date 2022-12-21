@@ -256,6 +256,27 @@ describe('#sequential()', function() {
       });
     });
   })
+  it('should not throw when fallback is called after an await statement when there is a fallback', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      const { element: el, abortManager: am } = sequential(async function*({ fallback, defer }) {
+        fallback('Cow');
+        await assertions[0];
+        fallback('Cow');
+        yield 'Pig';
+        steps[1].done();
+      });
+      await withSilentConsole(async () => {
+        const boundary = createErrorBoundary(el);
+        await create(boundary);
+        am.onMount();
+        expect(toJSON()).to.equal('Cow');
+        await assertions[0].done();
+        await steps[1];
+        expect(toJSON()).to.equal('Pig');
+      });
+    });
+  })
   it('should allow management of events using promises', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
