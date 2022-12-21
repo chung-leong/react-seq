@@ -1,4 +1,4 @@
-# generateProps(asyncProps, usables) <sup>`async generator`</sup>
+# generateProps(asyncProps, usability) <sup>`async generator`</sup>
 
 Internal function used by [`progressive`](./progressive.md) and [`progressiveState`](./progressiveState.md)
 
@@ -10,10 +10,10 @@ const asyncProps = {
   products: fetchProducts(),      // async generator
   categories: fetchCategories(),  // async generator
 };
-const usables = {
+const usability = {
   shop: 1
 };
-const generator = generateProps(asyncProps, usables);
+const generator = generateProps(asyncProps, usability);
 for await (const props of generator) {
   /* ... */
 }

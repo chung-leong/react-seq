@@ -1,4 +1,4 @@
-import { nextTick, timeout, until, createTrigger } from './utils.js';
+import { nextTick, createTrigger } from './utils.js';
 
 export class AbortManager extends AbortController {
   // scheduled abort

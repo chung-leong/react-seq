@@ -1,6 +1,7 @@
 import { isPromise, isAsyncGenerator, isSyncGenerator } from './utils.js';
 
-export async function* generateProps(asyncProps, usability = {}) {
+// NOTE: don't use default argument--it'll trigger transpiling bug
+export async function* generateProps(asyncProps, usability) {
   const propSet = [];
   try {
     // see which props need to be handled asynchronously
