@@ -83,13 +83,16 @@ At 160ms, "Finished" appears as before.
 
 By default, contents get rendered immediately upon retrieval (i.e. delay = 0).
 
-Do not use small numbers. The difference between 0 and 1 is huge (no timer vs timer firing 1000 a second)!
-Remember, 24 FPS corresponds to a frame time of 42ms.
+Do not use small numbers. The difference between 0 and 1 is huge! A timer that fires 1000 a second is not
+something that you want. Remember, 24 FPS corresponds to a frame time of 42ms. A delay of ~200ms is barely
+perceptible.
 
 During server-side rendering ([SSR](./settings.md)), deferment is always infinite. Content updates only occur at
 stoppage points--when the generator returns or when it awaits a promise from the [event manager](./manageEvents.md).
 
-When delay = Infinity, awaiting a promise from the event manager causes an automatic [flush](./flush.md).
+Awaiting a promise from the event manager causes an automatic [flush](./flush.md). It also disables deferment until
+the promise is fulfilled. The latter behavior is only relevant for [`useProgressive`](./useProgressive.md) and
+[`useProgressiveState`](./useProgressiveState.md), where you're be pulling data from multiple generators.
 
 You might wish to disable progressive rendering after a component has reached a stage of readiness and the
 generator is kept active only to update it occasionally with fresh data from the server. The following example uses

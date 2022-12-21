@@ -24,7 +24,7 @@ function Widget({ id }) {
 
 ## Notes
 
-When content update delay is infinite, a flush will happen automatically when the generator function awaits
-a promise from the [event manager](./manageEvents.md).
+A flush will happen automatically when the generator function awaits a promise from the
+[event manager](./manageEvents.md).
 
 This function probably has no real usage scenarios.

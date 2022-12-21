@@ -169,8 +169,7 @@ arguments (i.e. not objects) are involved due to garbage accumulation concerns. 
 kept in a [`WeakMap`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 hence there is no limit to their number.
 
-Awaiting a promise from the event manager will cause an automatic [flush](./flush.md) when the
-[update delay](./defer.md) is infinite.
+Awaiting a promise from the event manager will cause an automatic [flush](./flush.md).
 
 If you're using React-seq in a library and have no need for sophisticated event handling, you can exclude the
 event manager from your build by setting the environment variable `REACT_APP_SEQ_NO_EM` to 1.
