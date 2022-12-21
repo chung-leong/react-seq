@@ -525,7 +525,7 @@ describe('#useSequentialState()', function() {
           initial('Cow');
           const [ on, eventual ] = manageEvents();
           for (;;) {
-            defer(Infinity);
+            defer(100);
             await assertions[0];
             yield 'Pig';
             steps[1].done();
@@ -553,14 +553,14 @@ describe('#useSequentialState()', function() {
       expect(toJSON()).to.eql('Bear');
     });
   })
-  it('should not immediately flush on await when deferment delay is finite', async function() {
+  it('should disable deferrment after event manager reports an await', async function() {
     await withTestRenderer(async ({ create, update, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);
       function Test() {
         return useSequentialState(async function*({ defer, initial, manageEvents }) {
           initial('Cow');
           const [ on, eventual ] = manageEvents();
-          defer(20);
+          defer(Infinity);
           await assertions[0];
           yield 'Pig';
           steps[1].done();
@@ -570,7 +570,18 @@ describe('#useSequentialState()', function() {
           await assertions[2];
           yield 'Bear';
           steps[3].done();
-          await eventual.click.or.keyPress.or.peaceInPalestine;
+          eventual.click.or.keyPress.or.peaceInPalestine.then(() => {});
+          await assertions[3];
+          yield 'Dingo';
+          // resolving the promise means deferrment is turned back on
+          on.peaceInPalestine('snow in hell');
+          steps[4].done();
+          await assertions[4];
+          yield 'Rabbit';
+          steps[5].done();
+          await assertions[5];
+          yield 'Donkey';
+          steps[6].done();
         }, []);
       }
       const el = createElement(Test);
@@ -584,9 +595,16 @@ describe('#useSequentialState()', function() {
       expect(toJSON()).to.eql('Cow');
       await assertions[2].done();
       await steps[3];
-      expect(toJSON()).to.eql('Cow');
-      await delay(30);
       expect(toJSON()).to.eql('Bear');
+      await assertions[3].done();
+      await steps[4];
+      expect(toJSON()).to.eql('Dingo');
+      await assertions[4].done();
+      await steps[5];
+      expect(toJSON()).to.eql('Dingo');
+      await assertions[5].done();
+      await steps[6];
+      expect(toJSON()).to.eql('Donkey');
     });
   })
   it('should stop updating as soon as it unmounts', async function() {

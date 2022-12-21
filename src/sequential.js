@@ -104,18 +104,20 @@ export function sequential(cb, options = {}) {
   let flushFn;
   methods.flush = () => flushFn?.();
 
+  let awaiting = false;
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
     let eventManager;
     methods.manageEvents = (options = {}) => {
       if (!eventManager) {
         const onAwaitStart = () => {
-          // flush when deferment is infinite or we're doing ssr
-          if (iterator.delay === Infinity) {
-            flushFn?.();
-          }
+          awaiting = true;
+          flushFn?.();
         };
-        eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart });
+        const onAwaitEnd = () => {
+          awaiting = false;
+        };
+        eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
       }
       return [ eventManager.on, eventManager.eventual ];
     };
@@ -243,7 +245,7 @@ export function sequential(cb, options = {}) {
 
     function updateContent({ conditional = false, reusable = false }) {
       if (conditional) {
-        if (iterator.delay > 0 && !unusedSlot) {
+        if (iterator.delay > 0 && !unusedSlot && !awaiting) {
           // wait for next interruption
           return;
         }
