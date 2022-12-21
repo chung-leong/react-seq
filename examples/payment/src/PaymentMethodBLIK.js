@@ -15,7 +15,7 @@ export function PaymentMethodBLIK({ onSubmit, onCancel }) {
       <footer>
         <button onClick={() => onSubmit({ number })}>OK</button>
         {' '}
-        <button onClick={() => onCancel()}>Cancel</button>
+        <button onClick={onCancel}>Cancel</button>
       </footer>
     </div>
   );

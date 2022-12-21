@@ -27,7 +27,7 @@ export function PaymentMethodBankTransfer({ onSubmit, onCancel }) {
       <footer>
         <button onClick={() => onSubmit({ routingNumber, accountNumber, name })}>OK</button>
         {' '}
-        <button onClick={() => onCancel()}>Cancel</button>
+        <button onClick={onCancel}>Cancel</button>
       </footer>
     </div>
   );

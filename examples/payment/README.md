@@ -66,7 +66,8 @@ Now we're ready to take down the fallback placeholder and show some real content
   while (!success) {
     if (!method) {
       yield <PaymentSelectionScreen methods={methods} onSelect={on.selection} />;
-      method = await eventual.selection;
+      const { selection } = await eventual.selection;
+      method = selection;
     }
 ```
 
@@ -99,39 +100,34 @@ you might have written in your first-year CS class:
 This style of programming is easier to understand since it's closer to how we humans communicate. Debugging is easier
 too, as the execution point doesn't jump all over the place.
 
-Anyway, let us move on. Now that the user has selected a method, we display the corresponding form, passing `on.response`
-as the `onSubmit` handler and `on.response.cancel` as the `onCancel` handler:
+Anyway, let us move on. Promises from the event manager return fulfillment value inside an object, with the name of
+the promise as the key. Doing so allows us to figure out which promise was fulfilled when there are multiple promises
+involved. In this case there's just one promise: `selection`. We pluck out the value and assign it to `method`.
+
+Alternatively, we could have used the following line instead:
+
+```js
+      method = await eventual.selection.value();
+```
+
+Now that the user has selected a method, we display the corresponding form, passing `on.submission`
+as the `onSubmit` handler and `on.cancellation` as the `onCancel` handler:
 
 ```js
   const PaymentMethod = forms[method.name];
-  yield <PaymentMethod onSubmit={on.response} onCancel={on.response.cancel} />;
+  yield <PaymentMethod onSubmit={on.submission} onCancel={on.cancellation} />;
   const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
   // wait for user to submit the form or hit cancel button
-  const response = await eventual.response;
-  if (response === 'cancel') {
+  const { submission } = await eventual.submission.or.cancellation;
+  if (!submission) {
     // go back to selection screen
     method = null;
     continue;
   }
 ```
 
-The latter is syntactic sugar for `on.response.bind('cancel')`. When it's called, it fulfills the promise
-`eventual.response` with the string "cancel". If that's what we get then we know the user has clicked the cancel
-button and we respond by clearing `method` and restarting from the top of the loop.
-
-An alternative way to implement the logic above would be to await on a separate `cancel` promise:
-
-```js
-  yield <PaymentMethod onSubmit={on.response} onCancel={on.cancellation.bind(null)} />;
-  const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
-  const response = await eventual.response.or.cancellation;
-  if (!response) {
-    method = null;
-    continue;
-  }
-```
-
-We would still use `bind`, so that we're not dependent on the form calling the handler with the right argument.
+Here we wait for two events: `submission` or `cancellation`. If the user didn't hit the submit button, then obviously
+he hit the other, in which case we clear `method` and start the loop from the top again. 
 
 While the user is filling the form, we use the occasion to load in the next screen. In theory, if the user types
 really really fast, he could submit a response before we start waiting for it. There're ways we can fix this.
@@ -142,7 +138,7 @@ Once we have the user response, we call a function to process the payment, putti
 ```js
 yield <PaymentProcessingScreen method={method} />;
 try {
-  const payment = await processPayment(method, response);
+  const payment = await processPayment(method, submission);
   const { PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
   yield <PaymentCompleteScreen payment={payment} />;
   success = true;

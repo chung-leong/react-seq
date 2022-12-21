@@ -23,21 +23,22 @@ export function PaymentPage() {
     while (!success) {
       if (!method) {
         yield <PaymentSelectionScreen methods={methods} onSelect={on.selection} />;
-        method = await eventual.selection;
+        const { selection } = await eventual.selection;
+        method = selection;
       }
       const PaymentMethod = forms[method.name];
-      yield <PaymentMethod onSubmit={on.response} onCancel={on.response.cancel} />;
+      yield <PaymentMethod onSubmit={on.submission} onCancel={on.cancellation} />;
       const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
       // wait for user to submit the form or hit cancel button
-      const response = await eventual.response;
-      if (response === 'cancel') {
+      const { submission } = await eventual.submission.or.cancellation;
+      if (!submission) {
         // go back to selection screen
         method = null;
         continue;
       }
       yield <PaymentProcessingScreen method={method} />;
       try {
-        const payment = await processPayment(method, response);
+        const payment = await processPayment(method, submission);
         const { PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
         yield <PaymentCompleteScreen payment={payment} />;
         success = true;

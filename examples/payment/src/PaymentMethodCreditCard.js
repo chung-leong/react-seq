@@ -27,7 +27,7 @@ export function PaymentMethodCreditCard({ onSubmit, onCancel }) {
       <footer>
         <button onClick={() => onSubmit({ number, name, expiration })}>OK</button>
         {' '}
-        <button onClick={() => onCancel()}>Cancel</button>
+        <button onClick={onCancel}>Cancel</button>
       </footer>
     </div>
   );
