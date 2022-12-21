@@ -190,6 +190,26 @@ describe('#sequentialState()', function() {
       expect(results).to.eql([ 'Whiskey drink', 'Vodka drink', 'Lager drink' ]);
     });
   })
+  it('should create only a single instance of event manager', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      let triggerClick;
+      let on1, on2, eventual1, eventual2;
+      sequentialState(async function*({ manageEvents }) {
+        await assertions[0];
+        [ on1, eventual1 ] = manageEvents();
+        [ on2, eventual2 ] = manageEvents();
+        steps[1].done();
+        yield 'Hello';
+      });
+      await assertions[0].done();
+      await steps[1];
+      expect(on1).to.not.be.undefined;
+      expect(on1).to.equal(on2);
+      expect(eventual1).to.not.be.undefined;
+      expect(eventual1).to.equal(eventual2);
+    });
+  })
 })
 
 describe('#useSequentialState()', function() {

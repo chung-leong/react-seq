@@ -84,15 +84,18 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   // let callback manages events with help of promises
   if (!process.env.REACT_APP_SEQ_NO_EM) {
+    let eventManager;
     methods.manageEvents = (options = {}) => {
-      const onAwaitStart = () => {
-        // flush when deferment is infinite
-        if (iterator.delay === Infinity) {
-          flushFn?.();
-        }
-      };
-      const em = new EventManager({ ...options, signal, inspector, onAwaitStart });
-      return [ em.on, em.eventual ];
+      if (!eventManager) {
+        const onAwaitStart = () => {
+          // flush when deferment is infinite
+          if (iterator.delay === Infinity) {
+            flushFn?.();
+          }
+        };
+        eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart });
+      }
+      return [ eventManager.on, eventManager.eventual ];
     };
   }
 
