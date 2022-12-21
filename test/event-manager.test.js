@@ -26,8 +26,8 @@ describe('#EventManager', function() {
     const promise = eventual.click;
     expect(handler).to.be.a('function');
     handler(5);
-    const value = await promise;
-    expect(value).to.equal(5);
+    const result = await promise;
+    expect(result).to.eql({ click: 5 });
   })
   it('should create a handler that triggers fulfillment with specified value', async function() {
     const { on, eventual } = new EventManager({});
@@ -35,10 +35,10 @@ describe('#EventManager', function() {
     const promise1 = eventual.click;
     const promise2 = eventual.keypress;
     setTimeout(() => handler(5), 10);
-    const value1 = await promise1;
-    expect(value1).to.equal(6);
-    const value2 = await Promise.race([ promise2, delay(5) ]);
-    expect(value2).to.be.undefined;
+    const result1 = await promise1;
+    expect(result1).to.eql({ click: 6 });
+    const result2 = await Promise.race([ promise2, delay(5) ]);
+    expect(result2).to.be.undefined;
   })
   it('should create a handler that triggers fulfillment with given object', async function() {
     const { on, eventual } = new EventManager({});
@@ -47,57 +47,57 @@ describe('#EventManager', function() {
     const promise1 = eventual.click;
     const promise2 = eventual.keypress;
     setTimeout(() => handler(5), 10);
-    const value1 = await promise1;
-    expect(value1).to.equal(object);
-    const value2 = await Promise.race([ promise2, delay(5) ]);
-    expect(value2).to.be.undefined;
+    const result1 = await promise1;
+    expect(result1.click).to.equal(object);
+    const result2 = await Promise.race([ promise2, delay(5) ]);
+    expect(result2).to.be.undefined;
   })
   it('should use the second argument as the fulfillment value as well', async function() {
     const { on, eventual } = new EventManager({});
     const handler = on.click.bind(null, 6);
     const promise = eventual.click;
     setTimeout(() => handler(5), 10);
-    const value = await promise;
-    expect(value).to.equal(6);
+    const result = await promise;
+    expect(result).to.eql({ click: 6 });
   })
   it('should create a handler that triggers fulfillment with specified string', async function() {
     const { on, eventual } = new EventManager({});
-    const handler = on.click.ok;
+    const handler = on.click.bind('ok');
     const promise1 = eventual.click;
     const promise2 = eventual.keypress;
     setTimeout(() => handler(5), 10);
-    const value1 = await promise1;
-    expect(value1).to.equal('ok');
-    const value2 = await Promise.race([ promise2, delay(5) ]);
-    expect(value2).to.be.undefined;
+    const result1 = await promise1;
+    expect(result1).to.eql({ click: 'ok' });
+    const result2 = await Promise.race([ promise2, delay(5) ]);
+    expect(result2).to.be.undefined;
   })
   it('should create handlers that are invariant', function() {
     const { on, eventual } = new EventManager({});
     expect(on.click).to.equal(on.click);
-    expect(on.click.ok).to.equal(on.click.ok);
+    expect(on.click.bind('ok')).to.equal(on.click.bind('ok'));
     const obj = {};
     expect(on.click.bind(obj)).to.equal(on.click.bind(obj));
   })
   it('should maintain invariance for up to 128 scalar-value handlers', function() {
     const { on, eventual } = new EventManager({});
-    const handler1 = on.click[1];
+    const handler1 = on.click.bind(1);
     for (let i = 2; i <= 128; i++) {
-      const handlerI = on.click[i];
+      const handlerI = on.click.bind(i);
     }
-    expect(handler1).to.equal(on.click[1]);
-    const handler129 = on.click[129];
-    expect(handler1).to.not.equal(on.click[1]);
+    expect(handler1).to.equal(on.click.bind(1));
+    const handler129 = on.click.bind(129);
+    expect(handler1).to.not.equal(on.click.bind(1));
   })
   it('should return new promise after previous one has been fulfilled', async function() {
     const { on, eventual } = new EventManager({});
     const handler = on.click.bind(6);
     const promise1 = eventual.click;
     handler(5);
-    const value1 = await promise1;
+    const result1 = await promise1;
     const promise2 = eventual.click;
     expect(promise2).to.not.equal(promise1);
-    const value2 = await Promise.race([ promise2, delay(5) ]);
-    expect(value2).to.be.undefined;
+    const result2 = await Promise.race([ promise2, delay(5) ]);
+    expect(result2).to.be.undefined;
   })
   it('should create promises that can be chained', async function() {
     const { on, eventual } = new EventManager({});
@@ -107,31 +107,31 @@ describe('#EventManager', function() {
     const promise2 = eventual.click.and.keypress;
     expect(promise1).to.a('promise');
     handler1(8);
-    const value1 = await promise1;
-    expect(value1).to.equal(8);
-    const value2 = await Promise.race([ promise2, delay(5) ]);
-    expect(value2).to.be.undefined;
+    const result1 = await promise1;
+    expect(result1).to.eql({ click: 8 });
+    const result2 = await Promise.race([ promise2, delay(5) ]);
+    expect(result2).to.be.undefined;
     handler2(17);
     const value3 = await Promise.race([ promise2, delay(5) ]);
-    expect(value3).to.eql([ 8, 17 ]);
+    expect(value3).to.eql({ click: 8, keypress: 17 });
   })
   it('should create promises that can be chained with other promises', async function() {
     const { on, eventual } = new EventManager({});
     const handler1 = on.click;
-    const promise1 = eventual.click.or(delay(100)).or(delay(300));
-    const promise2 = eventual.click.and(delay(30));
-    const promise3 = eventual(delay(10)).and(Promise.resolve(18));
+    const promise1 = eventual.click.or('timeout1', delay(100)).or('timeout2', delay(300));
+    const promise2 = eventual.click.and('timeout', delay(30));
+    const promise3 = eventual('timeout', delay(10)).and('instant', Promise.resolve(18));
     expect(promise1).to.a('promise');
     handler1(8);
-    const value1 = await promise1;
-    expect(value1).to.equal(8);
-    const value2 = await Promise.race([ promise2, delay(10) ]);
-    expect(value2).to.be.undefined;
+    const result1 = await promise1;
+    expect(result1).to.eql({ click: 8 });
+    const result2 = await Promise.race([ promise2, delay(10) ]);
+    expect(result2).to.be.undefined;
     const value3 = await promise3;
-    expect(value3).to.eql([ undefined, 18 ]);
+    expect(value3).to.eql({ timeout: undefined, instant: 18 });
     delay(25);
     const value4 = await Promise.race([ promise2, delay(20) ]);
-    expect(value4).to.eql([ 8, undefined ]);
+    expect(value4).to.eql({ click: 8, timeout: undefined });
   })
   it('should create filtering handler when apply is used', async function() {
     const { on, eventual } = new EventManager({});
@@ -140,33 +140,33 @@ describe('#EventManager', function() {
     expect(handler).to.equal(on.click.apply(filter));
     setTimeout(() => handler('hello'), 10);
     const value = await eventual.click;
-    expect(value).to.equal('[hello]');
+    expect(value).to.eql({ click: '[hello]' });
   })
   it('should behave as expected apply is called in the normal way', async function() {
     const { on, eventual } = new EventManager({});
     setTimeout(() => on.click.apply(), 10);
-    const value1 = await eventual.click;
-    expect(value1).to.be.undefined;
+    const result1 = await eventual.click;
+    expect(result1).to.eql( { click: undefined });
     setTimeout(() => on.click.apply(null, [ 'duck' ]), 10);
-    const value2 = await eventual.click;
-    expect(value2).to.be.equal('duck');
+    const result2 = await eventual.click;
+    expect(result2).to.be.eql({ click: 'duck' });
   })
   it('should allow value marked by important to be retrieved later', async function() {
     const { on, eventual } = new EventManager({});
     const handler = on.click.apply(important);
     handler('Turkey');
-    const value1 = await eventual.click;
-    expect(value1).to.equal('Turkey');
-    const value2 = await eventual.click.or(delay(10));
-    expect(value2).to.equal(undefined);
+    const result1 = await eventual.click;
+    expect(result1).to.eql({ click: 'Turkey' });
+    const result2 = await eventual.click.or('timeout', delay(10));
+    expect(result2).to.eql({ timeout: undefined });
   })
   it('should throw value marked by throwing', async function() {
     const { on, eventual } = new EventManager({});
     const handler1 = on.click;
     const handler2 = on.click.apply(throwing);
     setTimeout(() => handler1(new Error), 10);
-    const value1 = await eventual.click;
-    expect(value1).to.be.instanceOf(Error);
+    const result1 = await eventual.click;
+    expect(result1.click).to.be.instanceOf(Error);
     handler2(important(new Error('Hello world')));
     let error1;
     try {
@@ -201,7 +201,7 @@ describe('#EventManager', function() {
     setTimeout(() => abortController.abort(), 10);
     let error;
     try {
-      await eventual(dead);
+      await eventual('dead', dead);
     } catch (err) {
       error = err;
     }
@@ -224,34 +224,34 @@ describe('#EventManager', function() {
     const { on, eventual } = new EventManager({});
     const promise = eventual.click.for(20).milliseconds;
     expect(promise).to.be.a('promise');
-    const value = await promise;
-    expect(value).to.equal('timeout');
+    const result = await promise;
+    expect(result).to.eql({ timeout: 20 });
   })
   it('should cancel timeout when promise is fulfilled', async function() {
     const { on, eventual } = new EventManager({});
     const promise = eventual.click.for(20).milliseconds;
     expect(promise).to.be.a('promise');
     on.click('clicked');
-    const value = await promise;
-    expect(value).to.not.equal('timeout');
+    const result = await promise;
+    expect(result).to.not.eql({ timeout: 20 });
   })
   it('should permit attachment of timeout to promise chain', async function() {
     const { on, eventual } = new EventManager({});
     const promise = eventual.click.and.keypress.or.scroll.for(20).milliseconds;
     expect(promise).to.be.a('promise');
-    const value = await promise;
-    expect(value).to.equal('timeout');
+    const result = await promise;
+    expect(result).to.eql({ timeout: 20 });
   })
-  it('should flatten result from chaining multiple promises with and', async function() {
+  it('should combine results from multiple promises chained with and', async function() {
     const { on, eventual } = new EventManager({});
     const promise = eventual.click.and.keypress.and.scroll.and.resize;
     expect(promise).to.be.a('promise');
-    on.click.done();
-    on.keypress.done();
-    on.scroll.done();
-    on.resize.done();
-    const value = await promise;
-    expect(value).to.eql([ 'done', 'done', 'done', 'done' ]);
+    on.click('done');
+    on.keypress('done');
+    on.scroll('done');
+    on.resize('done');
+    const result = await promise;
+    expect(result).to.eql({ click: 'done', keypress: 'done', scroll: 'done', resize: 'done' });
   })
   it('should simply return the promise when delay is Infinity', async function() {
     const { on, eventual } = new EventManager({});
@@ -330,9 +330,9 @@ describe('#EventManager', function() {
     expect(eventual.click).to.have.property('name', 'click');
     expect(eventual.click.or.keyPress).to.have.property('name', 'click.or.keyPress');
     expect(eventual.click.and.keyPress).to.have.property('name', 'click.and.keyPress');
-    expect(eventual(promise)).to.have.property('name', '<promise>');
-    expect(eventual(promise).or.click).to.have.property('name', '<promise>.or.click');
-    expect(eventual(promise).or.click.and(promise)).to.have.property('name', '<promise>.or.click.and.<promise>');
+    expect(eventual('hello', promise)).to.have.property('name', 'hello');
+    expect(eventual('hello', promise).or.click).to.have.property('name', 'hello.or.click');
+    expect(eventual('hello', promise).or.click.and('world', promise)).to.have.property('name', 'hello.or.click.and.world');
     expect(eventual.click.and.keyPress.for(5).minutes).to.have.property('timeout', 5 * 60 * 1000);
   })
   it('should invoke onAwaitStart when await occurs', async function() {
@@ -368,5 +368,17 @@ describe('#EventManager', function() {
     promise.reject(new Error('Never gonna happen'));
     await delay(5);
     expect(ended).to.equal(3);
+  })
+  it('should throw when eventual is called without a name', async function() {
+    const { on, eventual } = new EventManager({});
+    expect(() => eventual(Promise.resolve(1))).to.throw()
+      .with.property('message', 'A name for the promise is expected');
+  })
+  it('should throw when .or or .and is called without a name', async function() {
+    const { on, eventual } = new EventManager({});
+    expect(() => eventual.click.or(Promise.resolve(1))).to.throw()
+      .with.property('message', 'A name for the promise is expected');
+    expect(() => eventual.click.and(Promise.resolve(1))).to.throw()
+      .with.property('message', 'A name for the promise is expected');
   })
 })

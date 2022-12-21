@@ -66,7 +66,8 @@ class ManagedPromise extends Promise {
   }
 
   setTimeout(delay) {
-    const timeout = setTimeout(() => this.resolve('timeout'), delay);
+    const result = { timeout: delay };
+    const timeout = setTimeout(() => this.resolve(result), delay);
     const stop = () => clearTimeout(timeout);
     super.then(stop, stop);
     this.timeout = delay;
@@ -109,13 +110,13 @@ class ManagedPromise extends Promise {
   }
 
   // promise from an 'or' chain fulfills when the quickest one fulfills
-  or(promise) {
-    return this.combineWithExternal('or', promise);
+  or(name, promise) {
+    return this.combineWithExternal('or', name, promise);
   }
 
   // promise from an 'and' chain fulfills when all promises do
-  and(promise) {
-    return this.combineWithExternal('and', promise);
+  and(name, promise) {
+    return this.combineWithExternal('and', name, promise);
   }
 
   // allow the syntax
@@ -133,8 +134,16 @@ class ManagedPromise extends Promise {
     }
   }
 
-  combineWithExternal(op, promise) {
-    return this.combineWith(op, promise, '<promise>');
+  combineWithExternal(op, name, promise) {
+    if (typeof(name) !== 'string') {
+      throw new TypeError('A name for the promise is expected');
+    }
+    const namedOutput = promise.then((value) => {
+      const obj = {};
+      obj[name] = value;
+      return obj;
+    });
+    return this.combineWith(op, namedOutput, name);
   }
 
   combineWith(op, promise, suffix) {
@@ -143,7 +152,13 @@ class ManagedPromise extends Promise {
     if (op === 'or') {
       combined = Promise.race([ this, promise ]);
     } else {
-      combined = Promise.all([ this, promise ]).then(arr => arr.flat());
+      combined = Promise.all([ this, promise ]).then(arr => {
+        const result = {};
+        for (const obj of arr.flat()) {
+          Object.assign(result, obj);
+        }
+        return result;
+      });
     }
     const name = (this.name) ? `${this.name}.${op}.${suffix}` : suffix;
     combined = ManagedPromise.create(this.manager, name, true, combined);
@@ -164,7 +179,7 @@ export class EventManager {
   on = new Proxy({}, { get: (_, name) => this.getHandler(name), set: throwError });
   // proxy yielding promises, which is callable itself
   eventual = new Proxy(
-    (promise) => this.abortPromise.combineWithExternal('or', promise),
+    (name, promise) => this.abortPromise.combineWithExternal('or', name, promise),
     { get: (_, name) => this.getPromise(name), set: throwError }
   );
   // inspector used to log events
@@ -213,39 +228,23 @@ export class EventManager {
     const { handlers } = this;
     let handler = handlers[name];
     if (!handler) {
-      const fn = (value) => this.settlePromise(name, value);
+      handler = handlers[name] = (value) => this.settlePromise(name, value);
       const valueHandlers = { hash: null, map: null };
-      handlers[name] = handler = new Proxy(fn, {
-        get: (fn, key) => this.getHandlerProp(fn, name, valueHandlers, key),
-        set: throwError,
-      });
-      fn.bind = (...args) => {
+      handler.bind = (...args) => {
         const value = (args.length < 2) ? args[0] : args[1];
         return this.getValueHandler(name, valueHandlers, value);
       };
-      const applyFn = fn.apply;
+      const applyFn = handler.apply;
       const filterHandlers = { map: null };
-      fn.apply = (...args) => {
+      handler.apply = (...args) => {
         if (args.length !== 1 || typeof(args[0]) !== 'function') {
-          return applyFn.call(fn, ...args);
+          return applyFn.call(handler, ...args);
         } else {
           return this.getApplyHandler(name, filterHandlers, args[0]);
         }
       };
     }
     return handler;
-  }
-
-  getHandlerProp(fn, name, handlers, key) {
-    let value = fn[key];
-    if (value !== undefined) {
-      // return properties of function
-      return value;
-    } else {
-      if (typeof(key) === 'string') {
-        return this.getValueHandler(name, handlers, key);
-      }
-    }
   }
 
   getValueHandler(name, handlers, value) {
@@ -327,7 +326,9 @@ export class EventManager {
       if (rejecting) {
         promise.reject(value);
       } else {
-        promise.resolve(value);
+        const obj = {};
+        obj[name] = value;
+        promise.resolve(obj);
       }
       handled = true;
     }
