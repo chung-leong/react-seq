@@ -1,4 +1,4 @@
-import { useSequentialState } from 'react-seq';
+import { useSequentialState, throwing } from 'react-seq';
 
 export function useMediaCapture(options = {}) {
   const {
@@ -172,12 +172,9 @@ export function useMediaCapture(options = {}) {
         videoDimensions = { width: liveVideo.width, height: liveVideo.height };
       }
       mediaRecorder.addEventListener('start', on.mediaStart, { once: true });
-      mediaRecorder.addEventListener('error', on.mediaError, { once: true });
+      mediaRecorder.addEventListener('error', on.mediaError.bind(throwing), { once: true });
       mediaRecorder.start(segment);
-      const evt = await eventual.mediaStart.or.mediaError;
-      if (evt.type === 'error') {
-        throw evt.error;
-      }
+      await eventual.mediaStart.or.mediaError;
     }
 
     async function stopRecorder() {
@@ -296,7 +293,7 @@ export function useMediaCapture(options = {}) {
           const el = await createVideoElement(stream);
           if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
             liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
-            on.streamChange({ type: 'streamchange' });
+            on.streamChange({ type: 'resize' });
           }
         }
       }, { once: true });
@@ -317,21 +314,21 @@ export function useMediaCapture(options = {}) {
             await openStream();
             status = 'previewing';
           } else if (status === 'previewing') {
-            const evt = await eventual.userRequest.or.streamChange.or.deviceChange.or.volumeChange;
-            if (evt.type === 'record') {
-              await startRecorder(evt.options, evt.segment, evt.callback);
+            const res = await eventual.userRequest.or.streamChange.or.deviceChange.or.volumeChange;
+            if (res.userRequest?.type === 'record') {
+              await startRecorder(res.userRequest.options, res.userRequest.segment, res.userRequest.callback);
               status = 'recording';
-            } else if (evt.type === 'snap') {
-              await createSnapShot(evt.mimeType, evt.quality);
+            } else if (res.userRequest?.type === 'snap') {
+              await createSnapShot(res.userRequest.mimeType, res.userRequest.quality);
               status = 'recorded';
-            } else if (evt.type === 'select') {
+            } else if (res.userRequest?.type === 'select') {
               closeStream();
-              selectedDeviceId = evt.deviceId;
+              selectedDeviceId = res.userRequest.deviceId;
               status = 'acquiring';
-            } else if (evt.type === 'streamend') {
+            } else if (res.streamChange?.type === 'streamend') {
               closeStream();
               status = 'acquiring';
-            } else if (evt.type === 'devicechange') {
+            } else if (res.deviceChange) {
               const prev = devices;
               await getDevices();
               if (selectNewDevice) {
@@ -344,35 +341,35 @@ export function useMediaCapture(options = {}) {
               }
             }
           } else if (status === 'recording') {
-            const evt = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
-            if (evt.type === 'stop') {
+            const res = await eventual.userRequest.or.streamChange.or.durationChange.or.volumeChange;
+            if (res.userRequest?.type === 'stop') {
               const recorded = await stopRecorder();
               status = (recorded) ? 'recorded' : 'previewing';
-            } else if (evt.type === 'pause') {
+            } else if (res.userRequest?.type === 'pause') {
               mediaRecorder.pause();
               status = 'paused';
-            } else if (evt.type === 'streamend') {
+            } else if (res.streamChange?.type === 'streamend') {
               closeStream();
               const recorded = await stopRecorder();
               status = (recorded) ? 'recorded' : 'acquiring';
             }
           } else if (status === 'paused') {
-            const evt = await eventual.userRequest.or.streamChange.or.volumeChange;
-            if (evt.type === 'stop') {
+            const res = await eventual.userRequest.or.streamChange.or.volumeChange;
+            if (res.userRequest?.type === 'stop') {
               const recorded = await stopRecorder()
               status = (recorded) ? 'recorded' : 'previewing';
-            } else if (evt.type === 'resume') {
+            } else if (res.userRequest?.type === 'resume') {
               mediaRecorder.resume();
               status = 'recording';
-            } else if (evt.type === 'streamend') {
+            } else if (res.streamChange?.type === 'streamend') {
               closeStream();
               const recorded = await stopRecorder();
               status = (recorded) ? 'recorded' : 'acquiring';
             }
           } else if (status === 'recorded') {
             unwatchAudioVolume();
-            const evt = await eventual.userRequest.or.streamChange;
-            if (evt.type === 'clear') {
+            const res = await eventual.userRequest.or.streamChange;
+            if (res.userRequest?.type === 'clear') {
               capturedVideo = undefined;
               capturedAudio = undefined;
               capturedImage = undefined;
@@ -382,17 +379,17 @@ export function useMediaCapture(options = {}) {
                 // refresh the list just in case something was plugged in
                 await getDevices();
               }
-            } else if (evt.type === 'streamend') {
+            } else if (res.streamChange?.type === 'streamend') {
               closeStream();
             }
           } else if (status === 'denied') {
-            const evt = await eventual.deviceChange.or.permissionChange;
-            if (evt.type === 'devicechange') {
+            const res = await eventual.deviceChange.or.permissionChange;
+            if (res.deviceChange) {
               await getDevices();
               if (devices.length > 0) {
                 status = 'acquiring';
               }
-            } else if (evt.type === 'change') {
+            } else if (res.permissionChange) {
               status = 'acquiring';
             }
           }
