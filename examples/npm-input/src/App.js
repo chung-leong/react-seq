@@ -20,7 +20,7 @@ export default function App() {
       </datalist>
     );
   }
-  
+
   return (
     <div className="App">
       <div>
@@ -68,8 +68,7 @@ function useNPMList2(search) {
 
 function useNPMList3(search) {
   const searchDeferred = useDeferredValue(search.trim());
-  const { list } = useProgressiveState(async ({ initial, signal }) => {
-    initial({ list: [] });
+  const { list = [] } = useProgressiveState(async ({ signal }) => {
     return { list: fetchPackages(searchDeferred, { signal }) };
   }, [ searchDeferred ]);
   return list;

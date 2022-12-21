@@ -113,8 +113,7 @@ We can also use [`useProgressiveState`](../../doc/useProgressiveState):
 ```js
 function useNPMList3(search) {
   const searchDeferred = useDeferredValue(search.trim());
-  const { list } = useProgressiveState(async ({ initial, signal }) => {
-    initial({ list: [] });
+  const { list = [] } = useProgressiveState(async ({ signal }) => {
     return { list: fetchPackages(searchDeferred, { signal }) };
   }, [ searchDeferred ]);
   return list;
