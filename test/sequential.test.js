@@ -717,10 +717,10 @@ describe('#useSequential()', function() {
             await assertions[0];
             yield 'Pig';
             steps[1].done();
-            await eventual.click.or.keypress.and(assertions[1]);
+            await eventual.click.or.keypress.and('assertion', assertions[1]);
             yield 'Chicken';
             steps[2].done();
-            await eventual.click.and(assertions[2]);
+            await eventual.click.and('assertion', assertions[2]);
             yield 'Rocky';
             steps[3].done('end');
           } finally {
@@ -756,10 +756,10 @@ describe('#useSequential()', function() {
             await assertions[0];
             yield 'Pig';
             steps[1].done();
-            await eventual.click.and.keypress.and(assertions[1]);
+            await eventual.click.and.keypress.and('assertion', assertions[1]);
             yield 'Chicken';
             steps[2].done();
-            await eventual.click.and(assertions[2]);
+            await eventual.click.and('assertion', assertions[2]);
             yield cat;
             steps[3].done();
             await assertions[3];

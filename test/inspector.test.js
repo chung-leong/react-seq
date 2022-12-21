@@ -121,10 +121,10 @@ describe('#PromiseLogger', function() {
     const inspector = new PromiseLogger();
     const { on, eventual } = new EventManager({ inspector });
     const promise = Promise.resolve();
-    await eventual(promise).for(10).milliseconds;
+    await eventual('instant', promise).for(10).milliseconds;
     const list = inspector.oldEvents({ type: 'await' });
     expect(list).to.have.lengthOf(1);
-    expect(list[0].promise).to.have.property('name', '<promise>.for(10).milliseconds');
+    expect(list[0].promise).to.have.property('name', 'instant.for(10).milliseconds');
   })
   it('should receive notification from event manage when an handler is called', async function() {
     const inspector = new PromiseLogger();
@@ -551,7 +551,7 @@ describe('#ConsoleLogger', function() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
             const [ on, eventual ] = manageEvents();
-            await eventual.click.or(assertions[0]);
+            await eventual.click.or('assertion', assertions[0]);
             yield 'Pig';
             steps[1].done();
           }, []);
