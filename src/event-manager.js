@@ -353,8 +353,10 @@ export class EventManager {
   }
 
   reportAwaitEnd(promise) {
-    this.pendingPromise = null;
-    this.onAwaitEnd?.();
+    if (promise === this.pendingPromise) {
+      this.pendingPromise = null;
+      this.onAwaitEnd?.();
+    }
   }
 
   reportSettlement(promise) {

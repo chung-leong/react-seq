@@ -31,8 +31,9 @@ function ProductPage({ productId }) {
 
 ## Configuration and management functions
 
-* [defer](./defer.md)
-* [flush](./flush.md)
-* [manageEvents](./manageEvents.md)
-* [mount](./mount.md)
-* [signal](./signal.md)
+* [`defer`](./defer.md)
+* [`flush`](./flush.md)
+* [`manageEvents`](./manageEvents.md)
+* [`mount`](./mount.md)
+* [`reject`](./reject.md)
+* [`signal`](./signal.md)

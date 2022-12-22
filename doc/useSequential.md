@@ -42,12 +42,13 @@ function ProductPage({ productId }) {
 
 ## Configuration and management functions
 
-* [defer](./defer.md)
-* [fallback](./fallback.md)
-* [flush](./flush.md)
-* [manageEvents](./manageEvents.md)
-* [mount](./mount.md)
-* [signal](./signal.md)
-* [suspend](./suspend.md)
+* [`defer`](./defer.md)
+* [`fallback`](./fallback.md)
+* [`flush`](./flush.md)
+* [`manageEvents`](./manageEvents.md)
+* [`mount`](./mount.md)
+* [`reject`](./reject.md)
+* [`signal`](./signal.md)
+* [`suspend`](./suspend.md)
 
 ## Notes
