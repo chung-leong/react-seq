@@ -182,6 +182,8 @@ export class EventManager {
   // report occurrence of await
   onAwaitStart = null;
   onAwaitEnd = null;
+  // promise currently awaited upon
+  pendingPromise = null;
 
   constructor(options) {
     const {
@@ -336,6 +338,7 @@ export class EventManager {
   }
 
   reportAwaitStart(promise) {
+    this.pendingPromise = promise;
     if (this.inspector) {
       this.inspector.dispatch({ type: 'await', promise });
     } else if (this.warning && process.env.NODE_ENV === 'development') {
@@ -350,6 +353,7 @@ export class EventManager {
   }
 
   reportAwaitEnd(promise) {
+    this.pendingPromise = null;
     this.onAwaitEnd?.();
   }
 
@@ -359,6 +363,10 @@ export class EventManager {
     if (!(state & DERIVED) && !(state & STALE)) {
       delete promises[name];
     }
+  }
+
+  rejectPending(err) {
+    this.pendingPromise?.reject(err);
   }
 
   abortAll() {

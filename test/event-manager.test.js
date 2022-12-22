@@ -394,4 +394,20 @@ describe('#EventManager', function() {
     expect(() => eventual.click.and(Promise.resolve(1))).to.throw()
       .with.property('message', 'A name for the promise is expected');
   })
+  it('should permit manual rejection of a promise', async function() {
+    const em = new EventManager({});
+    const { eventual } = em;
+    const promise = eventual.click.or.keyPress;
+    setTimeout(() => {
+      const error = new Error('Dingo ate my baby!');
+      em.rejectPending(error);
+    }, 10);
+    let caught;
+    try {
+      await promise;
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).to.be.an('error').with.property('message', 'Dingo ate my baby!');
+  })
 })

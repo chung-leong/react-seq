@@ -1441,4 +1441,27 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.eql('Donkey');
     });
   })
+  it('should allow manual rejection of promise', async function() {
+    await withTestRenderer(async ({ create, update, toJSON, act }) => {
+      let r;
+      function Test() {
+        return useSequential(async function*({ manageEvents, reject }) {
+          r = reject;
+          const [ on, eventual ] = manageEvents();
+          try {
+            await eventual.click.or.keyPress.or.peaceInPalestine;
+            yield 'Hello world';
+          } catch (err) {
+            yield err.message;
+          }
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(toJSON()).to.equal(null);
+      expect(r).to.be.a('function');
+      await act(() => r(new Error('This sucks!')));
+      expect(toJSON()).to.equal('This sucks!');
+    })
+  })
 })

@@ -121,6 +121,9 @@ export function sequential(cb, options = {}) {
       }
       return [ eventManager.on, eventManager.eventual ];
     };
+    methods.reject = (err) => {
+      eventManager?.rejectPending(err);
+    };
   }
 
   // create the first generator and pull the first result to trigger
