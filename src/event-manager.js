@@ -7,14 +7,11 @@ const DERIVED = 0x0008;
 
 // subclassing Promise means the JS engine can't employ certain optimizations--we're okay with that
 class ManagedPromise extends Promise {
-  constructor(cb) {
-    super(cb);
-    this.callbacks = null;
-    this.manager = null;
-    this.name = undefined;
-    this.state = 0;
-    this.timeout = -1;
-  }
+  callbacks = null;
+  manager = null;
+  name = undefined;
+  state = 0;
+  timeout = -1;
 
   static create(manager, name, derived = false, source = null) {
     let resolve, reject;
