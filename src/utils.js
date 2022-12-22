@@ -174,25 +174,44 @@ export function stasi(generator) {
 export async function* linearize(generator) {
   const stack = [ generator ];
   let source = null;
+  let error = null;
+  // we need a try-finally block to ensure correct clean-up when generator is terminated prematurely
   try {
+    // keep going until the stack is empty
     for(;;) {
-      if (!source) {
-        source = stack.pop();
+      try {
+        // the generator we were reading from is done for one reason or another
+        // see if there's a generator on the stack that got pushed there from earlier
         if (!source) {
-          break;
+          source = stack.pop();
+          if (!source) {
+            break;
+          }
         }
-      }
-      const { done, value } = await source.next();
-      if (!done) {
-        if (isAsyncGenerator(value)) {
-          stack.push(source);
-          source = value;
+        // if there's an error from a lower level generator, give its parent
+        // a chance to handle it; if the parent fails to do so, we'll end up
+        // in the catch block again
+        const { done, value } = await (error ? source.throw(error) : source.next());
+        if (!done) {
+          if (isAsyncGenerator(value)) {
+            stack.push(source);
+            source = value;
+          } else {
+            yield value;
+          }
         } else {
-          yield value;
+          source = null;
         }
-      } else {
+        // if there was an error, it was handled by the parent's catch block
+        error = null;
+      } catch (err) {
+        // generator encountered an error--it's dead
         source = null;
+        error = err;
       }
+    }
+    if (error) {
+      throw error;
     }
   } finally {
     if (source) {

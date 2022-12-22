@@ -260,6 +260,111 @@ describe('#linearize()', function() {
     }
     expect(list).to.eql([ 'Hello', 0, 1, 2, 3, 4, 'World' ]);
   })
+  it('should redirect error through all catch blocks of all parent generators', async function() {
+    const messages = [];
+    async function* alfa() {
+      try {
+        yield bravo();
+      } catch(err) {
+        messages.push(`ALFA: ${err.message}`);
+        throw err;
+      }
+    }
+    async function* bravo() {
+      try {
+        yield charlie();
+      } catch(err) {
+        messages.push(`BRAVO: ${err.message}`);
+        throw err;
+      }
+    }
+    async function* charlie() {
+      try {
+        yield delta();
+      } catch(err) {
+        messages.push(`CHARLIE: ${err.message}`);
+        throw err;
+      }
+    }
+    async function* delta() {
+      try {
+        for (let i = 1; i <= 5; i++) {
+          if (i === 3) {
+            throw new Error('Third time is not the charm!');
+          }
+          yield i;
+        }
+      } catch (err) {
+        messages.push(`DELTA: ${err.message}`);
+        throw err;
+      }
+    }
+    const generator = linearize(alfa());
+    const list = [];
+    let error;
+    try {
+      for await (const value of generator) {
+        list.push(value);
+      }
+    } catch (err) {
+      error = err;
+    }
+    expect(messages).to.have.lengthOf(4);
+    expect(messages[0]).to.match(/^DELTA/);
+    expect(messages[1]).to.match(/^CHARLIE/);
+    expect(messages[2]).to.match(/^BRAVO/);
+    expect(messages[3]).to.match(/^ALFA/);
+    expect(list).to.eql([ 1, 2 ]);
+  })
+  it('should continue on if parent generator handles the error of a child generator', async function() {
+    const messages = [];
+    async function* alfa() {
+      yield bravo();
+    }
+    async function* bravo() {
+      try {
+        yield charlie();
+      } catch(err) {
+        yield 'Donut';
+      }
+    }
+    async function* charlie() {
+      try {
+        yield delta();
+      } catch(err) {
+        messages.push(`CHARLIE: ${err.message}`);
+        throw err;
+      }
+    }
+    async function* delta() {
+      try {
+        for (let i = 1; i <= 5; i++) {
+          if (i === 3) {
+            throw new Error('Third time is not the charm!');
+          }
+          yield i;
+        }
+      } catch (err) {
+        messages.push(`DELTA: ${err.message}`);
+        throw err;
+      }
+    }
+    const generator = linearize(alfa());
+    const list = [];
+    let error;
+    try {
+      for await (const value of generator) {
+        list.push(value);
+      }
+    } catch (err) {
+      error = err;
+    }
+    expect(messages).to.have.lengthOf(2);
+    expect(messages[0]).to.match(/^DELTA/);
+    expect(messages[1]).to.match(/^CHARLIE/);
+    expect(error).to.be.undefined;
+    expect(list).to.eql([ 1, 2, 'Donut' ]);
+  })
 })
 
 describe('#isAbortError()', function() {
