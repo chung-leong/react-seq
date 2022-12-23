@@ -1,0 +1,50 @@
+.ScreenDelta {
+  background-color: #ffffaa;
+}
+
+.ScreenDelta textarea {
+  width: 50vw;
+  height: 3em;
+  margin-bottom: 2em;
+}
+
+.ScreenDelta .detour-warning {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.ScreenDelta .detour-warning .background {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  background-color: #000000;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+.ScreenDelta .detour-warning .dialog-box {
+  width: 30vw;
+  background-color: #eeeeee;
+  padding: 0.5em 1em 1em 1em;
+  border: 1px solid black;
+  box-shadow: 3px 3px 5px #000000;
+  z-index: 2;
+}
+
+.ScreenDelta .detour-warning .dialog-box .buttons {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ScreenDelta .detour-warning .dialog-box .buttons button {
+  margin-left: 4px;
+  margin-right: 4px;
+}

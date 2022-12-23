@@ -1,0 +1,17 @@
+.Screen {
+  display: flex;
+  height: 100vh;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.Screen .title {
+  font-size: 3em;
+}
+
+.Screen .control-pane button {
+  font-size: 2em;
+  margin-left: 1em;
+  margin-right: 1em;
+}
