@@ -102,9 +102,7 @@ export function useSWAPI(type, params = {}, options = {}) {
           default:
             throw new Error(`Unknown object type: ${type}`);
         }
-        for await (const state of generateProps(props, {})) {
-          yield state;
-        }
+        yield generateProps(props, {});
       } catch (err) {
         if (i === 0) {
           throw err;
