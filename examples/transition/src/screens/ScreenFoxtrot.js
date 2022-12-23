@@ -1,4 +1,3 @@
-import '../css/Screen.css';
 import '../css/ScreenFoxtrot.css';
 
 export function ScreenFoxtrot({ onNext }) {

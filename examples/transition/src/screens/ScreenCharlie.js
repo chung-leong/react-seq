@@ -1,4 +1,3 @@
-import '../css/Screen.css';
 import '../css/ScreenCharlie.css';
 
 export function ScreenCharlie({ onNext }) {

@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import '../css/Screen.css';
 import '../css/ScreenDelta.css';
 
 export function ScreenDelta({ text, onNext, onText, onDetour }) {
@@ -8,7 +7,7 @@ export function ScreenDelta({ text, onNext, onText, onDetour }) {
     const { value } = evt.target;
     setText(value);
     onText?.(value);
-  }, []);
+  }, [ onText ]);
   const notEmpty = !!currentText.trim();
   return (
     <div className="Screen ScreenDelta">

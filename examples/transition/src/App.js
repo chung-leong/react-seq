@@ -1,5 +1,5 @@
 import { useRouter, useRoute, arrayProxy } from './array-router/index.js';
-import { useSequential, throwing, delay } from 'react-seq';
+import { useSequential, throwing } from 'react-seq';
 import './css/App.css';
 
 export function App({ main }) {
@@ -17,8 +17,9 @@ function MainSequence({ main }) {
   const [ parts, query, rMethods ] = useRoute();
   return useSequential((sMethods) => {
     const methods = { ...rMethods, ...sMethods };
-    const { manageEvents, trap, reject, mount } = methods;
+    const { fallback, manageEvents, trap, reject, mount } = methods;
     const [ on, eventual ] = manageEvents();
+    fallback(<ScreenLoading />);
     mount().then(() => {
       trap('change', (reason, parts, query, href) => {
         const err = new DetourPending(reason, parts, query, href);
@@ -34,8 +35,8 @@ function MainSequence({ main }) {
       if (err instanceof DetourPending) {
         await err.proceed();
       } else {
-        yield <ScreenError error={err} onConfirm={on.confirmation} />;
-        await eventual.confirmation;
+        yield <ScreenError error={err} onConfirm={on.confirm} />;
+        await eventual.confirm;
       }
     };
     methods.manageRoute = (def, offset) => {
@@ -44,6 +45,18 @@ function MainSequence({ main }) {
     };
     return main(methods);
   }, [ parts, query, rMethods ]);
+}
+
+function ScreenError({ error }) {
+  return <div className="Screen ScreenError">{error.message}</div>;
+}
+
+function ScreenLoading() {
+  return (
+    <div className="Screen ScreenLoading">
+      <div className="spinner" />
+    </div>
+  );
 }
 
 export class DetourPending extends Error {
@@ -57,10 +70,8 @@ export class DetourPending extends Error {
   }
 
   async proceed() {
-    await this.resolve();
+    this.resolve();
+    // ensure that this function returns after .then() handlers attached to the promise have run
+    await this.promise;
   }
-}
-
-function ScreenError({ error }) {
-  return <div className="error">{error.message}</div>;
 }

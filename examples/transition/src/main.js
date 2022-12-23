@@ -1,19 +1,13 @@
 import { DetourPending } from './App.js';
-import { delay } from 'react-seq';
 import { removing } from 'array-router';
-import './css/main.css';
 
 export async function* main(methods) {
-  const { fallback, manageRoute, manageEvents, handleError, throw404 } = methods;
+  const { manageRoute, manageEvents, handleError, throw404 } = methods;
   const [ route ] = manageRoute({
-    screen: {
-      $: 0,
-      ...removing
-    }
+    screen: { $: 0, ...removing }
   });
   const [ on, eventual ] = manageEvents();
-  fallback(<Loading />);
-  let deltaText = '';
+  let deltaText = '', onDeltaText = t => deltaText = t;
   for (;;) {
     try {
       if (route.screen === undefined) {
@@ -42,7 +36,7 @@ export async function* main(methods) {
         route.screen = 'delta';
       } else if (route.screen === 'delta') {
         const { ScreenDelta } = await import('./screens/ScreenDelta.js');
-        yield <ScreenDelta text={deltaText} onText={t => deltaText = t} onNext={on.echo} />
+        yield <ScreenDelta text={deltaText} onText={onDeltaText} onNext={on.echo} />
         try {
           await eventual.echo.or.detour;
           route.screen = 'echo';
@@ -74,12 +68,4 @@ export async function* main(methods) {
       yield handleError(err);
     }
   }
-}
-
-function Loading() {
-  return (
-    <div className="Loading">
-      <div className="spinner" />
-    </div>
-  );
 }

@@ -1,4 +1,3 @@
-import '../css/Screen.css';
 import '../css/ScreenEcho4.css';
 
 export function ScreenEcho4({ onNext }) {

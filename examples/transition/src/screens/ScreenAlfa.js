@@ -1,4 +1,3 @@
-import '../css/Screen.css';
 import '../css/ScreenAlfa.css';
 
 export function ScreenAlfa({ onNext }) {

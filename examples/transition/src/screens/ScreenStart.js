@@ -1,4 +1,3 @@
-import '../css/Screen.css';
 import '../css/ScreenStart.css';
 
 export function ScreenStart({ onNext }) {

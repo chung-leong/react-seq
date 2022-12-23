@@ -1,4 +1,3 @@
-import '../css/Screen.css';
 import '../css/ScreenBravo.css';
 
 export function ScreenBravo({ onNext, onSkip }) {
