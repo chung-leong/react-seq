@@ -4,10 +4,10 @@ Cause a rejection of the promise currently being awaiting upon
 
 ## Providers
 
-* [useSequential](useSequential.md)
-* [useProgressive](useProgressive.md)
-* [useSequentialState](useSequentialState.md)
-* [useProgressiveState](useProgressiveState.md)
+* [`useSequential`](useSequential.md)
+* [`useProgressive`](useProgressive.md)
+* [`useSequentialState`](useSequentialState.md)
+* [`useProgressiveState`](useProgressiveState.md)
 
 ## Syntax
 

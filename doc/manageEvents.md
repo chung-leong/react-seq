@@ -4,10 +4,10 @@ Manage events with the help of automatically generated promises
 
 ## Providers
 
-* [useSequential](useSequential.md)
-* [useProgressive](useProgressive.md)
-* [useSequentialState](useSequentialState.md)
-* [useProgressiveState](useProgressiveState.md)
+* [`useSequential`](useSequential.md)
+* [`useProgressive`](useProgressive.md)
+* [`useSequentialState`](useSequentialState.md)
+* [`useProgressiveState`](useProgressiveState.md)
 
 ## Syntax
 

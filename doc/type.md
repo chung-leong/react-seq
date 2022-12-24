@@ -1,10 +1,10 @@
 # type(arg)
 
-Specify the type of element to be created by [useProgressive](useProgressive.md)
+Specify the type of element to be created by [`useProgressive`](useProgressive.md)
 
 ## Providers
 
-* [useProgressive](useProgressive.md)
+* [`useProgressive`](useProgressive.md)
 
 ## Syntax
 

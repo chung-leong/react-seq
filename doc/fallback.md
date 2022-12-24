@@ -4,8 +4,8 @@ Specify an element to be shown while the React-seq hook in question retrieves th
 
 ## Providers
 
-* [useSequential](useSequential.md)
-* [useProgressive](useProgressive.md)
+* [`useSequential`](useSequential.md)
+* [`useProgressive`](useProgressive.md)
 
 ## Syntax
 

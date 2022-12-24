@@ -1,11 +1,12 @@
 # suspend([key])
 
-Request that the element returned by the hook should not be wrapped with a [React.Suspense](https://reactjs.org/docs/react-api.html#reactsuspense)
+Request that the element returned by the hook should not be wrapped with a
+[`React.Suspense`](https://reactjs.org/docs/react-api.html#reactsuspense)
 
 ## Providers
 
-* [useSequential](useSequential.md)
-* [useProgressive](useProgressive.md)
+* [`useSequential`](useSequential.md)
+* [`useProgressive`](useProgressive.md)
 
 ## Syntax
 
@@ -37,7 +38,7 @@ export function Widget({ id }) {
 ## Parameters
 
 * `key` - `<string>` A unique key used to find the generated content during unsuspension. Must be used when the
-component calling [useSequential](useSequential.md) or [useProgressive](useProgressive.md) returns the result not
+component calling [`useSequential`](useSequential.md) or [`useProgressive`](useProgressive.md) returns the result not
 wrapped with a [`<React.Suspense>`](https://reactjs.org/docs/react-api.html#reactsuspense) (second example). Must
 not be used if it does (first example).
 
@@ -49,7 +50,7 @@ using [`React.lazy`](https://reactjs.org/docs/react-api.html#reactlazy). We need
 and provide fallback content for it. Since there is a `<React.Suspense>` already, it does not make sense for `form`
 to be a `<React.Suspense>` also, with its own fallback content.
 
-In the second example, the lazy element created by [useSequential](useSequential.md) is returned by `Widget` in
+In the second example, the lazy element created by [`useSequential`](./useSequential.md) is returned by `Widget` in
 anticipation of the presence of a `<React.Suspense>` somewhere further up the tree. In this scenario, `key` must be
 provided, since `Widget` itself will be created anew when unsuspension (i.e. replacement of fallback content with
 real content) occurs. Without this key the component would end up in an infinite loop, invoking the generator

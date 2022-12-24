@@ -4,8 +4,8 @@ Control whether content update occurs when the data set is incomplete
 
 ## Providers
 
-* [useProgressive](useProgressive.md)
-* [useProgressiveState](useProgressiveState.md)
+* [`useProgressive`](useProgressive.md)
+* [`useProgressiveState`](useProgressiveState.md)
 
 ## Syntax
 

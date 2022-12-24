@@ -4,10 +4,10 @@ Specify the time interval between content updates
 
 ## Providers
 
-* [useSequential](useSequential.md)
-* [useProgressive](useProgressive.md)
-* [useSequentialState](useSequentialState.md)
-* [useProgressiveState](useProgressiveState.md)
+* [`useSequential`](useSequential.md)
+* [`useProgressive`](useProgressive.md)
+* [`useSequentialState`](useSequentialState.md)
+* [`useProgressiveState`](useProgressiveState.md)
 
 ## Syntax
 
