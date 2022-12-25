@@ -50,5 +50,6 @@ function ProductPage({ productId }) {
 * [`reject`](./reject.md)
 * [`signal`](./signal.md)
 * [`suspend`](./suspend.md)
+* [`wrap`](./wrap.md)
 
 ## Notes

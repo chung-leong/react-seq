@@ -46,6 +46,7 @@ function ProductPageUI(product, producer, relatedProducts = []) {
 * [`suspend`](./suspend.md)
 * [`type`](./type.md)
 * [`usable`](./usable.md)
+* [`wrap`](./wrap.md)
 
 ## Progressive loading explained
 
