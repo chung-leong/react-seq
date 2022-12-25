@@ -1,13 +1,18 @@
 import '../css/ScreenCharlie.css';
 
-export function ScreenCharlie({ onNext }) {
+export function ScreenCharlie({ count, onNext }) {
+  if (count % 3 === 0) {
+    throw new ThirdTimeNotTheCharm(`Thou shalst not count to ${count}`);
+  }
   return (
     <div className="Screen ScreenCharlie">
       <h1 className="title">Charlie</h1>
+      <h2>Count = {count}</h2>
       <div className="control-pane">
         <button onClick={onNext}>Next</button>
       </div>
-      <p>The browser's back and forward buttons don't work on this screen</p>
     </div>
   );
 }
+
+export class ThirdTimeNotTheCharm extends Error {}

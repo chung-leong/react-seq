@@ -1,30 +1,27 @@
-import { useRouter, useRoute, arrayProxy } from './array-router/index.js';
-import { useSequential, throwing } from 'react-seq';
+import { useSequentialRouter, arrayProxy, RouteChangePending } from './array-router/index.js';
+import { useSequential } from './react-seq/index.js';
 import './css/App.css';
 
-export function App({ main }) {
-  const provide = useRouter({ allowExtraParts: true });
-  return provide(() => {
-    return (
-      <div className="App">
-        <MainSequence main={main} />
-      </div>
-    );
-  });
-}
+export { RouteChangePending };
 
-function MainSequence({ main }) {
-  const [ parts, query, rMethods ] = useRoute();
-  return useSequential((sMethods) => {
+export function App({ main }) {
+  const [ parts, query, { createContext, createBoundary, ...rMethods } ] = useSequentialRouter({ allowExtraParts: true });
+  const element = useSequential((sMethods) => {
     const methods = { ...rMethods, ...sMethods };
-    const { fallback, manageEvents, trap, reject, mount } = methods;
-    const [ on, eventual ] = manageEvents();
+    const { fallback, manageEvents, trap, reject, mount, wrap } = methods;
+    wrap(createBoundary);
     fallback(<ScreenLoading />);
     mount().then(() => {
-      trap('change', (reason, parts, query, href) => {
-        const err = new DetourPending(reason, parts, query, href);
-        on.detour(throwing(err));
-        return err.promise;
+      let detouring;
+      trap('detour', (err) => {
+        if (!detouring) {
+          detouring = true;
+          err.onSettlement = () => detouring = false;
+          reject(err);
+        } else {
+          err.prevent();
+        }
+        return true;
       });
       trap('error', (err) => {
         reject(err);
@@ -32,9 +29,10 @@ function MainSequence({ main }) {
       });
     });
     methods.handleError = async function*(err) {
-      if (err instanceof DetourPending) {
+      if (err instanceof RouteChangePending) {
         await err.proceed();
       } else {
+        const [ on, eventual ] = manageEvents();
         yield <ScreenError error={err} onConfirm={on.confirm} />;
         await eventual.confirm;
       }
@@ -45,6 +43,7 @@ function MainSequence({ main }) {
     };
     return main(methods);
   }, [ parts, query, rMethods ]);
+  return <div className="App">{createContext(element)}</div>;
 }
 
 function ScreenError({ error }) {
@@ -57,21 +56,4 @@ function ScreenLoading() {
       <div className="spinner" />
     </div>
   );
-}
-
-export class DetourPending extends Error {
-  constructor(reason, parts, query, href) {
-    super(`Detouring to ${href} (${reason})`);
-    this.reason = reason;
-    this.parts = parts;
-    this.query = query;
-    this.href = href;
-    this.promise = new Promise(r => this.resolve = r);
-  }
-
-  async proceed() {
-    this.resolve();
-    // ensure that this function returns after .then() handlers attached to the promise have run
-    await this.promise;
-  }
 }

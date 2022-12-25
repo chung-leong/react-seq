@@ -25,6 +25,7 @@ export async function* echo(methods) {
         const { ScreenEcho4 } = await import('./screens/ScreenEcho4.js');
         yield <ScreenEcho4 onNext={on.next} />
         await eventual.next.or.detour;
+        delete route.screen;
         return;
       } else {
         throw404();
