@@ -3,12 +3,40 @@ body {
   margin: 0;
 }
 
+.App {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.App .top-bar {
+  flex: 0 1 auto;
+  background-color: #000000;
+  color: #ffffff;
+  padding: 5px 4px 3px 4px;
+}
+
+.App .top-bar A:link,
+.App .top-bar A:visited {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.App .top-bar A:hover {
+  color: #ccccff;
+}
+
+
+.App .content {
+  flex: 1 1 auto;
+}
+
 .Screen {
   display: flex;
-  height: 100vh;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  height: 100%;
 }
 
 .Screen .title {

@@ -36,7 +36,7 @@ export async function* main(methods) {
           route.screen = 'delta';
         } catch (err) {
           if (err instanceof ThirdTimeNotTheCharm) {
-            continue;
+            transition.prevent();
           } else {
             throw err;
           }
@@ -49,12 +49,14 @@ export async function* main(methods) {
           route.screen = 'echo';
         } catch (err) {
           if (err instanceof RouteChangePending && deltaText.trim().length > 0) {
+            transition.prevent();
             yield to(<ScreenDelta text={deltaText} onDetour={on.proceed} />);
             const { proceed } = await eventual.proceed;
             if (proceed) {
               throw err;
             } else {
               err.prevent();
+              transition.prevent();
             }
           } else {
             throw err;
@@ -67,7 +69,7 @@ export async function* main(methods) {
       } else if (route.screen === 'foxtrot') {
         const { ScreenFoxtrot } = await import('./screens/ScreenFoxtrot.js');
         yield to(<ScreenFoxtrot onNext={on.alfa} />);
-        await eventual.alfa.or.detour;
+        await eventual.alfa;
         route.screen = 'alfa';
       } else {
         throw404();

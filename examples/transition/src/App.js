@@ -1,5 +1,5 @@
-import { useSequentialRouter, arrayProxy, RouteChangePending } from './array-router/index.js';
-import { useSequential } from './react-seq/index.js';
+import { useSequentialRouter, arrayProxy, RouteChangePending } from './array-router';
+import { useSequential } from './react-seq';
 import { Crossfade } from './Crossfade.js';
 import './css/App.css';
 
@@ -45,7 +45,12 @@ export function App({ main }) {
     methods.transition = new Crossfade(methods);
     return main(methods);
   }, [ parts, query, rMethods ]);
-  return <div className="App">{createContext(element)}</div>;
+  return createContext(
+    <div className="App">
+      <div className="top-bar"><a href="/">Start</a></div>
+      <div className="content">{element}</div>
+    </div>
+  );
 }
 
 function ScreenError({ error }) {

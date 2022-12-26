@@ -1,4 +1,3 @@
-import { delay } from './react-seq/index.js';
 import './css/Crossfade.css';
 
 export class Crossfade {
@@ -22,7 +21,7 @@ export class Crossfade {
           <div key={currentKey} className="in">{element}</div>
         </div>
       );
-      await delay(25);
+      await eventual.transitionReady.for(25).milliseconds;
       yield (
         <div className="Crossfade">
           <div key={previousKey} className="out end" onTransitionEnd={on.transitionOut}>{previous}</div>
@@ -40,5 +39,12 @@ export class Crossfade {
     );
   }
 
-  to = element => this.run(element)
+  to = (element) => {
+    return this.run(element);
+  }
+
+  prevent = () => {
+    this.previous = null;
+    this.key--;
+  }
 }

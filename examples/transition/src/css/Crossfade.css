@@ -1,26 +1,31 @@
 .Crossfade {
   position: relative;
+  height: 100%;
 }
 
-.Crossfade .out {
-  opacity: 0;
+.Crossfade > DIV {
+  height: 100%;
+}
+
+.Crossfade > DIV.out {
+  opacity: 1;
   transition: opacity 1s;
 }
 
-.Crossfade .out.end {
-  opacity: 1;
+.Crossfade > DIV.out.end {
+  opacity: 0;
 }
 
-.Crossfade .in {
+.Crossfade > DIV.in {
   position: absolute;
   left: 0;
   top: 0;
   right: 0;
   bottom: 0;
   opacity: 0;
-  transition: opacity 1s;
+  transition: opacity 0.9s;
 }
 
-.Crossfade .in.end {
+.Crossfade > DIV.in.end {
   opacity: 1;
 }
