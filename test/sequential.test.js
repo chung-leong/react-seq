@@ -1464,6 +1464,33 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.equal('This sucks!');
     })
   })
+  it('should defer manual rejection until an await occurs', async function() {
+    await withTestRenderer(async ({ create, update, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      let r;
+      function Test() {
+        return useSequential(async function*({ manageEvents, reject }) {
+          r = reject;
+          const [ on, eventual ] = manageEvents();
+          try {
+            await assertions[0];
+            await eventual.click.or.keyPress.or.peaceInPalestine;
+            yield 'Hello world';
+          } catch (err) {
+            yield err.message;
+          }
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(toJSON()).to.equal(null);
+      expect(r).to.be.a('function');
+      await act(() => r(new Error('This sucks!')));
+      expect(toJSON()).to.equal(null);
+      await assertions[0].done();
+      expect(toJSON()).to.equal('This sucks!');
+    })
+  })
   it('should make use of wrap function', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);

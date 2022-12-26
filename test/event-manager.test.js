@@ -7,7 +7,7 @@ import {
   EventManager,
 } from '../src/event-manager.js';
 import {
-  important,
+  preserving,
   throwing,
   Abort,
 } from '../index.js';
@@ -125,8 +125,8 @@ describe('#EventManager', function() {
     const result2 = await Promise.race([ promise2, delay(5) ]);
     expect(result2).to.be.undefined;
     handler2(17);
-    const value3 = await Promise.race([ promise2, delay(5) ]);
-    expect(value3).to.eql({ click: 8, keypress: 17 });
+    const result3 = await Promise.race([ promise2, delay(5) ]);
+    expect(result3).to.eql({ click: 8, keypress: 17 });
   })
   it('should create promises that can be chained with other promises', async function() {
     const { on, eventual } = new EventManager({});
@@ -140,47 +140,55 @@ describe('#EventManager', function() {
     expect(result1).to.eql({ click: 8 });
     const result2 = await Promise.race([ promise2, delay(10) ]);
     expect(result2).to.be.undefined;
-    const value3 = await promise3;
-    expect(value3).to.eql({ timeout: undefined, instant: 18 });
+    const result3 = await promise3;
+    expect(result3).to.eql({ timeout: undefined, instant: 18 });
     delay(25);
-    const value4 = await Promise.race([ promise2, delay(20) ]);
-    expect(value4).to.eql({ click: 8, timeout: undefined });
+    const result4 = await Promise.race([ promise2, delay(20) ]);
+    expect(result4).to.eql({ click: 8, timeout: undefined });
   })
   it('should create filtering handler when apply is used', async function() {
     const { on, eventual } = new EventManager({});
     const filter = a => `[${a}]`;
-    const handler = on.click.apply(filter);
-    expect(handler).to.equal(on.click.apply(filter));
+    const handler = on.click.filter(filter);
+    expect(handler).to.equal(on.click.filter(filter));
     setTimeout(() => handler('hello'), 10);
-    const value = await eventual.click;
-    expect(value).to.eql({ click: '[hello]' });
+    const result = await eventual.click;
+    expect(result).to.eql({ click: '[hello]' });
   })
-  it('should behave as expected apply is called in the normal way', async function() {
+  it('should not fulfill promise when filter returns undefined', async function() {
     const { on, eventual } = new EventManager({});
-    setTimeout(() => on.click.apply(), 10);
-    const result1 = await eventual.click;
-    expect(result1).to.eql( { click: undefined });
-    setTimeout(() => on.click.apply(null, [ 'duck' ]), 10);
-    const result2 = await eventual.click;
-    expect(result2).to.be.eql({ click: 'duck' });
+    const filter = a => undefined;
+    const handler = on.click.filter(filter);
+    handler('hello');
+    const result = await eventual.click.for(20).milliseconds;
+    expect(result).to.eql({ timeout: 20 });
   })
-  it('should allow value marked by important to be retrieved later', async function() {
+  it('should allow value marked by preserving to be retrieved later', async function() {
     const { on, eventual } = new EventManager({});
-    const handler = on.click.apply(important);
+    const handler = on.click.filter(preserving);
     handler('Turkey');
     const result1 = await eventual.click;
     expect(result1).to.eql({ click: 'Turkey' });
     const result2 = await eventual.click.or('timeout', delay(10));
     expect(result2).to.eql({ timeout: undefined });
   })
+  it('should allow handler shorthands', async function() {
+    const { on, eventual } = new EventManager({});
+    const handler1 = on.click.filter(preserving);
+    const handler2 = on.click.preserve;
+    expect(handler2).to.equal(handler1);
+    const handler3 = on.click.filter(throwing);
+    const handler4 = on.click.throw;
+    expect(handler4).to.equal(handler3);
+  })
   it('should throw value marked by throwing', async function() {
     const { on, eventual } = new EventManager({});
     const handler1 = on.click;
-    const handler2 = on.click.apply(throwing);
+    const handler2 = on.click.filter(throwing);
     setTimeout(() => handler1(new Error), 10);
     const result1 = await eventual.click;
     expect(result1.click).to.be.instanceOf(Error);
-    handler2(important(new Error('Hello world')));
+    handler2(preserving(new Error('Hello world')));
     let error1;
     try {
       await eventual.click;
@@ -188,7 +196,7 @@ describe('#EventManager', function() {
       error1 = err;
     }
     expect(error1).to.be.instanceOf(Error);
-    handler2(important('Hello world!!!'));
+    handler2(preserving('Hello world!!!'));
     let error2;
     try {
       await eventual.click;
@@ -197,7 +205,7 @@ describe('#EventManager', function() {
     }
     expect(error2).to.be.instanceOf(Error);
     expect(error2.message).to.equal('Hello world!!!');
-    handler2(important({ type: 'error', error: new Error('Hello')}));
+    handler2(preserving({ type: 'error', error: new Error('Hello')}));
     let error3;
     try {
       await eventual.click;

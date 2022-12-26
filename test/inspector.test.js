@@ -5,7 +5,7 @@ import { withTestRenderer } from './test-renderer.js';
 import { createElement } from 'react';
 import { createSteps } from './step.js';
 import { createErrorBoundary } from './error-handling.js';
-import { delay, throwing, important, useSequential, useSequentialState, settings } from '../index.js';
+import { delay, throwing, preserving, useSequential, useSequentialState, settings } from '../index.js';
 
 import {
   Inspector,
@@ -589,7 +589,7 @@ describe('#ConsoleLogger', function() {
       expect(output.log).to.contain.something.that.matches(/no one cared/);
     });
   })
-  it('should handle fulfillment events with important value', async function() {
+  it('should handle fulfillment events with preserved value', async function() {
     await withTestRenderer(async ({ create, act }) => {
       const output = { log: [] };
       await withSilentConsole(async () => {
@@ -599,7 +599,7 @@ describe('#ConsoleLogger', function() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
             const [ on, eventual ] = manageEvents();
-            on.click(important('Hello'));
+            on.click(preserving('Hello'));
             await assertions[0];
             yield 'Pig';
             steps[1].done();
@@ -639,7 +639,7 @@ describe('#ConsoleLogger', function() {
       expect(output.log).to.contain.something.that.matches(/no one cared/);
     });
   })
-  it('should handle rejection events with important error', async function() {
+  it('should handle rejection events with preserved error', async function() {
     await withTestRenderer(async ({ create, act }) => {
       const output = { log: [] };
       await withSilentConsole(async () => {
@@ -649,7 +649,7 @@ describe('#ConsoleLogger', function() {
           return useSequential(async function*({ fallback, manageEvents }) {
             fallback('Cow');
             const [ on, eventual ] = manageEvents();
-            on.click(throwing(important('Hello')));
+            on.click(throwing(preserving('Hello')));
             await assertions[0];
             yield 'Pig';
             steps[1].done();

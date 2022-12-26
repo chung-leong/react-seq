@@ -184,6 +184,8 @@ export class EventManager {
   onAwaitEnd = null;
   // promise currently awaited upon
   pendingPromise = null;
+  // error received from reject() that hasn't been picked up yet
+  pendingError = null;
 
   constructor(options) {
     const {
@@ -212,7 +214,7 @@ export class EventManager {
     if (!promise) {
       promise = promises[name] = ManagedPromise.create(this, name);
     } else if (promise.state & STALE) {
-      // an important value has just been picked up
+      // an preserved value has just been picked up
       delete promises[name];
     }
     return promise;
@@ -231,15 +233,12 @@ export class EventManager {
         const value = (args.length < 2) ? args[0] : args[1];
         return this.getValueHandler(name, valueHandlers, value);
       };
-      const applyFn = handler.apply;
       const filterHandlers = { map: null };
-      handler.apply = (...args) => {
-        if (args.length !== 1 || typeof(args[0]) !== 'function') {
-          return applyFn.call(handler, ...args);
-        } else {
-          return this.getApplyHandler(name, filterHandlers, args[0]);
-        }
+      handler.filter = (fn) => {
+        return this.getFilterHandler(name, filterHandlers, fn);
       };
+      Object.defineProperty(handler, 'throw', { get: () => handler.filter(throwing) });
+      Object.defineProperty(handler, 'preserve', { get: () => handler.filter(preserving) });
     }
     return handler;
   }
@@ -278,13 +277,18 @@ export class EventManager {
     return handler;
   }
 
-  getApplyHandler(name, handlers, fn)  {
+  getFilterHandler(name, handlers, fn)  {
     if (!handlers.map) {
       handlers.map = new WeakMap();
     }
     let handler = handlers.map.get(fn);
     if (!handler) {
-      handler = (value) => this.settlePromise(name, fn(value));
+      handler = (value) => {
+        const result = fn(value);
+        if (result !== undefined) {
+          this.settlePromise(name, result);
+        }
+      };
       handlers.map.set(fn, handler);
     }
     return handler;
@@ -292,10 +296,10 @@ export class EventManager {
 
   settlePromise(name, value) {
     const { promises, warning } = this;
-    let important = false, rejecting = false;
+    let preserving = false, rejecting = false;
     for (;;) {
-      if (value instanceof ImportantValue) {
-        important = true;
+      if (value instanceof PreservableValue) {
+        preserving = true;
         value = value.value;
       } else if (value instanceof ThrowableValue) {
         rejecting = true;
@@ -314,7 +318,7 @@ export class EventManager {
     }
     let handled = false;
     let promise = promises[name];
-    if (!promise && important) {
+    if (!promise && preserving) {
       // allow the value to be picked up later
       promises[name] = promise = ManagedPromise.create(this, name);
       promise.state |= STALE;
@@ -339,6 +343,10 @@ export class EventManager {
 
   reportAwaitStart(promise) {
     this.pendingPromise = promise;
+    if (this.pendingError) {
+      promise.reject(this.pendingError);
+      this.pendingError = null;
+    }
     if (this.inspector) {
       this.inspector.dispatch({ type: 'await', promise });
     } else if (this.warning && process.env.NODE_ENV === 'development') {
@@ -368,7 +376,11 @@ export class EventManager {
   }
 
   rejectPending(err) {
-    this.pendingPromise?.reject(err);
+    if (this.pendingPromise) {
+      this.pendingPromise?.reject(err);
+    } else if (!this.pendingError) {
+      this.pendingError = err;
+    }
   }
 
   abortAll() {
@@ -380,15 +392,15 @@ export class EventManager {
   }
 }
 
-export function important(value) {
-  return new ImportantValue(value);
+export function preserving(value) {
+  return new PreservableValue(value);
 }
 
 export function throwing(value) {
   return new ThrowableValue(value);
 }
 
-class ImportantValue {
+class PreservableValue {
   constructor(value) {
     this.value = value;
   }

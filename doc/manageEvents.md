@@ -51,10 +51,31 @@ Upon fulfillment the promise `eventual.click` vanishes. Accessing `eventual.clic
 unfulfilled promise, waiting for `on.click` to be called.
 
 When `on.click` is called and there is no code awaiting `eventual.click`, the event would go ignored. You can
-change this behavior using [`important`](./important.md).
+change this behavior using [`preserving`](./preserving.md) or through the use of `on.click.preserve`.
 
 Error objects are treated like any other values. You can force the rejection of a promise using
-[`throwing`](./throwing.md).
+[`throwing`](./throwing.md) or through the use of `on.click.throw`.
+
+## Fulfillment value filtering
+
+You can attach a filter function to a handler so that only certain values would trigger the fulfillment of a
+promise:
+
+```js
+yield (
+  <div>
+    <button onClick={on.click.filter(evt => evt.button === 0 ? evt : undefined)}>OK</button>
+  </div>
+);
+```
+
+When the function returns something other than `undefined`, the returned value will be used as the fulfillment value.
+
+`on.click.preserve` is the shorthand for `on.click.filter(preserving)`. `on.click.throw` is the shorthand for
+`on.click.filter(throwing)`.
+
+Functions created by `filter` are invariant, meaning the same function is returned when the same argument is
+given.
 
 ## Fulfillment value binding
 

@@ -19,8 +19,10 @@ Cause a rejection of the promise currently being awaiting upon
 
 ## Notes
 
-Used for redirecting error captured by root-level error boundary into a generator to be handled by its `catch` block.
+Used for redirecting error captured by root-level error boundary into a generator, where it can be handled by the
+generator function's `catch` block.
 
-Nothing happens if active generator is not awaiting a promise from the [event manager](./manageEvents.md).
+If the active generator is not awaiting a promise from the [event manager](./manageEvents.md), the error will be kept
+until an await occurs.
 
 Not present when `REACT_APP_SEQ_NO_EM` is set.

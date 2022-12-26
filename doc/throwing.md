@@ -12,7 +12,7 @@ on.imageLoad(throwing(err));
 const img = new Image();
 img.src = url;
 img.onload = on.imageLoad;
-img.onerror = on.imageLoad.apply(throwing);
+img.onerror = on.imageLoad.filter(throwing);
 await eventual.imageLoad;
 ```
 
@@ -28,3 +28,5 @@ Error objects are normally returned by promises of `eventual` just like any othe
 If the object given is a `<ErrorEvent>`, its `.error` property will be used as the rejection value.
 
 If a string is given, an generic `<Error>` object will be created with the string as its message.
+
+`on.[name].throw` is the equivalent of `on.[name].filter(throwing)`.
