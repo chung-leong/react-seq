@@ -32,9 +32,7 @@ export class Crossfade {
     }
     yield (
       <div className="Crossfade">
-        <div key={currentKey}>
-          {element}
-        </div>
+        <div key={currentKey}>{element}</div>
       </div>
     );
   }

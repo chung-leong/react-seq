@@ -1,12 +1,12 @@
-import { useSequentialRouter, arrayProxy, RouteChangePending } from './array-router';
-import { useSequential } from './react-seq';
+import { useSequentialRouter, arrayProxy, RouteChangePending } from 'array-router';
+import { useSequential } from 'react-seq';
 import { Crossfade } from './Crossfade.js';
 import './css/App.css';
 
 export { RouteChangePending };
 
 export function App({ main }) {
-  const [ parts, query, { createContext, createBoundary, ...rMethods } ] = useSequentialRouter({ allowExtraParts: true });
+  const [ parts, query, { createContext, createBoundary, ...rMethods } ] = useSequentialRouter();
   const element = useSequential((sMethods) => {
     const methods = { ...rMethods, ...sMethods };
     const { fallback, manageEvents, trap, reject, mount, wrap } = methods;
