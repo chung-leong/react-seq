@@ -1,6 +1,6 @@
 {
   "name": "eslint-config-react-seq",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "ESLint configuration used by React-seq",
   "main": "index.js",
   "scripts": {

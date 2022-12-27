@@ -3,7 +3,7 @@ module.exports = {
     'react-hooks/exhaustive-deps': [
       'warn',
       {
-        additionalHooks: "use(Progressive(State)?|Sequential(State)?)"
+        additionalHooks: "^use(Progressive(State)?|Sequential(State)?)$"
       }
     ]
   }
