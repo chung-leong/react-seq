@@ -1,11 +1,11 @@
 # Transition example
 
-_
+React-seq is useful for tasks that require time. A very good example is page transition. By definition that always
+takes place over time. Initially, only the old page is shown. Then both the old page and the new page are partially
+visible. Finally, only the new page is shown.
 
-_
-
-_
-
+This example will show you how natural it is to deal with page transition using async generator. It'll also
+introduce you to the yield-await-promise (YAP) model of building a web application.
 
 ## Seeing the code in action
 
@@ -16,12 +16,34 @@ open up.
 
 ## Crossfade operation
 
-_
+First of all, let us look at the code responsible for performing page transition. We're not going to be overly
+ambitious here. We'll going to implement a relatively simple transition: a crossfade. The old page will go from an
+opacity of 1 to 0, while the new page will go from an opacity of 0 to 1.
 
-_
+From inside a [`useSequential`](../../doc/useSequential.md) hook we can yield either a React element or an async
+generator representing a sequence of React elements. That makes implementing page transition very easy. Instead of
+doing this:
 
-_
+```js
+  yield <ScreenAlfa />
+```
 
+Which would cause `ScreenAlfa` to immediately replace what was there before, we would need to do this:
+
+```js
+  yield f(<ScreenAfla />);
+```
+
+Where `f` returns an async generator whose last item is `<ScreenAfla />`. Items coming before will be what
+the transition effect dictates. They could be, in theory, anything and in any number. For the purpose of this
+example we'll stick with basic CSS. Over the course of the transition, three things need to be rendered:
+
+1. The old page with opacity = 1 and the new page with opacity = 0
+2. The old page with final opacity = 0 and the new page with final opacity = 1
+3. The new page only
+
+We'll need to keep track of the screen that's presently being shown. For that we use a class.
+Here's the constructor of [Crossfade](./src/Crossfade.js):
 
 ```js
 export class Crossfade {
@@ -32,6 +54,8 @@ export class Crossfade {
   }
 ```
 
+The generator function starts with this:
+
 ```js
   async *run(element) {
     const { previous } = this;
@@ -40,6 +64,9 @@ export class Crossfade {
     this.previous = element;
     if (previous) {
 ```
+
+Transition only makes sense, obviously, when there's something to transition from. So we only perform it when there
+is a previous screen. We also ensure that the previous and the current screen are rendered using different keys.
 
 ```js
       const { manageEvents } = this.methods;
@@ -357,8 +384,119 @@ export async function* echo(methods) {
 ```
 
 ## Error handling
-_
 
-_
+Let us return section "Charlie" and consider how an error emitted by `ScreenCharlie` would land in that
+section's catch block. Here's the code once again:
 
-_
+```js
+      } else if (route.screen === 'charlie') {
+        const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
+        try {
+          yield to(<ScreenCharlie count={charlieCount++} onNext={on.delta} />);
+          await eventual.delta;
+          route.screen = 'delta';
+        } catch (err) {
+          if (err instanceof ThirdTimeNotTheCharm) {
+            transition.prevent();
+          } else {
+            throw err;
+          }
+        }
+      } else ...
+```
+
+`ScreenCharlie` isn't actually called in the try block, either directly or indirectly. How does
+an error that the function emits get there then?
+
+`ScreenCharlie` gets passed to React, which calls it to render the component. React will catch any error thrown
+and search for the nearest error boundary going up the component tree. Now as you may recall, we had used `wrap`
+to wrap the router's error boundary around our generator's output ([App.js, line 13](./src/App.js#13)):
+
+```js
+    wrap(createBoundary);
+```
+
+This boundary hands the error to the router, which in turns gives it to the trap function we provided
+([App.js, line 27](./src/App.js#27)):
+
+```js
+      trap('error', (err) => {
+        reject(err);
+        return false;
+      });
+```
+
+`reject` causes the current await operation to throw with the error. What and where is this operation? Well,
+React would encounter the error as soon as its tries to render `ScreenCharlie` with a count divisible by three.
+This happens in [Crossfade.js, line 18-23](./src/Crossfade.js#L18):
+
+```js
+      yield (
+        <div className="Crossfade">
+          <div key={previousKey} className="out">{previous}</div>
+          <div key={currentKey} className="in">{element}</div>
+        </div>
+      );
+```
+
+The await statement immediately below is where the error gets rethrown again:
+
+```js
+      await eventual.transitionReady.for(25).milliseconds;
+```
+
+Since `Crossfade.run` doesn't use a try-catch block, the error will pop through (and shuts down) the generator it
+has created. React-seq will catch this error and redirect it to the parent generator using
+[AsyncGenerator.throw](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator/throw),
+which does the following (from Mozilla):
+
+> The throw() method of an async generator acts as if a throw statement is inserted in the generator's body at
+> the current suspended position, which informs the generator of an error condition and allows it to handle the
+> error, or perform cleanup and close itself.
+
+`main`'s "current suspended position" at this point would be between [the following two lines](./src/main.js#L34):
+
+```js
+          yield to(<ScreenCharlie count={charlieCount++} onNext={on.delta} />);
+          await eventual.delta;
+```
+
+And that's how the error magically ends up inside the try block.
+
+Whowee! That error went on one heck of a trip, that's for sure! You don't need to fully understand how this all works.
+Just remember that there's a mechanism in place that allows you to handle errors where doing so makes intuitively
+sense.
+
+The basic takeaway concerning error handling under the YAP model is that:
+
+1. An error would first bubble up through the React component tree
+2. If it reaches the root level error boundary, the error would get rethrown at the last `await eventual...` statement
+3. The error would then bubble up through the generator tree
+
+The last point is worth remembering. It's why the browser's back and forward buttons work when we're in the
+Echo screens eventhough `echo` is not handling `RouteChangePending`. The catch block in `main` takes care of that
+(by calling `handleError`). Basically, React-seq makes async generator functions work in an analogous way as
+regular functions.
+
+Before we leave the topic of error handling, let us consider the scenario where we aren't doing page transition.
+Our "Charlie" section would look like this:
+
+```js
+      } else if (route.screen === 'charlie') {
+        const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
+        try {
+          yield <ScreenCharlie count={charlieCount++} onNext={on.delta} />;
+          await eventual.delta;
+          route.screen = 'delta';
+        } catch (err) {
+          if (err instanceof ThirdTimeNotTheCharm) {
+            transition.prevent();
+          } else {
+            throw err;
+          }
+        }
+      } else ...
+```
+
+The code is identical except there's no `to(...)` after `yield`. What happens in this case? Exactly the same outcome,
+with error is thrown by `await eventual.delta` instead.
