@@ -6,10 +6,10 @@ import './css/App.css';
 export { RouteChangePending };
 
 export function App({ main }) {
-  const [ parts, query, { createContext, createBoundary, ...rMethods } ] = useSequentialRouter();
+  const [ parts, query, rMethods, { createContext, createBoundary } ] = useSequentialRouter();
   const element = useSequential((sMethods) => {
     const methods = { ...rMethods, ...sMethods };
-    const { fallback, manageEvents, trap, reject, mount, wrap } = methods;
+    const { fallback, manageEvents, reject, mount, wrap, trap } = methods;
     wrap(createBoundary);
     fallback(<ScreenLoading />);
     mount().then(() => {
@@ -44,7 +44,7 @@ export function App({ main }) {
     };
     methods.transition = new Crossfade(methods);
     return main(methods);
-  }, [ parts, query, rMethods ]);
+  }, [ parts, query, rMethods, main, createBoundary ]);
   return createContext(
     <div className="App">
       <div className="top-bar"><a href="/">Start</a></div>
