@@ -172,6 +172,9 @@ export function stasi(generator) {
 }
 
 export async function* linearize(generator) {
+  if (!isAsyncGenerator(generator) && isPromise(generator)) {
+    generator = await generator;
+  }
   const stack = [ generator ];
   let source = null;
   let error = null;

@@ -1491,4 +1491,42 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.equal('This sucks!');
     })
   })
+  it('should accept an async function that returns an async generator', async function() {
+    await withTestRenderer(async ({ create, update, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      function Test() {
+        return useSequential(async () => {
+          async function* generate() {
+            await assertions[1];
+            yield 'Pig';
+            steps[2].done();
+            await assertions[2];
+            yield 'Chicken';
+            steps[3].done();
+            await assertions[3];
+            yield 'Dingo';
+            steps[4].done();
+          }
+          await assertions[0];
+          steps[1].done();
+          return generate();
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(toJSON()).to.equal(null);
+      await assertions[0].done();
+      await steps[1];
+      expect(toJSON()).to.equal(null);
+      await assertions[1].done();
+      await steps[2];
+      expect(toJSON()).to.equal('Pig');
+      await assertions[2].done();
+      await steps[3];
+      expect(toJSON()).to.equal('Chicken');
+      await assertions[3].done();
+      await steps[4];
+      expect(toJSON()).to.equal('Dingo');
+    })
+  })
 })
