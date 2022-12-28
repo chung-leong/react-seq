@@ -172,9 +172,6 @@ export function stasi(generator) {
 }
 
 export async function* linearize(generator) {
-  if (!isAsyncGenerator(generator) && isPromise(generator)) {
-    generator = await generator;
-  }
   const stack = [ generator ];
   let source = null;
   let error = null;
@@ -187,6 +184,9 @@ export async function* linearize(generator) {
         // see if there's a generator on the stack that got pushed there from earlier
         if (!source) {
           source = stack.pop();
+          while (!isAsyncGenerator(source) && isPromise(source)) {
+            source = await source;
+          }
           if (!source) {
             break;
           }

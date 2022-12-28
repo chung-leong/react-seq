@@ -1509,7 +1509,7 @@ describe('#useSequential()', function() {
           }
           await assertions[0];
           steps[1].done();
-          return generate();
+          return Promise.resolve(Promise.resolve(generate()));
         }, []);
       }
       const el = createElement(Test);
