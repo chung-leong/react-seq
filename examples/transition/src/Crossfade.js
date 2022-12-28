@@ -4,14 +4,13 @@ export class Crossfade {
   constructor(methods) {
     this.methods = methods;
     this.previous = null;
-    this.key = 0;
+    this.previousKey = 0;
   }
 
-  async *run(element) {
-    const { previous } = this;
-    const previousKey = this.key++;
-    const currentKey = this.key;
+  to = (async function *(element) {
+    const { previous, previousKey } = this;
     this.previous = element;
+    const currentKey = ++this.previousKey;
     if (previous) {
       const { manageEvents } = this.methods;
       const [ on, eventual ] = manageEvents();
@@ -35,14 +34,10 @@ export class Crossfade {
         <div key={currentKey}>{element}</div>
       </div>
     );
-  }
-
-  to = (element) => {
-    return this.run(element);
-  }
+  }).bind(this);
 
   prevent = () => {
     this.previous = null;
-    this.key--;
+    this.previousKey--;
   }
 }

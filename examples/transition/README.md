@@ -38,9 +38,9 @@ Where `f` returns an async generator whose last item is `<ScreenAfla />`. Items 
 the transition effect dictates. They could be, in theory, anything and in any number. For the purpose of this
 example we'll stick with basic CSS. Over the course of the transition, three things need to be rendered:
 
-1. The old page with opacity = 1 and the new page with opacity = 0
-2. The old page with final opacity = 0 and the new page with final opacity = 1
-3. The new page only
+1. The old screen with opacity = 1 and the new screen with opacity = 0
+2. The old screen with final opacity = 0 and the new screen with final opacity = 1
+3. The new screen only
 
 We'll need to keep track of the screen that's presently being shown. For that we use a class.
 Here's the constructor of [Crossfade](./src/Crossfade.js):
@@ -50,25 +50,34 @@ export class Crossfade {
   constructor(methods) {
     this.methods = methods;
     this.previous = null;
-    this.key = 0;
+    this.previousKey = 0;
   }
 ```
 
-The generator function starts with this:
+The `to` method is responsible for performing a transition to a new screen. For ergonomic reason we want to
+automatically bind it to the object. Since there's no arrow function syntax for generator functions, we
+have to resort to the following construct:
 
 ```js
-  async *run(element) {
-    const { previous } = this;
-    const previousKey = this.key++;
-    const currentKey = this.key;
-    this.previous = element;
-    if (previous) {
+  to = (async function *(element) {
+    /* ... */
+  }).bind(this);
 ```
 
-Transition only makes sense, obviously, when there's something to transition from. So we only perform it when there
-is a previous screen. We also ensure that the previous and the current screen are rendered using different keys.
+The generator function first saves the provided element as the previous screen (for the next call) and increments
+the key:
 
 ```js
+    const { previous, previousKey } = this;
+    this.previous = element;
+    const currentKey = ++this.previousKey;
+```
+
+If there was a previous screen, it outputs both it and the current screen in their initial transition states
+([.Crossfade .out](./src/css/Crossfade.css#10) and [.Crossfade .in](./src/css/Crossfade.css#19)):
+
+```js
+    if (previous) {
       const { manageEvents } = this.methods;
       const [ on, eventual ] = manageEvents();
       yield (
@@ -80,6 +89,11 @@ is a previous screen. We also ensure that the previous and the current screen ar
       await eventual.transitionReady.for(25).milliseconds;
 ```
 
+It then waits 25 milliseconds to ensure that the DOM nodes are ready. There's probably a better way to do
+this. Using a timer happens to easy and fairly reliable. I'm open to suggestion.
+
+After the brief pause it adds "end" to the classname of the two div's:
+
 ```js
       yield (
         <div className="Crossfade">
@@ -88,7 +102,12 @@ is a previous screen. We also ensure that the previous and the current screen ar
         </div>
       );
       await eventual.transitionIn.and.transitionOut;
+    } // end of if (previous)
 ```
+
+That sets the transition into motion. This time our code actually have an event it can wait for:
+[transitionend](https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionend_event). When both transitions
+are done it proceeds to the final step, namely rendering only the new screen:
 
 ```js
     yield (
@@ -96,14 +115,14 @@ is a previous screen. We also ensure that the previous and the current screen ar
         <div key={currentKey}>{element}</div>
       </div>
     );
-  }
+  }).bind(this);
 ```
 
-```js
-  to = (element) => {
-    return this.run(element);
-  }
+This is what happens immediately when there is no previous screen.
 
+`Crossfade` provides a second method that prevents a transition from occurring. The logic is pretty simple:
+
+```js
   prevent = () => {
     this.previous = null;
     this.key--;
@@ -112,12 +131,7 @@ is a previous screen. We also ensure that the previous and the current screen ar
 
 ## Bootstrap code
 
-_
-
-_
-
-_
-
+Now let us examine how our crossfade class is put to use. We'll start from [the very beginning](./src/index.js):
 
 ```js
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -142,11 +156,7 @@ export function App({ main }) {
   const [ parts, query, rMethods, { createContext, createBoundary } ] = useSequentialRouter();
   const element = useSequential((sMethods) => {
     const methods = { ...rMethods, ...sMethods };
-    const { fallback, manageEvents, reject, mount, wrap, trap } = methods;
-```
-
-```js
-    wrap(createBoundary);
+    const { fallback, manageEvents, reject, mount, trap } = methods;
 ```
 
 ```js
@@ -198,18 +208,20 @@ export function App({ main }) {
 
 ```js
     return main({}, methods);
-  }, [ parts, query, createBoundary, rMethods ]);
+  }, [ parts, query, rMethods, main ]);
 ```
 
 ```js
-  return createContext(
+  return createContext(createBoundary(
     <div className="App">
       <div className="top-bar"><a href="/">Start</a></div>
       <div className="content">{element}</div>
     </div>
-  );
+  ));
 }
 ```
+
+## The main function
 
 ```js
 export async function* main(state, methods) {
@@ -443,7 +455,7 @@ The await statement immediately below is where the error gets rethrown again:
       await eventual.transitionReady.for(25).milliseconds;
 ```
 
-Since `Crossfade.run` doesn't use a try-catch block, the error will pop through (and shuts down) the generator it
+Since `Crossfade.to` doesn't use a try-catch block, the error will pop through (and shuts down) the generator it
 has created. React-seq will catch this error and redirect it to the parent generator using
 [AsyncGenerator.throw](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator/throw),
 which does the following (from Mozilla):
