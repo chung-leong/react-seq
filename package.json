@@ -1,6 +1,6 @@
 {
   "name": "react-seq",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "description": "React hooks for working with async generators and promises",
   "main": "index.js",
   "type": "module",
@@ -40,7 +40,7 @@
   },
   "homepage": "https://github.com/chung-leong/react-seq#readme",
   "dependencies": {
-    "eslint-config-react-seq": "^0.0.1"
+    "eslint-config-react-seq": "^0.0.2"
   },
   "peerDependencies": {
     "react": ">= 18.0"
