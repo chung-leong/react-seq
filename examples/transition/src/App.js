@@ -9,8 +9,7 @@ export function App({ main }) {
   const [ parts, query, rMethods, { createContext, createBoundary } ] = useSequentialRouter();
   const element = useSequential((sMethods) => {
     const methods = { ...rMethods, ...sMethods };
-    const { fallback, manageEvents, reject, mount, wrap, trap } = methods;
-    wrap(createBoundary);
+    const { fallback, manageEvents, reject, mount, trap } = methods;
     fallback(<ScreenLoading />);
     mount().then(() => {
       let detouring;
@@ -44,13 +43,13 @@ export function App({ main }) {
     };
     methods.transition = new Crossfade(methods);
     return main({}, methods);
-  }, [ parts, query, rMethods, main, createBoundary ]);
-  return createContext(
+  }, [ parts, query, rMethods, main ]);
+  return createContext(createBoundary(
     <div className="App">
       <div className="top-bar"><a href="/">Start</a></div>
       <div className="content">{element}</div>
     </div>
-  );
+  ));
 }
 
 function ScreenError({ error }) {
