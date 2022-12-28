@@ -100,11 +100,6 @@ export function sequential(cb, options = {}) {
     placeholder = el;
   };
 
-  let wrapFn;
-  methods.wrap = (fn) => {
-    wrapFn = fn;
-  };
-
   // permit explicit request to use pending content
   let flushFn;
   methods.flush = () => flushFn?.();
@@ -248,7 +243,7 @@ export function sequential(cb, options = {}) {
         inspector?.dispatch({ type: 'content', content: currentContent });
         lastSeen = currentContent;
       }
-      return (wrapFn) ? wrapFn(currentContent) : currentContent;
+      return currentContent;
     }
 
     function updateContent({ conditional = false, reusable = false }) {
