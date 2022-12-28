@@ -43,7 +43,7 @@ export function App({ main }) {
       return [ proxy, query ];
     };
     methods.transition = new Crossfade(methods);
-    return main(methods);
+    return main({}, methods);
   }, [ parts, query, rMethods, main, createBoundary ]);
   return createContext(
     <div className="App">

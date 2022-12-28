@@ -1,12 +1,10 @@
 import { RouteChangePending } from './App.js';
 
-export async function* main(methods) {
+export async function* main(state, methods) {
   const { manageRoute, manageEvents, handleError, throw404, transition } = methods;
   const [ route ] = manageRoute({ screen: 0 });
   const [ on, eventual ] = manageEvents();
   const { to } = transition;
-  let charlieCount = 1;
-  let deltaText = '', onDeltaText = t => deltaText = t;
   for (;;) {
     try {
       if (route.screen === undefined) {
@@ -31,7 +29,8 @@ export async function* main(methods) {
       } else if (route.screen === 'charlie') {
         const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
         try {
-          yield to(<ScreenCharlie count={charlieCount++} onNext={on.delta} />);
+          state.count ??= 1;
+          yield to(<ScreenCharlie count={state.count++} onNext={on.delta} />);
           await eventual.delta;
           route.screen = 'delta';
         } catch (err) {
@@ -44,13 +43,14 @@ export async function* main(methods) {
       } else if (route.screen === 'delta') {
         const { ScreenDelta } = await import('./screens/ScreenDelta.js');
         try {
-          yield to(<ScreenDelta text={deltaText} onText={onDeltaText} onNext={on.echo} />);
+          state.text ??= '';
+          yield to(<ScreenDelta text={state.text} onText={t => state.text = t} onNext={on.echo} />);
           await eventual.echo;
           route.screen = 'echo';
         } catch (err) {
-          if (err instanceof RouteChangePending && deltaText.trim().length > 0) {
+          if (err instanceof RouteChangePending && state.text.trim().length > 0) {
             transition.prevent();
-            yield to(<ScreenDelta text={deltaText} onDetour={on.proceed} />);
+            yield to(<ScreenDelta text={state.text} onDetour={on.proceed} />);
             const { proceed } = await eventual.proceed;
             if (proceed) {
               throw err;
@@ -64,7 +64,8 @@ export async function* main(methods) {
         }
       } else if (route.screen === 'echo') {
         const { echo } = await import('./echo.js');
-        yield echo(methods);
+        state.echo ??= {};
+        yield echo(state.echo, methods);
         route.screen = 'foxtrot';
       } else if (route.screen === 'foxtrot') {
         const { ScreenFoxtrot } = await import('./screens/ScreenFoxtrot.js');

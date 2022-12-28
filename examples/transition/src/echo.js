@@ -1,4 +1,4 @@
-export async function* echo(methods) {
+export async function* echo(state, methods) {
   const { manageRoute, manageEvents, throw404, transition, replacing } = methods;
   const [ route ] = manageRoute({ screen: 1 });
   const [ on, eventual ] = manageEvents();
