@@ -1529,4 +1529,24 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.equal('Dingo');
     })
   })
+  it('should trigger unsuspend function', async function() {
+    await withTestRenderer(async ({ create, update, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      let called = false;
+      function Test() {
+        return useSequential(async function* ({ unsuspend }) {
+          unsuspend(() => called = true);
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(called).to.be.false;
+      await assertions[0].done();
+      await steps[1];
+      expect(called).to.be.true;
+    })
+  })
 })

@@ -104,6 +104,10 @@ export function sequential(cb, options = {}) {
   let flushFn;
   methods.flush = () => flushFn?.();
 
+  // let callback wait for unsuspension
+  let unsuspendFn;
+  methods.unsuspend = (fn) => unsuspendFn = fn;
+
   let awaiting = false;
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
@@ -226,6 +230,7 @@ export function sequential(cb, options = {}) {
       inspector?.dispatch({ type: 'return' });
       iterator.return().catch(err => console.error(err));
     }
+    unsuspendFn?.();
     return { default: Sequence };
 
     function Sequence() {
