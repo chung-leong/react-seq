@@ -86,7 +86,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
   let awaiting = false;
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     let eventManager;
-    methods.manageEvents = (options = {}) => {
+    methods.manageEvents = () => {
       if (!eventManager) {
         const onAwaitStart = () => {
           awaiting = true;
@@ -95,7 +95,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
         const onAwaitEnd = () => {
           awaiting = false;
         };
-        eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
+        eventManager = new EventManager({ signal, inspector, onAwaitStart, onAwaitEnd });
       }
       return [ eventManager.on, eventManager.eventual ];
     };

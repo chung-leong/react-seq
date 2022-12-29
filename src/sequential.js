@@ -108,7 +108,7 @@ export function sequential(cb, options = {}) {
   if (!process.env.REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
     let eventManager;
-    methods.manageEvents = (options = {}) => {
+    methods.manageEvents = () => {
       if (!eventManager) {
         const onAwaitStart = () => {
           awaiting = true;
@@ -117,7 +117,7 @@ export function sequential(cb, options = {}) {
         const onAwaitEnd = () => {
           awaiting = false;
         };
-        eventManager = new EventManager({ ...options, signal, inspector, onAwaitStart, onAwaitEnd });
+        eventManager = new EventManager({ signal, inspector, onAwaitStart, onAwaitEnd });
       }
       return [ eventManager.on, eventManager.eventual ];
     };

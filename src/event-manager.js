@@ -162,8 +162,6 @@ class ManagedPromise extends Promise {
 }
 
 export class EventManager {
-  // whether to output a warning when no promises are fulfilled
-  warning = false;
   // event handlers
   handlers = {};
   // promises that get triggered by handlers
@@ -189,13 +187,11 @@ export class EventManager {
 
   constructor(options) {
     const {
-      warning = false,
       signal,
       inspector,
       onAwaitStart,
       onAwaitEnd,
     } = options;
-    this.warning = warning;
     this.inspector = inspector;
     this.onAwaitStart = onAwaitStart;
     this.onAwaitEnd = onAwaitEnd;
@@ -295,7 +291,7 @@ export class EventManager {
   }
 
   settlePromise(name, value) {
-    const { promises, warning } = this;
+    const { promises } = this;
     let preserving = false, rejecting = false;
     for (;;) {
       if (value instanceof PreservableValue) {
@@ -336,8 +332,6 @@ export class EventManager {
     if (this.inspector) {
       const type = (rejecting) ? 'reject' : 'fulfill';
       this.inspector.dispatch({ type, name, value, handled });
-    } else if (!handled && warning && process.env.NODE_ENV === 'development') {
-      console.warn(`No promise was fulfilled by call to on.${name}()`);
     }
   }
 
@@ -349,13 +343,6 @@ export class EventManager {
     }
     if (this.inspector) {
       this.inspector.dispatch({ type: 'await', promise });
-    } else if (this.warning && process.env.NODE_ENV === 'development') {
-      const { state, name } = promise;
-      if (!(state & DERIVED)) {
-        if (!(name in this.handlers)) {
-          console.warn(`Awaiting eventual.${name} without prior use of on.${name}`);
-        }
-      }
     }
     this.onAwaitStart?.();
   }
