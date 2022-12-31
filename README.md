@@ -38,22 +38,27 @@ function ProductPage({ productId }) {
 }
 ```
 
-## Progressive rendering
+## Data loading
 
-## State hooks
+## Separation of presentation from business logic
 
-## Event management
+## State management
+
+## Handling page transition
+
+## Testing
 
 ## API reference
 
-* [Hooks and other functions](./API.md)
-* [Server-side rendering](./server/README.md)
-* [Client-side SSR support](./client/README.md)
+* [Hooks and other functions](./index.md)
+* [Server-side rendering](./server/index.md)
+* [Client-side SSR support](./client/index.md)
+* [Test utilities](./test-utils/index.md)
 
 ## List of examples
 
 * [Payment form](./examples/payment/README.md) <sup>`useSequential`</sup>
-* [Switch loop](./examples/switch-loop/README.md) <sup>`useSequential`</sup>
+* [Tranition](./examples/transition/README.md) <sup>`useSequential`</sup>
 * [Star Wars API](./examples/swapi/README.md) <sup>`useProgressive`</sup>
 * [Word Press](./examples/wordpress.md) <sup>`useProgressive`</sup>
 * [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
@@ -63,20 +68,26 @@ function ProductPage({ productId }) {
 
 ## ESLint configuration
 
-Add the following rule to your ESLint settings to enable the linting of React-seq hooks:
+Add "react-seq" to your ESLint settings to enable the linting of React-seq hooks:
 
-```js
-"eslintConfig": {
-  "rules": {
-    /* ... */
-    "react-hooks/exhaustive-deps": [
-      "warn",
-      {
-        "additionalHooks": "use(Progressive(State)?|Sequential(State)?)"
-      }
+```json
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest",
+      "react-seq"
     ]
-  }
-}
+  },
 ```
 
 You will find the `eslintConfig` section in your project's `package.json` if it was created using **Create React App**.
+
+## Jest configuration
+
+```json
+  "jest": {
+    "transformIgnorePatterns": [
+      "!node_modules/react-seq/"
+    ]
+  },
+```
