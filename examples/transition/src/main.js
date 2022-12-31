@@ -35,7 +35,7 @@ export async function* main(state, methods) {
           route.screen = 'delta';
         } catch (err) {
           if (err instanceof ThirdTimeNotTheCharm) {
-            transition.prevent();
+            continue;
           } else {
             throw err;
           }
@@ -49,14 +49,12 @@ export async function* main(state, methods) {
           route.screen = 'echo';
         } catch (err) {
           if (err instanceof RouteChangePending && state.text.trim().length > 0) {
-            transition.prevent();
             yield to(<ScreenDelta text={state.text} onDetour={on.proceed} />);
             const { proceed } = await eventual.proceed;
             if (proceed) {
               throw err;
             } else {
               err.prevent();
-              transition.prevent();
             }
           } else {
             throw err;

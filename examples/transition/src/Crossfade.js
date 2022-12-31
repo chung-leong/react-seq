@@ -1,3 +1,4 @@
+import { Fragment, Children } from 'react';
 import './css/Crossfade.css';
 
 export class Crossfade {
@@ -10,8 +11,11 @@ export class Crossfade {
   to = (async function *(element) {
     const { previous, previousKey } = this;
     this.previous = element;
-    const currentKey = ++this.previousKey;
-    if (previous) {
+    let currentKey;
+    if (!previous || isSameType(previous, element)) {
+      currentKey = previousKey;
+    } else {
+      currentKey = ++this.previousKey;
       const { manageEvents } = this.methods;
       const [ on, eventual ] = manageEvents();
       yield (
@@ -40,4 +44,23 @@ export class Crossfade {
     this.previous = null;
     this.previousKey--;
   }
+}
+
+function isSameType(el1, el2) {
+  if (el1?.type === el2?.type) {
+    if (el1?.type === Fragment) {
+      const c1 = Children.toArray(el1.props.children);
+      const c2 = Children.toArray(el2.props.children);
+      if (c1.length !== c2.length) {
+        return false;
+      }
+      for (let i = 0; i < c1.length; i++) {
+        if (!isSameType(c1[i], c2[i])) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  return false;
 }
