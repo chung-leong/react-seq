@@ -37,3 +37,12 @@ function ProductPage({ productId }) {
 * [`mount`](./mount.md)
 * [`reject`](./reject.md)
 * [`signal`](./signal.md)
+
+## Notes
+
+`useSequentialState` is not integrated with React's
+[Suspension API](https://reactjs.org/docs/react-api.html#reactsuspense). During server-side rendering, it will only
+return the initial state. The async generator will get shut down immediately.
+
+Aside from the lack of Suspension API integration, `useSequentialState` works largely in the same way as
+[`useSequential`](./useSequential.md). See its documentation for more details.

@@ -50,6 +50,45 @@ function ProductPage({ productId }) {
 * [`reject`](./reject.md)
 * [`signal`](./signal.md)
 * [`suspend`](./suspend.md)
-* [`wrap`](./wrap.md)
+* [`unsuspend`](./unsuspend.md)
 
 ## Notes
+
+`useSequential` also accepts an async function returning an async generator:
+
+```js
+  return useSequential(async ({ fallback }) => {
+    fallback(<Loading />);
+    const { main } = await import('./main.js');
+    return main();
+  });
+```
+
+Async generators themselves can yield async generators. This allows you to break one long sequence into multiple
+sub-routines. For error handling purpose, sub-generators yielded by a generator are handled as though their items'
+retrieval take place within the calling function. The following:
+
+```js
+  try {
+    /* ... */
+    yield subroutine();
+  } catch (err) {
+    /* ... */
+  }
+```
+
+Is equivalent to:
+
+```js
+  try {
+    /* ... */
+    for await (const item of subroutine()) {
+      yield item;
+    }
+  } catch (err) {
+    /* ... */
+  }
+```
+
+In both cases errors thrown by `subroutine()` will be caught by the catch block. If `subroutine` itself calls
+another async generator function, errors arising there too will be caught.
