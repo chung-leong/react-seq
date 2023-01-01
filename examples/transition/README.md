@@ -42,7 +42,7 @@ example we'll stick with basic CSS. Over the course of the transition, three thi
 2. The old screen with final opacity = 0 and the new screen with final opacity = 1
 3. The new screen only
 
-We'll need to keep track of the screen that's presently being shown. For that we use a class.
+We'll need to keep track of the screen that's actively being shown. For that we use a class.
 Here's the constructor of [Crossfade](./src/Crossfade.js):
 
 ```js
@@ -54,9 +54,9 @@ export class Crossfade {
   }
 ```
 
-The `to` method is responsible for performing a transition to a new screen. For ergonomic reason we want to
-automatically bind it to the object. Since there's no arrow function syntax for generator functions, we
-have to resort to the following construct:
+The `to` method is responsible for performing a transition to a new screen. For ergonomic reason we want it
+bound to the object. Since there's no arrow function syntax for generator functions, we resort to the following
+construct:
 
 ```js
   to = (async function *(element) {
@@ -64,20 +64,22 @@ have to resort to the following construct:
   }).bind(this);
 ```
 
-The generator function first saves the provided element as the previous screen (for the next call) and increments
-the key:
+We first save the provided element as the previous screen (for the next call):
 
 ```js
     const { previous, previousKey } = this;
     this.previous = element;
-    const currentKey = ++this.previousKey;
 ```
 
-If there was a previous screen, it outputs both it and the current screen in their initial transition states
-([.Crossfade .out](./src/css/Crossfade.css#10) and [.Crossfade .in](./src/css/Crossfade.css#19)):
+If there is a previous screen and it's of a different type, we output both it and the new screen in their initial
+transition states ([.Crossfade .out](./src/css/Crossfade.css#10) and [.Crossfade .in](./src/css/Crossfade.css#19)):
 
 ```js
-    if (previous) {
+  let currentKey;
+  if (!previous || isSameType(previous, element)) {
+    currentKey = previousKey;
+  } else {
+    currentKey = ++this.previousKey;
       const { manageEvents } = this.methods;
       const [ on, eventual ] = manageEvents();
       yield (
@@ -89,10 +91,10 @@ If there was a previous screen, it outputs both it and the current screen in the
       await eventual.transitionReady.for(25).milliseconds;
 ```
 
-It then waits 25 milliseconds to ensure that the DOM nodes are ready. There's probably a better way to do
-this. Using a timer happens to easy and fairly reliable. I'm open to suggestion.
+We then wait 25 milliseconds to ensure that the DOM nodes are ready. There's probably a better way to do
+this. Using a timer happens to easy and reliable. I'm open to suggestion.
 
-After the brief pause it adds "end" to the classname of the two div's:
+After the brief pause we add "end" to the classname of the two div's:
 
 ```js
       yield (
@@ -105,9 +107,9 @@ After the brief pause it adds "end" to the classname of the two div's:
     } // end of if (previous)
 ```
 
-That sets the transition into motion. This time our code actually have an event it can wait for:
+That sets the transition into motion. This time we actually have an event we can wait for:
 [transitionend](https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionend_event). When both transitions
-are done it proceeds to the final step, namely rendering only the new screen:
+are done we proceed to the final step, namely rendering only the new screen:
 
 ```js
     yield (
@@ -118,7 +120,7 @@ are done it proceeds to the final step, namely rendering only the new screen:
   }).bind(this);
 ```
 
-This is what happens immediately when there is no previous screen.
+This is what happens immediately when there is no previous screen or it's the same type as the incoming one.
 
 `Crossfade` provides a second method that prevents a transition from occurring. The logic is pretty simple:
 
@@ -129,59 +131,68 @@ This is what happens immediately when there is no previous screen.
   }
 ```
 
-## Bootstrap code
-
-Now let us examine how our crossfade class is put to use. We'll start from [the very beginning](./src/index.js):
-
-```js
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App main={main} />
-  </React.StrictMode>
-);
-```
+Now let us examine how our Crossfade class is put to use.
 
 ## App component
 
-_
+The example app uses [Array-router](https://github.com/chung-leong/array-router), a minimalist library also used
+in the other examples. The specialized hook `useSequentialRouter` is used here. It differs from `useRouter` in that
+it does not trigger component updates when the route changes.
 
-_
-
-_
-
+After creating the router, we call [`useSequential`](../../doc/useSequential.md). Instead of an async generator
+function, we use an async function that will return an async generator:
 
 ```js
 export function App({ main }) {
+  const [ ready, setReady ] = useState(false);
   const [ parts, query, rMethods, { createContext, createBoundary } ] = useSequentialRouter();
-  const element = useSequential((sMethods) => {
+  const element = useSequential(async (sMethods) => {
     const methods = { ...rMethods, ...sMethods };
     const { fallback, manageEvents, reject, mount, trap } = methods;
 ```
+
+We use [`fallback`](../../doc/fallback.md) to provide a fallback element:
 
 ```js
     fallback(<ScreenLoading />);
 ```
 
+We use [`unsuspend`](../../doc/unsuspend.md) to attach callback that is called when the fallback element gets
+take off:
+
 ```js
-    mount().then(() => {
-      let detouring;
-      trap('detour', (err) => {
-        if (!detouring) {
-          detouring = true;
-          err.onSettlement = () => detouring = false;
-          reject(err);
-        } else {
-          err.prevent();
-        }
-        return true;
-      });
-      trap('error', (err) => {
-        reject(err);
-        return false;
-      });
+    unsuspend(() => setReady(true));
+```
+
+We then wait for the component to mount, then use the router's `trap` function to capture errors caught by its
+error boundary. We use [`reject`](../../doc/reject.md) to redirect the error to the active `await` statement:
+
+```js
+    await mount();
+    trap('error', (err) => {
+      reject(err);
+      return false;
     });
 ```
+
+We use `trap` again to capture "detour" events. A detour is either use of the browser's back/forward buttons or
+a click on a link. It's an error object that we also redirect to the active `await` statement using `reject`:
+
+```js
+    let detouring;
+    trap('detour', (err) => {
+      if (!detouring) {
+        detouring = true;
+        err.onSettlement = () => detouring = false;
+        reject(err);
+      } else {
+        err.prevent();
+      }
+      return true;
+    });
+```
+
+The following is the default error handler:
 
 ```js
     methods.handleError = async function*(err) {
@@ -195,31 +206,41 @@ export function App({ main }) {
     };
 ```
 
+`RouteChangePending` is what gets thrown when a detour occurs. The default action is to proceed to the destination.
+
+The following function is used to manipulate the route:
+
 ```js
-    methods.manageRoute = (def, offset) => {
-      const proxy = arrayProxy(parts, def, offset);
+    methods.manageRoute = (def) => {
+      const proxy = arrayProxy(parts, def);
       return [ proxy, query ];
     };
 ```
+
+And here's where we create our `Crossfade` object:
 
 ```js
     methods.transition = new Crossfade(methods);
 ```
 
-```js
-    return main({}, methods);
-  }, [ parts, query, rMethods, main ]);
-```
+Finally, we load the `main` function from a file and invoke it:
 
 ```js
-  return createContext(createBoundary(
-    <div className="App">
-      <div className="top-bar"><a href="/">Start</a></div>
-      <div className="content">{element}</div>
-    </div>
-  ));
+    const { main } = await import('./main.js');
+    return main({}, methods);
+  }, [ parts, query, rMethods ]);
+```
+
+Outside the hook, we wrap the element from `useSequential` in a `Frame` component. We also add the router's
+error boundary and context:
+
+```js
+  return createContext(createBoundary(<Frame ready={ready}>{element}</Frame>));
 }
 ```
+
+So the basic idea here is that `App` would provide the basic plumbing, while all the actions actually take place
+inside `main`. Let us now look at what that function does:
 
 ## The main function
 

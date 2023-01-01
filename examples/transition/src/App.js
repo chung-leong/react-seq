@@ -15,6 +15,10 @@ export function App() {
     fallback(<ScreenLoading />);
     unsuspend(() => setReady(true));
     await mount();
+    trap('error', (err) => {
+      reject(err);
+      return false;
+    });
     let detouring;
     trap('detour', (err) => {
       if (!detouring) {
@@ -26,10 +30,6 @@ export function App() {
       }
       return true;
     });
-    trap('error', (err) => {
-      reject(err);
-      return false;
-    });
     methods.handleError = async function*(err) {
       if (err instanceof RouteChangePending) {
         await err.proceed();
@@ -39,13 +39,12 @@ export function App() {
         await eventual.confirm;
       }
     };
-    methods.manageRoute = (def, offset) => {
-      const proxy = arrayProxy(parts, def, offset);
+    methods.manageRoute = (def) => {
+      const proxy = arrayProxy(parts, def);
       return [ proxy, query ];
     };
     methods.transition = new Crossfade(methods);
     const { main } = await import('./main.js');
-    setReady(true);
     return main({}, methods);
   }, [ parts, query, rMethods ]);
   return createContext(createBoundary(<Frame ready={ready}>{element}</Frame>));
