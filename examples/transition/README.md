@@ -5,7 +5,7 @@ takes place over time. Initially, only the old page is shown. Then both the old 
 visible. Finally, only the new page is shown.
 
 This example will show you how natural it is to deal with page transition using async generator. It'll also
-introduce you to the yield-await-promise (YAP) model of building a web application.
+introduce you to the Yield-Await-Promise model of building a web application.
 
 ## Seeing the code in action
 
@@ -244,6 +244,7 @@ inside `main`. Let us now look at what that function does:
 
 ## The main function
 
+The function begins by setting up some variables:
 ```js
 export async function* main(state, methods) {
   const { manageRoute, manageEvents, handleError, throw404, transition } = methods;
@@ -252,10 +253,17 @@ export async function* main(state, methods) {
   const { to } = transition;
 ```
 
+`manageRoute` returns a proxy object, whose `screen` property is mapped to the first part of the path. When the
+path is "/alfa", `route.screen` will be "alfa".
+
+The function then enters the main loop, which contains a try-catch block:
+
 ```js
   for (;;) {
     try {
 ```
+
+The catch block uses `handleError` defined in `App`:
 
 ```js
     } catch (err) {
@@ -266,6 +274,8 @@ export async function* main(state, methods) {
 }
 ```
 
+In the try block, our code checks what's in `route.screen`. Initially, the following will match:
+
 ```js
       if (route.screen === undefined) {
         const { ScreenStart } = await import('./screens/ScreenStart.js');
@@ -275,6 +285,18 @@ export async function* main(state, methods) {
       } else ...
 ```
 
+[`ScreenStart`](./src/ScreenStart.js) is dynamically loaded. We then use `to` in `CrossFade` to transition to it.
+Since, there is no previous screen, `to` will yield the element and immediately return. We then begin awaiting the
+promise `eventual.alfa`, which is fulfilled when `on.alfa` is called.
+
+Well, that's the basics of the Yield-Await-Promise model. We yield a visual element that prompts the user to do
+something, then wait for him to do so. It's that simple. The model is reminiscent of the sort of simply text
+programs that you might have written in your first-year CS class. Instead of a simple text prompt sent to the
+terminal, here we're outputting an HTML component, through React, to the web browser.
+
+When you click the button on the page, `route.screen` is set to "alfa". This changes the location from
+"http://localhost:3000/" to "http://localhost:3000/alfa", which sends us into the next clause:
+
 ```js
       } else if (route.screen === 'alfa') {
         const { ScreenAlfa } = await import('./screens/ScreenAlfa.js');
@@ -283,6 +305,14 @@ export async function* main(state, methods) {
         route.screen = 'bravo';
       } else ...
 ```
+
+The code is essentially identical to what's above. A transition will actually happen this time.
+
+If you hit the browser's back button, `await eventual.bravo` will throw with a `RouteChangePending` error. This lands
+in the catch block and eventually in `handleError`, which tells the router to proceed with the change. `route.screen`
+becomes `undefined` again and matches the first `if` clause.
+
+If you click the button on the page instead, we go to the next clause:
 
 ```js
       } else if (route.screen === 'bravo') {
@@ -297,6 +327,9 @@ export async function* main(state, methods) {
       } else ...
 ```
 
+This screen has two buttons. We have to await two possible promises: `charlie` or `delta`. The promise fulfillment
+value will be either `{ charlie: ... }` or `{ delta: ... }`. If it's the former, then we go to the Charlie section:
+
 ```js
       } else if (route.screen === 'charlie') {
         const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
@@ -307,7 +340,7 @@ export async function* main(state, methods) {
           route.screen = 'delta';
         } catch (err) {
           if (err instanceof ThirdTimeNotTheCharm) {
-            transition.prevent();
+            continue;
           } else {
             throw err;
           }
@@ -315,12 +348,20 @@ export async function* main(state, methods) {
       } else ...
 ```
 
+There's a try-catch block in this clause, as [`ScreenCharlie`](./src/ScreenCharlie.js) will throw when the
+number give to it is divisible by three:
+
 ```js
 export function ScreenCharlie({ count, onNext }) {
   if (count % 3 === 0) {
     throw new ThirdTimeNotTheCharm(`Thou shalst not count to ${count}`);
   }
 ```
+
+When that happens, we simply continue on, since the count has already been incremented and it'll be safe to
+render the component again.
+
+The `if` clause for [`ScreenDelta`](./src/ScreenDelta.js) also has a try-catch block:
 
 ```js
       } else if (route.screen === 'delta') {
@@ -332,21 +373,24 @@ export function ScreenCharlie({ count, onNext }) {
           route.screen = 'echo';
         } catch (err) {
           if (err instanceof RouteChangePending && state.text.trim().length > 0) {
-            transition.prevent();
             yield to(<ScreenDelta text={state.text} onDetour={on.proceed} />);
             const { proceed } = await eventual.proceed;
             if (proceed) {
               throw err;
             } else {
               err.prevent();
-              transition.prevent();
             }
           } else {
             throw err;
           }
         }
       } else ...
-```      
+```
+
+This time we're catching the `RouteChangePending` error. When that happens, we ask `ScreenDelta` to put up a
+dialog box by giving it a `onDetour` handler. We expect it to be called with either `true` or `false`. In the
+first case, we rethrow the error so the default error handler will approve the detour. Otherwise the detour gets
+prevented and we land back in `ScreenDelta`.
 
 ```js
       } else if (route.screen === 'echo') {
