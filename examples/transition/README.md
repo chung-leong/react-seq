@@ -392,6 +392,8 @@ dialog box by giving it a `onDetour` handler. We expect it to be called with eit
 first case, we rethrow the error so the default error handler will approve the detour. Otherwise the detour gets
 prevented and we land back in `ScreenDelta`.
 
+The next section, Echo, loads and calls a function:
+
 ```js
       } else if (route.screen === 'echo') {
         const { echo } = await import('./echo.js');
@@ -400,6 +402,11 @@ prevented and we land back in `ScreenDelta`.
         route.screen = 'foxtrot';
       } else ...
 ```
+
+Like `main`, `echo` is an async generator function. Execution of `main` will pause until all items have been retrieved
+from the new generator.
+
+The final section just send us back to section Alfa:
 
 ```js
       } else if (route.screen === 'foxtrot') {
@@ -410,21 +417,20 @@ prevented and we land back in `ScreenDelta`.
       } else ...
 ```
 
+If nothing matches, a 404 error is thrown:
+
 ```js
       } else {
         throw404();
       }
 ```
 
-## Subprocedure echo
-_
+## The echo function
 
-_
-
-_
+`echo` has the same structure as `main`:
 
 ```js
-export async function* echo(methods) {
+export async function* echo(state, methods) {
   const { manageRoute, manageEvents, throw404, transition, replacing } = methods;
   const [ route ] = manageRoute({ screen: 1 });
   const [ on, eventual ] = manageEvents();
@@ -458,21 +464,25 @@ export async function* echo(methods) {
 }
 ```
 
+The only difference is that this function returns and it does not handle errors. Any error would pop through and
+land in the catch block of `main`.
+
 ## Error handling
 
-Let us return section "Charlie" and consider how an error emitted by `ScreenCharlie` would land in that
+Let us return to section "Charlie" and consider how an error emitted by `ScreenCharlie` would land in that
 section's catch block. Here's the code once again:
 
 ```js
       } else if (route.screen === 'charlie') {
         const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
         try {
-          yield to(<ScreenCharlie count={charlieCount++} onNext={on.delta} />);
+          state.count ??= 1;
+          yield to(<ScreenCharlie count={state.count++} onNext={on.delta} />);
           await eventual.delta;
           route.screen = 'delta';
         } catch (err) {
           if (err instanceof ThirdTimeNotTheCharm) {
-            transition.prevent();
+            continue;
           } else {
             throw err;
           }
@@ -481,18 +491,19 @@ section's catch block. Here's the code once again:
 ```
 
 `ScreenCharlie` isn't actually called in the try block, either directly or indirectly. How does
-an error that the function emits get there then?
+an error emitted by the function get there then?
 
-`ScreenCharlie` gets passed to React, which calls it to render the component. React will catch any error thrown
-and search for the nearest error boundary going up the component tree. Now as you may recall, we had used `wrap`
-to wrap the router's error boundary around our generator's output ([App.js, line 13](./src/App.js#13)):
+`ScreenCharlie` is passed to React, which calls it when it renders the component. React will catch any error thrown
+and search for the nearest error boundary moving up the component tree. Now as you may recall, our router
+provides one in [App](./src/App.js#50):
 
 ```js
-    wrap(createBoundary);
+  return createContext(createBoundary(<Frame ready={ready}>{element}</Frame>));
+}
 ```
 
-This boundary hands the error to the router, which in turns gives it to the trap function we provided
-([App.js, line 27](./src/App.js#27)):
+This boundary hands the error to the router, which in turns gives it to the [trap function we provided]
+(./src/App.js#18)):
 
 ```js
       trap('error', (err) => {
@@ -503,25 +514,25 @@ This boundary hands the error to the router, which in turns gives it to the trap
 
 `reject` causes the current await operation to throw with the error. What and where is this operation? Well,
 React would encounter the error as soon as its tries to render `ScreenCharlie` with a count divisible by three.
-This happens in [Crossfade.js, line 18-23](./src/Crossfade.js#L18):
+This happens in [Crossfade.js](./src/Crossfade.js#L22):
 
 ```js
       yield (
         <div className="Crossfade">
           <div key={previousKey} className="out">{previous}</div>
-          <div key={currentKey} className="in">{element}</div>
+          <div key={currentKey} className="in">{element}</div>        // <--- ScreenCharlie
         </div>
       );
 ```
 
-The await statement immediately below is where the error gets rethrown again:
+The await statement immediately below is where the error gets rethrown:
 
 ```js
       await eventual.transitionReady.for(25).milliseconds;
 ```
 
-Since `Crossfade.to` doesn't use a try-catch block, the error will pop through (and shuts down) the generator it
-has created. React-seq will catch this error and redirect it to the parent generator using
+Since `Crossfade.to` doesn't use a try-catch block, the error will pop through (and shuts down) the generator.
+React-seq will catch this error and redirect it to the parent generator using
 [AsyncGenerator.throw](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator/throw),
 which does the following (from Mozilla):
 
@@ -529,29 +540,18 @@ which does the following (from Mozilla):
 > the current suspended position, which informs the generator of an error condition and allows it to handle the
 > error, or perform cleanup and close itself.
 
-`main`'s "current suspended position" at this point would be between [the following two lines](./src/main.js#L34):
+`main`'s "current suspended position" at this point would be between [the following two lines](./src/main.js#L33):
 
 ```js
-          yield to(<ScreenCharlie count={charlieCount++} onNext={on.delta} />);
+          yield to(<ScreenCharlie count={state.count++} onNext={on.delta} />);
           await eventual.delta;
 ```
 
 And that's how the error magically ends up inside the try block.
 
 Whowee! That error went on one heck of a trip, that's for sure! You don't need to fully understand how this all works.
-Just remember that there's a mechanism in place that allows you to handle errors where doing so makes intuitively
+Just remember that there's a mechanism in place that allows you to handle errors where doing so makes intuitive
 sense.
-
-The basic takeaway concerning error handling under the YAP model is that:
-
-1. An error would first bubble up through the React component tree
-2. If it reaches the root level error boundary, the error would get rethrown at the last `await eventual...` statement
-3. The error would then bubble up through the generator tree
-
-The last point is worth remembering. It's why the browser's back and forward buttons work when we're in the
-Echo screens eventhough `echo` is not handling `RouteChangePending`. The catch block in `main` takes care of that
-(by calling `handleError`). Basically, React-seq makes async generator functions work in an analogous way as
-regular functions.
 
 Before we leave the topic of error handling, let us consider the scenario where we aren't doing page transition.
 Our "Charlie" section would look like this:
@@ -560,12 +560,12 @@ Our "Charlie" section would look like this:
       } else if (route.screen === 'charlie') {
         const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
         try {
-          yield <ScreenCharlie count={charlieCount++} onNext={on.delta} />;
+          yield <ScreenCharlie count={state.count++} onNext={on.delta} />;
           await eventual.delta;
           route.screen = 'delta';
         } catch (err) {
           if (err instanceof ThirdTimeNotTheCharm) {
-            transition.prevent();
+            continue;
           } else {
             throw err;
           }
@@ -574,4 +574,17 @@ Our "Charlie" section would look like this:
 ```
 
 The code is identical except there's no `to(...)` after `yield`. What happens in this case? Exactly the same outcome,
-with error is thrown by `await eventual.delta` instead.
+with error thrown by `await eventual.delta` instead.
+
+## Final thoughts
+
+Thank you for reading! I hope the code was largely self-explanatory. It should be since it's all standard JavaScript:
+a lot of ifs, yields, and awaits. One of the main goals of React-seq is to let programmers leverage language
+features more effectively, features related to the async model in particular.
+
+As said elsewhere, async generators aren't just dynamically generated arrays. You should think of them as timelines,
+sequences of events. In this example, the sequences are fairly simple: just transitions from page to page.
+Potentially much more complex sequences can be constructed, complete with server and user interactions. And thanks to
+Rect-seq ability to handle nested generators, they would only be a yield and a function call away. I will explore the
+topic further in the future as ideas come to me. If you have some ideas of your own, please feel free to share it
+in the [dicussion board](https://github.com/chung-leong/react-seq/discussions).
