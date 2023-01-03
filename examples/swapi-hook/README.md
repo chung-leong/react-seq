@@ -270,3 +270,12 @@ display and the ability to refresh the data. Just change the import statement to
 hook is basically a combination of the other two. I'll leave it up to you to figure out how it works :-)
 
 ## Final thoughts
+
+React-seq is not a framework. It can be best described as a box of various glues. Using the glue code provided by
+the library you glue your async code to React. Depending on the circumstance you might choose one glue over another.
+Sometimes a tight coupling is good. Other times it might not be so good. For instance, when you anticipate that
+you need to take things apart and rearrange them in the future.
+
+Anyway, thanks for reading! I hope you haven't gotten sick of staring at Star Wars info by this point. As always,
+if you have any question or comment, feel free to post it on
+[the discussion board](https://github.com/chung-leong/react-seq/discussions).
