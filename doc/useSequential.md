@@ -51,6 +51,7 @@ function ProductPage({ productId }) {
 * [`signal`](./signal.md)
 * [`suspend`](./suspend.md)
 * [`unsuspend`](./unsuspend.md)
+* [`wrap`](./wrap.md)
 
 ## Notes
 

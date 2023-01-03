@@ -1549,4 +1549,44 @@ describe('#useSequential()', function() {
       expect(called).to.be.true;
     })
   })
+  it('should make use of wrap functions', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      function Test() {
+        return useSequential(async function*({ fallback, wrap }) {
+          fallback('Cow');
+          const unwrap1 = wrap(children => createElement('span', {}, children));
+          const unwrap2 = wrap(children => createElement('i', {}, children));
+          await assertions[0];
+          yield 'Pig';
+          steps[1].done();
+          await assertions[1];
+          unwrap2();
+          yield 'Chicken';
+          steps[2].done();
+          await assertions[2];
+          yield 'Bear';
+          steps[3].done();
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(toJSON()).to.eql('Cow');
+      await assertions[0].done();
+      await steps[1];
+      expect(toJSON()).to.eql({
+        type: 'span',
+        props: {},
+        children: [
+          { type: 'i', props: {}, children: [ 'Pig' ] }
+        ]
+      });
+      await assertions[1].done();
+      await steps[2];
+      expect(toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Chicken' ] });
+      await assertions[2].done();
+      await steps[3];
+      expect(toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Bear' ] });
+    });
+  })
 })

@@ -22,6 +22,7 @@
 * [`type`](./type.md) <sup>`useProgressive`</sup>
 * [`usable`](./usable.md) <sup>`useProgressive`, `useProgressiveState`</sup>
 * [`unsuspend`](./unsuspend.md) <sup>`useSequential`, `useProgressive`</sup>
+* [`wrap`](./wrap.md) <sup>`useSequential`, `useProgressive`</sup>
 
 ## Global configuration functions
 

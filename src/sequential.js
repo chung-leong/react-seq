@@ -100,6 +100,18 @@ export function sequential(cb, options = {}) {
     placeholder = el;
   };
 
+  // permit wrapping of output
+  const wrapFns = [];
+  methods.wrap = (fn) => {
+    wrapFns.unshift(fn);
+    return () => {
+      const index = wrapFns.indexOf(fn);
+      if (index !== -1) {
+        wrapFns.splice(index, 1);
+      }
+    };
+  };
+
   // permit explicit request to use pending content
   let flushFn;
   methods.flush = () => flushFn?.();
@@ -248,7 +260,11 @@ export function sequential(cb, options = {}) {
         inspector?.dispatch({ type: 'content', content: currentContent });
         lastSeen = currentContent;
       }
-      return currentContent;
+      let content = currentContent;
+      for (const fn of wrapFns) {
+        content = fn(content);
+      }
+      return content;
     }
 
     function updateContent({ conditional = false, reusable = false }) {
