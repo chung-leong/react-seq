@@ -1,0 +1,49 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.main .top-bar {
+  flex: 0 1 auto;
+  background-color: #000000;
+  color: #ffffff;
+  padding: 5px 4px 3px 4px;
+}
+
+.main .top-bar A:link,
+.main .top-bar A:visited {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.main .top-bar A:hover {
+  color: #ccccff;
+}
+
+.main .content {
+  flex: 1 1 auto;
+}
+
+.Screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.Screen .title {
+  font-size: 3em;
+}
+
+.Screen .control-pane button {
+  font-size: 2em;
+  margin-left: 1em;
+  margin-right: 1em;
+}
+
+.ScreenError {
+  background-color: #333333;
+  color: #ffffff;
+}

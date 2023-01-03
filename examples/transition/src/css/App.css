@@ -3,69 +3,23 @@ body {
   margin: 0;
 }
 
-.App {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.App .top-bar {
-  flex: 0 1 auto;
-  background-color: #000000;
-  color: #ffffff;
-  padding: 5px 4px 3px 4px;
-}
-
-.App .top-bar A:link,
-.App .top-bar A:visited {
-  color: #ffffff;
-  text-decoration: none;
-}
-
-.App .top-bar A:hover {
-  color: #ccccff;
-}
-
-
-.App .content {
-  flex: 1 1 auto;
-}
-
-.Screen {
+.Loading {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  height: 100%;
-}
-
-.Screen .title {
-  font-size: 3em;
-}
-
-.Screen .control-pane button {
-  font-size: 2em;
-  margin-left: 1em;
-  margin-right: 1em;
-}
-
-.ScreenError {
-  background-color: #333333;
-  color: #ffffff;
-}
-
-.ScreenLoading {
+  height: 100vh;
   background-color: #ffaaff;
 }
 
-.ScreenLoading .spinner {
+.Loading .spinner {
   display: inline-block;
   position: relative;
   width: 80px;
   height: 80px;
 }
 
-.ScreenLoading .spinner:after {
+.Loading .spinner:after {
   content: " ";
   display: block;
   border-radius: 50%;

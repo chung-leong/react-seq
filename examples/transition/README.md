@@ -1,7 +1,7 @@
 # Transition example
 
-React-seq is useful for tasks that require time. A very good example is page transition. By definition that always
-takes place over time. Initially, only the old page is shown. Then both the old page and the new page are partially
+React-seq is useful for tasks that take time. A very good example is page transition. By definition that always
+occurs over time. Initially, only the old page is shown. Then both the old page and the new page are partially
 visible. Finally, only the new page is shown.
 
 This example will show you how natural it is to deal with page transition using async generator. It'll also
@@ -137,7 +137,8 @@ Now let us examine how our Crossfade class is put to use.
 
 The example app uses [Array-router](https://github.com/chung-leong/array-router), a minimalist library also used
 in the other examples. The specialized hook `useSequentialRouter` is used here. It differs from `useRouter` in that
-it does not trigger component updates when the route changes.
+it does not trigger component updates when the route changes. It also offers more flexibility on the creation of
+the context provider and error boundary.
 
 After creating the router, we call [`useSequential`](../../doc/useSequential.md). Instead of an async generator
 function, we use an async function that will return an async generator:
@@ -146,9 +147,9 @@ function, we use an async function that will return an async generator:
 export function App({ main }) {
   const [ ready, setReady ] = useState(false);
   const [ parts, query, rMethods, { createContext, createBoundary } ] = useSequentialRouter();
-  const element = useSequential(async (sMethods) => {
+  return createContext(useSequential(async (sMethods) => {
     const methods = { ...rMethods, ...sMethods };
-    const { fallback, manageEvents, reject, mount, trap } = methods;
+    const { fallback, reject, mount, wrap, trap } = methods;
 ```
 
 We use [`fallback`](../../doc/fallback.md) to provide a fallback element:
@@ -157,12 +158,14 @@ We use [`fallback`](../../doc/fallback.md) to provide a fallback element:
     fallback(<ScreenLoading />);
 ```
 
-We use [`unsuspend`](../../doc/unsuspend.md) to attach callback that is called when the fallback element gets
-take off:
+We use [`wrap`](../../doc/wrap.md) to place the router's error boundary around the contents from the generator:
 
 ```js
-    unsuspend(() => setReady(true));
+    wrap(children => createBoundary(children));
 ```
+
+The error boundary needs to be inside the element created by `useSequential`. If it were outside, then the element
+would get unmounted by React when an error occurs, causing the generator to be shut down.
 
 We then wait for the component to mount, then use the router's `trap` function to capture errors caught by its
 error boundary. We use [`reject`](../../doc/reject.md) to redirect the error to the active `await` statement:
@@ -175,7 +178,7 @@ error boundary. We use [`reject`](../../doc/reject.md) to redirect the error to 
     });
 ```
 
-We use `trap` again to capture "detour" events. A detour is either use of the browser's back/forward buttons or
+We use `trap` again to capture "detour" events. A detour is either the use of the browser's back/forward buttons or
 a click on a link. It's an error object that we also redirect to the active `await` statement using `reject`:
 
 ```js
@@ -191,22 +194,6 @@ a click on a link. It's an error object that we also redirect to the active `awa
       return true;
     });
 ```
-
-The following is the default error handler:
-
-```js
-    methods.handleError = async function*(err) {
-      if (err instanceof RouteChangePending) {
-        await err.proceed();
-      } else {
-        const [ on, eventual ] = manageEvents();
-        yield <ScreenError error={err} onConfirm={on.confirm} />;
-        await eventual.confirm;
-      }
-    };
-```
-
-`RouteChangePending` is what gets thrown when a detour occurs. The default action is to proceed to the destination.
 
 The following function is used to manipulate the route:
 
@@ -228,53 +215,53 @@ Finally, we load the `main` function from a file and invoke it:
 ```js
     const { main } = await import('./main.js');
     return main({}, methods);
-  }, [ parts, query, rMethods ]);
-```
-
-Outside the hook, we wrap the element from `useSequential` in a `Frame` component. We also add the router's
-error boundary and context:
-
-```js
-  return createContext(createBoundary(<Frame ready={ready}>{element}</Frame>));
+  }, [ parts, query, rMethods ]));
 }
 ```
 
-So the basic idea here is that `App` would provide the basic plumbing, while all the actions actually take place
-inside `main`. Let us now look at what that function does:
+And that's it. The basic idea here is that `App` provides the basic plumbing, while all the "real" actions actually
+take place inside `main`. Let us look at what this function does:
 
 ## The main function
 
-The function begins by setting up some variables:
+The [function](./src/main.js) begins by setting up some variables:
+
 ```js
 export async function* main(state, methods) {
-  const { manageRoute, manageEvents, handleError, throw404, transition } = methods;
+  const { manageRoute, manageEvents, transition, wrap, throw404, isDetour } = methods;
   const [ route ] = manageRoute({ screen: 0 });
   const [ on, eventual ] = manageEvents();
   const { to } = transition;
 ```
 
+`manageEvents` and `wrap` come from `useSequential`, while `throw404` and `isDetour` are provided by the router.
+
 `manageRoute` returns a proxy object, whose `screen` property is mapped to the first part of the path. When the
 path is "/alfa", `route.screen` will be "alfa".
 
-The function then enters the main loop, which contains a try-catch block:
+The function then enters the main loop, containing a [try-catch block](./src/main.js#L14):
 
 ```js
   for (;;) {
     try {
 ```
 
-The catch block uses `handleError` defined in `App`:
+The [catch block](./src/main.js#L82) handles detour requests (always approving them) and shows an error screen:
 
 ```js
     } catch (err) {
-      console.log(err.message);
-      yield handleError(err);
+      if (isDetour(err)) {
+        await err.proceed();
+      } else {
+        yield <ScreenError error={err} onConfirm={on.confirm} />;
+        await eventual.confirm;
+      }
     }
   }
 }
 ```
 
-In the try block, our code checks what's in `route.screen`. Initially, the following will match:
+In the try block, our code checks what's in `route.screen`. Initially, the [following](./src/main.js#L16) will match:
 
 ```js
       if (route.screen === undefined) {
@@ -286,16 +273,16 @@ In the try block, our code checks what's in `route.screen`. Initially, the follo
 ```
 
 [`ScreenStart`](./src/ScreenStart.js) is dynamically loaded. We then use `to` in `CrossFade` to transition to it.
-Since, there is no previous screen, `to` will yield the element and immediately return. We then begin awaiting the
+Since there is no previous screen, `to` will yield the element and immediately return. We then begin awaiting the
 promise `eventual.alfa`, which is fulfilled when `on.alfa` is called.
 
 Well, that's the basics of the Yield-Await-Promise model. We yield a visual element that prompts the user to do
-something, then wait for him to do so. It's that simple. The model is reminiscent of the sort of simply text
+something then wait for him to do so. It's that simple. The model is reminiscent of the sort of simply text
 programs that you might have written in your first-year CS class. Instead of a simple text prompt sent to the
 terminal, here we're outputting an HTML component, through React, to the web browser.
 
 When you click the button on the page, `route.screen` is set to "alfa". This changes the location from
-"http://localhost:3000/" to "http://localhost:3000/alfa", which sends us into the next clause:
+"http://localhost:3000/" to "http://localhost:3000/alfa", which sends us into the [next clause](./src/main.js#L21):
 
 ```js
       } else if (route.screen === 'alfa') {
@@ -306,13 +293,14 @@ When you click the button on the page, `route.screen` is set to "alfa". This cha
       } else ...
 ```
 
-The code is essentially identical to what's above. A transition will actually happen this time.
+The code is essentially identical to the section above. A transition will actually happen this time.
 
 If you hit the browser's back button, `await eventual.bravo` will throw with a `RouteChangePending` error. This lands
-in the catch block and eventually in `handleError`, which tells the router to proceed with the change. `route.screen`
-becomes `undefined` again and matches the first `if` clause.
+in the catch block, which tells the router to proceed with the change. `route.screen` becomes `undefined` again and
+matches the first `if` clause.
 
-If you click the button on the page instead, we go to the next clause:
+If you click the button on the page instead, the promise is fulfilled and `route.screen` is set to "bravo". We
+end up in the [next clause](./src/main.js#L26):
 
 ```js
       } else if (route.screen === 'bravo') {
@@ -327,7 +315,7 @@ If you click the button on the page instead, we go to the next clause:
       } else ...
 ```
 
-This screen has two buttons. We have to await two possible promises: `charlie` or `delta`. The promise fulfillment
+This screen has two buttons. We have to await two promises: `charlie` or `delta`. The promise fulfillment
 value will be either `{ charlie: ... }` or `{ delta: ... }`. If it's the former, then we go to the Charlie section:
 
 ```js
@@ -348,8 +336,8 @@ value will be either `{ charlie: ... }` or `{ delta: ... }`. If it's the former,
       } else ...
 ```
 
-There's a try-catch block in this clause, as [`ScreenCharlie`](./src/ScreenCharlie.js) will throw when the
-number give to it is divisible by three:
+There's a try-catch block in this clause, as [`ScreenCharlie`](./src/ScreenCharlie.js) will throw when a
+number divisible by three is given to it:
 
 ```js
 export function ScreenCharlie({ count, onNext }) {
@@ -372,7 +360,7 @@ The `if` clause for [`ScreenDelta`](./src/ScreenDelta.js) also has a try-catch b
           await eventual.echo;
           route.screen = 'echo';
         } catch (err) {
-          if (err instanceof RouteChangePending && state.text.trim().length > 0) {
+          if (isDetour(err) && state.text.trim().length > 0) {
             yield to(<ScreenDelta text={state.text} onDetour={on.proceed} />);
             const { proceed } = await eventual.proceed;
             if (proceed) {
@@ -387,9 +375,9 @@ The `if` clause for [`ScreenDelta`](./src/ScreenDelta.js) also has a try-catch b
       } else ...
 ```
 
-This time we're catching the `RouteChangePending` error. When that happens, we ask `ScreenDelta` to put up a
+This time we're catching the `RouteChangePending` error. When it occurs, we ask `ScreenDelta` to put up a
 dialog box by giving it a `onDetour` handler. We expect it to be called with either `true` or `false`. In the
-first case, we rethrow the error so the default error handler will approve the detour. Otherwise the detour gets
+first case, we rethrow the error so the outer catch block will approve the detour. Otherwise the detour gets
 prevented and we land back in `ScreenDelta`.
 
 The next section, Echo, loads and calls a function:
@@ -495,15 +483,14 @@ an error emitted by the function get there then?
 
 `ScreenCharlie` is passed to React, which calls it when it renders the component. React will catch any error thrown
 and search for the nearest error boundary moving up the component tree. Now as you may recall, our router
-provides one in [App](./src/App.js#50):
+provides one in [App](./src/App.js#12):
 
 ```js
-  return createContext(createBoundary(<Frame ready={ready}>{element}</Frame>));
-}
+    wrap(children => createBoundary(children));
 ```
 
 This boundary hands the error to the router, which in turns gives it to the [trap function we provided]
-(./src/App.js#18)):
+(./src/App.js#14)):
 
 ```js
       trap('error', (err) => {
@@ -514,7 +501,7 @@ This boundary hands the error to the router, which in turns gives it to the [tra
 
 `reject` causes the current await operation to throw with the error. What and where is this operation? Well,
 React would encounter the error as soon as its tries to render `ScreenCharlie` with a count divisible by three.
-This happens in [Crossfade.js](./src/Crossfade.js#L22):
+This happens in [Crossfade.js](./src/Crossfade.js#L21):
 
 ```js
       yield (
@@ -549,7 +536,7 @@ which does the following (from Mozilla):
 
 And that's how the error magically ends up inside the try block.
 
-Whowee! That error went on one heck of a trip, that's for sure! You don't need to fully understand how this all works.
+Whowee! That error sure went on one heck of a trip! You don't need to fully understand how this all works.
 Just remember that there's a mechanism in place that allows you to handle errors where doing so makes intuitive
 sense.
 
@@ -585,6 +572,6 @@ features more effectively, features related to the async model in particular.
 As said elsewhere, async generators aren't just dynamically generated arrays. You should think of them as timelines,
 sequences of events. In this example, the sequences are fairly simple: just transitions from page to page.
 Potentially much more complex sequences can be constructed, complete with server and user interactions. And thanks to
-Rect-seq ability to handle nested generators, they would only be a yield and a function call away. I will explore the
-topic further in the future as ideas come to me. If you have some ideas of your own, please feel free to share it
-in the [dicussion board](https://github.com/chung-leong/react-seq/discussions).
+Rect-seq ability to handle nested generators, they would only be a function call away. I will explore the
+possibilities further in the future as ideas come to me. If you have some ideas of your own, please feel free to
+share it in the [dicussion board](https://github.com/chung-leong/react-seq/discussions).

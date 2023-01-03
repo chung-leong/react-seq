@@ -64,3 +64,22 @@ When the welcome animation ends, it becomes:
     </div>
   </div>
 ```
+
+`wrap` is useful for placing an error boundary around contents from the generator:
+
+```js
+function App() {
+  return useSequential(async function*({ wrap, reject }) {
+    wrap(children => <ErrorBoundary onError={reject} />{children}</ErrorBoundary>);
+    try {
+      yield <InputForm onSubmit={on.submission} />
+      await eventual.submission;
+    } catch (err) {
+      // handle error from InputForm
+    }
+  }, []);
+}
+```
+
+The code above uses [`reject`](./reject.md) to redirect errors caught by the error boundary into the generator
+function.

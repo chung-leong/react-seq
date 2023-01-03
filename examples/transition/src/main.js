@@ -1,10 +1,16 @@
-import { RouteChangePending } from './App.js';
+import './css/main.css';
 
 export async function* main(state, methods) {
-  const { manageRoute, manageEvents, handleError, throw404, transition } = methods;
+  const { manageRoute, manageEvents, transition, wrap, throw404, isDetour } = methods;
   const [ route ] = manageRoute({ screen: 0 });
   const [ on, eventual ] = manageEvents();
   const { to } = transition;
+  wrap(children => (
+    <div className="main">
+      <div className="top-bar"><a href="/">Start</a></div>
+      <div className="content">{children}</div>
+    </div>
+  ));
   for (;;) {
     try {
       if (route.screen === undefined) {
@@ -48,7 +54,7 @@ export async function* main(state, methods) {
           await eventual.echo;
           route.screen = 'echo';
         } catch (err) {
-          if (err instanceof RouteChangePending && state.text.trim().length > 0) {
+          if (isDetour(err) && state.text.trim().length > 0) {
             yield to(<ScreenDelta text={state.text} onDetour={on.proceed} />);
             const { proceed } = await eventual.proceed;
             if (proceed) {
@@ -74,8 +80,16 @@ export async function* main(state, methods) {
         throw404();
       }
     } catch (err) {
-      console.log(err.message);
-      yield handleError(err);
+      if (isDetour(err)) {
+        await err.proceed();
+      } else {
+        yield <ScreenError error={err} onConfirm={on.confirm} />;
+        await eventual.confirm;
+      }
     }
   }
+}
+
+function ScreenError({ error }) {
+  return <div className="Screen ScreenError">{error.message}</div>;
 }
