@@ -33,7 +33,7 @@ export function App() {
     methods.transition = new Crossfade(methods);
     const { main } = await import('./main.js');
     return main({}, methods);
-  }, [ parts, query, rMethods ]));
+  }, [ parts, query, rMethods, createBoundary ]));
 }
 
 function Loading() {

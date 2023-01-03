@@ -215,7 +215,7 @@ Finally, we load the `main` function from a file and invoke it:
 ```js
     const { main } = await import('./main.js');
     return main({}, methods);
-  }, [ parts, query, rMethods ]));
+  }, [ parts, query, rMethods, createBoundary ]));
 }
 ```
 
