@@ -66,7 +66,7 @@ function ProductPage({ productId }) {
 * [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
 * [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
 * [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
-* [Tranition](./examples/transition/README.md) <sup>`useSequential`</sup>
+* [Transition](./examples/transition/README.md) <sup>`useSequential`</sup>
 
 ## ESLint configuration
 

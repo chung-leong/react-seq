@@ -190,4 +190,4 @@ event manager from your build by setting the environment variable `REACT_APP_SEQ
 * [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
 * [Word Press (React Native)](../examples/wordpress-react-native.md)
 * [Media capture](../examples/media-cap/README.md)
-* [Tranition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md)

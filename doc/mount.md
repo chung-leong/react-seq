@@ -37,4 +37,4 @@ The returned promise becomes fulfilled only if the mount operation isn't immedia
 ## Examples
 
 * [Media capture](../examples/media-cap/README.md)
-* [Tranition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md)

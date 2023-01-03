@@ -86,4 +86,4 @@ function.
 
 ## Examples
 
-* [Tranition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md)

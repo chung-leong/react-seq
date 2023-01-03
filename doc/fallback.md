@@ -44,4 +44,4 @@ element wrapping the lazy component created by React-seq.
 
 * [Star Wars API](../examples/swapi/README.md)
 * [Word Press](../examples/wordpress.md)
-* [Tranition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md)

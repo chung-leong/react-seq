@@ -29,4 +29,4 @@ Not present when `REACT_APP_SEQ_NO_EM` is set.
 
 ## Examples
 
-* [Tranition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md)

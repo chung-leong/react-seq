@@ -97,4 +97,4 @@ another async generator function, errors arising there too will be caught.
 ## Examples
 
 * [Payment form](../examples/payment/README.md)
-* [Tranition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md)
