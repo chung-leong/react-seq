@@ -1,7 +1,7 @@
 import { useSequentialState } from 'react-seq';
 
 export function useNobelPrize(category, year) {
-  return useSequentialState(async function*({ defer, signal }) {
+  return useSequentialState(async function*({ signal }) {
     if (!category || !year) {
       return;
     }

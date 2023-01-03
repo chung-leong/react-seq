@@ -39,3 +39,9 @@ element wrapping the lazy component created by React-seq.
 
 [`initial`](./initial.md) is the equivalent function for state hooks ([useSequentialState](useSequentialState.md),
 [useProgressiveState](useProgressiveState.md)).
+
+## Examples
+
+* [Star Wars API](../examples/swapi/README.md)
+* [Word Press](../examples/wordpress.md)
+* [Tranition](../examples/transition/README.md)

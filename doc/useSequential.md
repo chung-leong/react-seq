@@ -93,3 +93,8 @@ Is equivalent to:
 
 In both cases errors thrown by `subroutine()` will be caught by the catch block. If `subroutine` itself calls
 another async generator function, errors arising there too will be caught.
+
+## Examples
+
+* [Payment form](../examples/payment/README.md)
+* [Tranition](../examples/transition/README.md)

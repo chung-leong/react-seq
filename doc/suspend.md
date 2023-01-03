@@ -80,4 +80,5 @@ export function Widget({ id }) {
 
 ## Examples
 
-* [SWAPI Example](../examples/swapi/README.md)
+* [Star Wars API](../examples/swapi/README.md)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)

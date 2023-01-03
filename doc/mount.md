@@ -33,3 +33,8 @@ Awaiting `mount` could lead to a deadlock situation when [`suspend`](./suspend.m
 unsuspend first (by yielding something) then await `mount`.
 
 The returned promise becomes fulfilled only if the mount operation isn't immediately followed by an unmount.
+
+## Examples
+
+* [Media capture](../examples/media-cap/README.md)
+* [Tranition](../examples/transition/README.md)

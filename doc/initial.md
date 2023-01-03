@@ -66,3 +66,7 @@ This is bad:
     /* ... */
   }, [ categoryId ])
 ```
+
+## Examples
+
+* [Media capture](../examples/media-cap/README.md)

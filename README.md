@@ -58,13 +58,15 @@ function ProductPage({ productId }) {
 ## List of examples
 
 * [Payment form](./examples/payment/README.md) <sup>`useSequential`</sup>
-* [Tranition](./examples/transition/README.md) <sup>`useSequential`</sup>
 * [Star Wars API](./examples/swapi/README.md) <sup>`useProgressive`</sup>
 * [Word Press](./examples/wordpress.md) <sup>`useProgressive`</sup>
-* [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
 * [Nobel Prize API](./examples/nobel/README.md) <sup>`useSequentialState`</sup>
-* [Star Wars API (alternate implementation)](./examples/swapi-hook/README.md) <sup>`useSequentialState`</sup>
+* [Star Wars API (alternate implementation)](./examples/swapi-hook/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
+* [Word Press (React Native)](./examples/wordpress-react-native.md) <sup>`useProgressive`</sup>
+* [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
+* [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
 * [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
+* [Tranition](./examples/transition/README.md) <sup>`useSequential`</sup>
 
 ## ESLint configuration
 
@@ -83,6 +85,8 @@ Add "react-seq" to your ESLint settings to enable the linting of React-seq hooks
 You will find the `eslintConfig` section in your project's `package.json` if it was created using **Create React App**.
 
 ## Jest configuration
+
+Add the following to your project's `package.json` so Jest would transpile the library:
 
 ```json
   "jest": {

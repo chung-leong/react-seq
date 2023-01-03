@@ -144,3 +144,10 @@ function ProductPage({ productId }) {
   }, [ productId ]);
 }
 ```
+
+## Examples
+
+* [Star Wars API](../examples/swapi/README.md)
+* [Word Press](../examples/wordpress.md)
+* [Word Press (React Native)](../examples/wordpress-react-native.md)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)

@@ -46,3 +46,10 @@ return the initial state. The async generator will get shut down immediately.
 
 Aside from the lack of Suspension API integration, `useSequentialState` works largely in the same way as
 [`useSequential`](./useSequential.md). See its documentation for more details.
+
+## Examples
+
+* [Nobel Prize API](../examples/nobel/README.md)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
+* [NPM Search](../examples/npm-input/README.md)
+* [Media capture](../examples/media-cap/README.md)

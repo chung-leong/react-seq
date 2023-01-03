@@ -62,3 +62,10 @@ export will be used.
 In theory, `arg` can be a string as well (meaning a plain-old HTML element will get created). Such usage is highly
 improbable, however. [`element`](./element.js) is the function to use if you don't wish to define a
 separate component.
+
+## Examples
+
+* [Star Wars API](../examples/swapi/README.md)
+* [Word Press](../examples/wordpress.md)
+* [Word Press (React Native)](../examples/wordpress-react-native.md)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)

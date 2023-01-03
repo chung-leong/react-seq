@@ -137,5 +137,7 @@ relies on the automatic flushing mechanism mentioned above.
 
 ## Examples
 
-* [SWAPI Example](../examples/swapi/README.md)
-* [SWAPI Hook Example](../examples/swapi-hook/README.md)
+* [Star Wars API](../examples/swapi/README.md)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
+* [Word Press (React Native)](../examples/wordpress-react-native.md)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)

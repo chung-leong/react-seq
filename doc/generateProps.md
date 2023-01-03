@@ -27,3 +27,7 @@ for await (const props of generator) {
 ## Notes
 
 See documentation for [`useProgressive`](./useProgressive.md) for more details.
+
+## Examples
+
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)

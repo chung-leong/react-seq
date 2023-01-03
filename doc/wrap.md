@@ -83,3 +83,7 @@ function App() {
 
 The code above uses [`reject`](./reject.md) to redirect errors caught by the error boundary into the generator
 function.
+
+## Examples
+
+* [Tranition](../examples/transition/README.md)

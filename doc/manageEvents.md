@@ -182,3 +182,12 @@ Awaiting a promise from the event manager will cause an automatic [flush](./flus
 
 If you're using React-seq in a library and have no need for sophisticated event handling, you can exclude the
 event manager from your build by setting the environment variable `REACT_APP_SEQ_NO_EM` to 1.
+
+## Examples
+
+* [Payment form](../examples/payment/README.md)
+* [Word Press](../examples/wordpress.md)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
+* [Word Press (React Native)](../examples/wordpress-react-native.md)
+* [Media capture](../examples/media-cap/README.md)
+* [Tranition](../examples/transition/README.md)

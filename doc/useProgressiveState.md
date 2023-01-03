@@ -55,3 +55,8 @@ Consult its documentation for more information.
 
 Since states returned by `useProgressiveState` are always objects, its default initial state is `{}`, unlike
 [`useSequentialState`](./useSequentialState.md), which has `undefined` as its default initial state.
+
+## Examples
+
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
+* [NPM Search](../examples/npm-input/README.md)

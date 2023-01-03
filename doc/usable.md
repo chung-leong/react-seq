@@ -93,4 +93,7 @@ based on the length of another prop.
 
 ## Examples
 
-* [SWAPI Example](../examples/swapi/README.md)
+* [Star Wars API](../examples/swapi/README.md)
+* [Word Press](../examples/wordpress.md)
+* [Word Press (React Native)](../examples/wordpress-react-native.md)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)

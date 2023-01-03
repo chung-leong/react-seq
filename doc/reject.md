@@ -26,3 +26,7 @@ If the active generator is not awaiting a promise from the [event manager](./man
 until an await occurs.
 
 Not present when `REACT_APP_SEQ_NO_EM` is set.
+
+## Examples
+
+* [Tranition](../examples/transition/README.md)

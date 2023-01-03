@@ -64,3 +64,8 @@ function fetchAuthors(articleGenerator) {
   return generate();
 }
 ```
+
+## Examples
+
+* [Word Press](../examples/wordpress.md)
+* [Word Press (React Native)](../examples/wordpress-react-native.md)
