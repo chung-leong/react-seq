@@ -10,43 +10,28 @@ of code and data. It's designed for React 18 and above.
 npm install --save-dev react-seq
 `
 
-## Basic usage
+## Hooks
 
-```js
-import { useSequential } from 'react-seq';
+* [`useSequential`](./doc/useSequential.md) - Returns the last element outputted by an async generator function.
+* [`useProgressive`](./doc/useProgressive.md) - Returns an element filled with data from multiple async sources.
+* [`useSequentialState`](./doc/useSequentialState.md) - Return the last value outputted by an async generator function.
+* [`useProgressiveState`](./doc/useProgressiveState.md) - Return an object whose properties are drawn from async sources.
 
-function ProductPage({ productId }) {
-  return useSequential(async function*({ fallback }) {
-    fallback(<div class="spinner"/>);
-    const product = await fetchProduct(productId);
-    const { ProductDescription } = await import('./ProductDescription.js');
-    yield (
-      <div>
-        <ProductDescription product={product}/>
-      </div>
-    );
-    const related = await fetchRelatedProducts(product);
-    const { ProductCarousel } = await import('./ProductCarousel.js');
-    yield (
-      <div>
-        <ProductDescription product={product}/>
-        <ProductCarousel products={related}/>
-      </div>
-    );
-    /* ... */
-  }, [ productId ]);
-}
-```
+## Usage scenarios
 
-## Data loading
+* [Loading of remote data](#loading-of-remote-data)
+* [Dynamic page loading and navigation](#dynamic-page-loading-and-navigation)
+* [Page transition](#page-transition)
+* [Authentication and authorization](#authentication-and-authorization)
+* [Management of complex state](#management-of-complex-state)
 
-## Separation of presentation from business logic
+## Other topics
 
-## State management
-
-## Handling page transition
-
-## Testing
+* [Handling errors asynchronously](#handling-errors-asynchronously)
+* [Server-side rendering](#server-side-rendering)
+* [Unit testing](#unit-testing)
+* [ESLint configuration](#eslint-configuration)
+* [Jest configuration](#jest-configuration)
 
 ## API reference
 
@@ -67,6 +52,22 @@ function ProductPage({ productId }) {
 * [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
 * [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
 * [Transition](./examples/transition/README.md) <sup>`useSequential`</sup>
+
+## Loading of remote data
+
+## Dynamic page loading and navigation
+
+## Page transition
+
+## Authentication and authorization
+
+## Management of complex state
+
+## Handling errors asynchronously
+
+## Server-side rendering
+
+## Unit testing
 
 ## ESLint configuration
 
