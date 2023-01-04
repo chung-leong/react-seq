@@ -127,7 +127,7 @@ as the `onSubmit` handler and `on.cancellation` as the `onCancel` handler:
 ```
 
 Here we wait for two events: `submission` or `cancellation`. If the user didn't hit the submit button, then obviously
-he hit the other, in which case we clear `method` and start the loop from the top again. 
+he hit the other, in which case we clear `method` and start the loop from the top again.
 
 While the user is filling the form, we use the occasion to load in the next screen. In theory, if the user types
 really really fast, he could submit a response before we start waiting for it. There're ways we can fix this.
@@ -186,15 +186,15 @@ React-seq provides a basic mechanism for unit-testing components that uses its h
 ```js
 test('payment with BLIK', async () => {
   await withTestRenderer(<PaymentPage />, async ({ awaiting, showing, shown, resolve }) => {
-    expect(awaiting()).toBe('selection');
     expect(showing()).toBe(PaymentSelectionScreen);
-    await resolve({ name: 'BLIK', description: 'Payment using BLIK' });
-    expect(awaiting()).toBe('response');
+    expect(awaiting()).toBe('selection');
+    await resolve({ selection: { name: 'BLIK', description: 'Payment using BLIK' } });
     expect(showing()).toBe(PaymentMethodBLIK);
-    await resolve({ number: '123 456' });
-    expect(awaiting()).toBe(undefined);
+    expect(awaiting()).toBe('submission.or.cancellation');
+    await resolve({ submission: { number: '123 456' } });
     expect(shown()).toContain(PaymentProcessingScreen);
     expect(showing()).toBe(PaymentCompleteScreen);
+    expect(awaiting()).toBe(undefined);
   });
 });
 ```

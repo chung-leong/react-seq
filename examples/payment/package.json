@@ -9,7 +9,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "react-seq": "^0.7.0",
+    "react-seq": "^0.7.8",
     "react-test-renderer": "^18.2.0",
     "source-map-explorer": "^2.5.3",
     "web-vitals": "^2.1.4"
