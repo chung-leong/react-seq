@@ -1,4 +1,4 @@
-import { Abort, timeout, interval, linearize } from './utils.js';
+import { Abort, timeout, interval } from './utils.js';
 
 export class IntermittentIterator {
   generator = null;
@@ -41,7 +41,7 @@ export class IntermittentIterator {
   }
 
   start(generator) {
-    this.generator = linearize(generator);
+    this.generator = generator;
     this.started = true;
     this.interval = interval(this.delay, () => this.interrupt());
     this.timeout = timeout(this.limit, () => this.throw(new Timeout()));

@@ -5,6 +5,7 @@ import { EventManager } from '../src/event-manager.js';
 
 import {
   delay,
+  linearize,
   meanwhile,
   stasi,
   Abort,
@@ -17,7 +18,6 @@ import {
   until,
   timeout,
   interval,
-  linearize,
 } from '../src/utils.js';
 
 describe('#delay()', function() {

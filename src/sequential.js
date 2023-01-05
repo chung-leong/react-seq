@@ -3,7 +3,7 @@ import { IntermittentIterator, Timeout, Interruption } from './iterator.js';
 import { EventManager } from './event-manager.js';
 import { AbortManager } from './abort-manager.js';
 import { InspectorContext } from './inspector.js';
-import { Abort, isAbortError } from './utils.js';
+import { Abort, isAbortError, linearize } from './utils.js';
 import { setting } from './settings.js';
 
 export function useSequential(cb, deps) {
@@ -145,7 +145,7 @@ export function sequential(cb, options = {}) {
   // create the first generator and pull the first result to trigger
   // the execution of the sync section of the code
   const generator = cb(methods);
-  iterator.start(generator);
+  iterator.start(linearize(generator));
   iterator.fetch();
   sync = false;
 

@@ -6,9 +6,9 @@ of code and data. It's designed for React 18 and above.
 
 ## Installation
 
-`
+```sh
 npm install --save-dev react-seq
-`
+```
 
 ## Hooks
 

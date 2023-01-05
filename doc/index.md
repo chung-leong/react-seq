@@ -40,5 +40,6 @@
 ## Utility functions
 
 * [`delay`](./delay.md)
+* [`linearize`](./linearize.md)
 * [`meanwhile`](./meanwhile.md)
 * [`stasi`](./stasi.md)

@@ -33,6 +33,7 @@ export {
 } from './src/inspector.js';
 export {
   delay,
+  linearize,
   meanwhile,
   stasi,
   Abort,
