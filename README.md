@@ -36,10 +36,10 @@ npm install --save-dev react-seq
 
 ## API reference
 
-* [Hooks and other functions](./index.md)
-* [Server-side rendering](./server/index.md)
-* [Client-side SSR support](./client/index.md)
-* [Test utilities](./test-utils/index.md)
+* [Hooks and other functions](./doc/index.md)
+* [Server-side rendering](./doc/server/index.md)
+* [Client-side SSR support](./doc/client/index.md)
+* [Test utilities](./doc/test-utils/index.md)
 
 ## List of examples
 
@@ -208,6 +208,15 @@ if (typeof(window) === 'object') {
 To see SSR in action, clone the repository and run the [Star Wars API SSR example](./examples/swapi-ssr/README.md).
 
 ## Logging
+
+The library provides a mean for you to examine what happens inside its hooks. When a hook detects the presence of
+an [`InspectorContext`](./doc/InspectorContext.md), it will start reporting events to the given inspector
+instance.
+
+React-seq comes with two built-in inspectors: [`ConsoleLogger`](./doc/ConsoleLogger.md) and
+[`PromiseLogger`](./doc/PromiseLogger.md). You can create you own by extending [`Inspector`](./doc/Inspector.md).
+
+The [Payment form example](./examples/payment/README.md#logging) shows how logging is activated.
 
 ## Unit testing
 
