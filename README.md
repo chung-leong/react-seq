@@ -27,8 +27,9 @@ npm install --save-dev react-seq
 
 ## Other topics
 
-* [Handling errors asynchronously](#handling-errors-asynchronously)
+* [Error handling](#error-handling)
 * [Server-side rendering](#server-side-rendering)
+* [Logging](#logging)
 * [Unit testing](#unit-testing)
 * [ESLint configuration](#eslint-configuration)
 * [Jest configuration](#jest-configuration)
@@ -63,9 +64,150 @@ npm install --save-dev react-seq
 
 ## Management of complex state
 
-## Handling errors asynchronously
+## Error handling
+
+Errors encountered by React-seq hooks will trigger component updates and get rethrown during React's rendering cycle,
+allowing them to be handled by an error boundary further up the component tree.
+
+When you employ the Yield-Await-Promise model, you can funnel errors through the generator tree with the help of
+[`reject`](./reject.md). Example:
+
+```js
+function App() {
+  return useSequential(async function*(methods) {
+    const { manageEvents, wrap, reject } = methods;
+    const [ on, eventual ] = manageEvents();
+    // create error boundary around contents
+    wrap(children => <ErrorBoundary onError={reject}>{children}</ErrorBoundary>);
+    wrap(children => <AppFrame>{children}</AppFrame>);
+    let section = 'news';
+    for (;;) {
+      try {
+        if (section === 'news') {
+          // handle news section in a separate function
+          yield handleNewsSection({ methods });
+        } else if (page === 'products') {
+          /* ... */
+        }
+      } catch (err) {
+        yield <ErrorPage error={err} />;
+      }
+    }
+  }, []);
+}
+
+async function *handleNewsSection({ wrap, manageEvents }) {
+  const [ on, eventual ] = manageEvents();
+  const unwrap = wrap(children => <NewsSectionFrame>{children}</NewsSectionFrame>);
+  let articleId;
+  try {
+    for (;;) {
+      try {
+        if (articleId) {
+          /* ... */
+        } else {
+          try {
+            yield <ArticleList onSelect={on.selection} />;
+            // wait for an article to be selected
+            articleId = await eventual.selection.value();
+          } catch (err) {
+            // handle errors from ArticleList
+          }
+        }
+      } catch (err) {
+        if (err instanceof CMSError) {
+          // handle error specific to section
+        } else {
+          throw err;
+        }
+      }
+    }
+  } finally {
+    unwrap();
+  }
+}
+
+function ArticleList() {
+  return useProgressive(async ({ type, usable, manageEvents, signal }) => {
+    type(ArticleListUI);
+    usable({ articles: 1 });
+    const [ on, eventual ] = manageEvents();
+    const options = { signal };
+    const articles = fetchAll(() => eventual.needForMore, options);
+    const authors = fetchAuthors(articles, options);
+    const categories = fetchCategories(articles, options);
+    const tags = fetchTags(articles, options);
+    const media = fetchFeaturedMedia(articles, options);
+    return { articles, authors, categories, tags, media, onBottomReached: on.needForMore };
+  }, []);
+}
+
+class ErrorBoundary extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null, fresh: false };
+  }
+
+  static getDerivedStateFromProps(props, state) {
+    const { error, fresh } = state;
+    if (fresh) {
+      // render() needs to see this--clear it next time
+      return { error, fresh: false };
+    } else {
+      // clear stale error
+      return { error: null };
+    }
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error, fresh: true };
+  }
+
+  render() {
+    let { error } = this.state;
+    if (error) {
+      // keep rendering if the error was patched up somehow
+      if (this.props.onError(error) === true) {
+        error = null;
+      }
+    }
+    return !error ? this.props.children : null;
+  }
+}
+```
 
 ## Server-side rendering
+
+React-seq has built-in support for a simple kind of server-side rendering (SSR), where server-generated HTML
+is basically used as an app's fallback screen. Only a single function call is needed:
+
+```js
+  fastify.get('/*', async (req, reply) => {
+    reply.type('text/html');
+    const location = `${req.protocol}://${req.hostname}/${req.params['*']}`;
+    return renderInChildProc(location, buildPath);
+  });
+```
+
+[`renderInChildProc`](./doc/server/renderInChildProc.md) will generate the page using the app's production build.
+You don't need to make any change to your project's configuration. You only need to enable
+[hydration](./doc/client/hydrateRoot.md) and [render-to-server](./doc/client/renderToServer.md) in your app's
+boot-strap code:
+
+```js
+import App from './App.js';
+import { hydrateRoot, renderToServer } from 'react-seq/client';
+
+if (typeof(window) === 'object') {
+  hydrateRoot(document.getElementById('root'), <App />);
+} else {
+  renderToServer(<App />);
+}
+```
+
+To see SSR in action, clone the repository and run the [Star Wars API SSR example](./examples/swapi-ssr/README.md).
+
+## Logging
 
 ## Unit testing
 

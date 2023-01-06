@@ -118,7 +118,7 @@ export async function withMethods(el, methods, cb, options) {
         if (lastPromise?.timeout < 0) {
           throw new Error('Not expecting timeout');
         }
-        return change(() => lastPromise.resolve('timeout'));
+        return change(() => lastPromise.resolve({ timeout: lastPromise.timeout });
       }
     });
 

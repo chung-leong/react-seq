@@ -75,5 +75,8 @@ DELTA: Third time is not the charm!
 CHARLIE: Third time is not the charm!
 BRAVO: Third time is not the charm!
 ALFA: Third time is not the charm!
-THE END
+THE END: Third time is not the charm!
 ```
+
+Basically, `linearize` makes async generator functions behave like regular functions when it comes to error
+propagation.

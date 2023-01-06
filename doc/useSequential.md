@@ -92,7 +92,10 @@ Is equivalent to:
 ```
 
 In both cases errors thrown by `subroutine()` will be caught by the catch block. If `subroutine` itself calls
-another async generator function, errors arising there too will be caught.
+another async generator function, errors arising there will be caught here too.
+
+Use `linearize` if you have code that needs to deal with nested async generators and you want the same error
+propagation behavior.
 
 ## Examples
 
