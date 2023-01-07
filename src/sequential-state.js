@@ -80,7 +80,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   // permit explicit request to use pending state
   let flushFn;
-  methods.flush = () => flushFn?.();
+  methods.flush = (use = true) => flushFn?.(use);
 
   // let callback manages events with help of promises
   let awaiting = false;
@@ -90,7 +90,7 @@ export function sequentialState(cb, setState, setError, options = {}) {
       if (!eventManager) {
         const onAwaitStart = () => {
           awaiting = true;
-          flushFn?.();
+          flushFn?.(true);
         };
         const onAwaitEnd = () => {
           awaiting = false;
@@ -151,7 +151,15 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   async function retrieveRemaining() {
     let stop = false, aborted = false;
-    flushFn = () => updateState({});
+    flushFn = (use) => {
+      const state = pendingState;
+      if (use) {
+        updateState({});
+      } else {
+        pendingState = undefined;
+      }
+      return state;
+    }
     do {
       try {
         const { value, done } = await iterator.next();

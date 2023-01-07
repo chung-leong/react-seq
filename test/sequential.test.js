@@ -1030,6 +1030,64 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.equal('Chicken');
     });
   })
+  it('should abandon pending content when flush is called with false', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      let f;
+      function Test() {
+        return useSequential(async function*({ fallback, defer, flush }) {
+          f = flush;
+          fallback('Cow');
+          defer(Infinity);
+          await assertions[0];
+          yield 'Monkey';
+          steps[1].done();
+          await assertions[1];
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(toJSON()).to.equal('Cow');
+      await assertions[0].done();
+      await steps[1];
+      const element = f(false);
+      expect(element).to.equal('Monkey');
+      await assertions[1].done();
+      expect(toJSON()).to.equal(null);
+    });
+    // need to check scenario where component has unsuspended as well
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      let f;
+      function Test() {
+        return useSequential(async function*({ fallback, defer, flush }) {
+          f = flush;
+          fallback('Cow');
+          defer(Infinity);
+          await assertions[0];
+          yield 'Monkey';
+          steps[1].done();
+          await assertions[1];
+          yield 'Pig';
+          steps[2].done();
+          await assertions[2];
+        }, []);
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(toJSON()).to.equal('Cow');
+      await assertions[0].done();
+      await steps[1];
+      const element1 = f();
+      expect(element1).to.equal('Monkey');
+      await assertions[1].done();
+      await steps[2];
+      const element2 = f(false);
+      expect(element2).to.equal('Pig');
+      await assertions[2].done();
+      expect(toJSON()).to.equal('Monkey');
+    });
+  })
   it('should show previously pending content after initial item has been retrieved and flush is called', async function() {
     await withTestRenderer(async ({ create, toJSON, act }) => {
       const steps = createSteps(), assertions = createSteps(act);

@@ -152,8 +152,8 @@ describe('#withTestRenderer()', function() {
         fallback('Cow');
         const [ on, eventual ] = manageEvents();
         yield 'Pig';
-        const result = await eventual.click.for(5).seconds;
-        if (result === 'timeout') {
+        const { timeout } = await eventual.click.for(5).seconds;
+        if (timeout) {
           yield 'Tortoise';
         } else {
           yield 'Chicken';
@@ -424,8 +424,8 @@ describe('#withReactDOM()', function() {
         fallback('Cow');
         const [ on, eventual ] = manageEvents();
         yield 'Pig';
-        const result = await eventual.click.for(5).seconds;
-        if (result === 'timeout') {
+        const { timeout } = await eventual.click.for(5).seconds;
+        if (timeout) {
           yield 'Tortoise';
         } else {
           yield 'Chicken';

@@ -88,7 +88,7 @@ export function useSWAPI(type, params = {}, options = {}) {
   } = options;
   const { id } = params;
   const onRef = useRef();
-  const state = useSequentialState(async function*({ initial, defer, manageEvents, signal }) {
+  const state = useSequentialState(async function*({ initial, defer, flush, manageEvents, signal }) {
     initial({});
     const [ on, eventual ] = manageEvents();
     onRef.current = on;
@@ -185,6 +185,8 @@ update the page:
       } catch (err) {
         if (i === 0) {
           throw err;
+        } else {
+          flush(false);
         }
 ```        
 

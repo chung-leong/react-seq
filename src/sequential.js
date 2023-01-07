@@ -114,7 +114,7 @@ export function sequential(cb, options = {}) {
 
   // permit explicit request to use pending content
   let flushFn;
-  methods.flush = () => flushFn?.();
+  methods.flush = (use = true) => flushFn?.(use);
 
   // let callback wait for unsuspension
   let unsuspendFn;
@@ -128,7 +128,7 @@ export function sequential(cb, options = {}) {
       if (!eventManager) {
         const onAwaitStart = () => {
           awaiting = true;
-          flushFn?.();
+          flushFn?.(true);
         };
         const onAwaitEnd = () => {
           awaiting = false;
@@ -166,11 +166,17 @@ export function sequential(cb, options = {}) {
 
     // retrieve initial contents
     let stop = false, finished = false, aborted = false;
-    flushFn = () => {
-      if (pendingContent !== undefined) {
-        iterator.interrupt();
-        unusedSlot = false;
+    flushFn = (use) => {
+      const content = pendingContent;
+      if (use) {
+        if (pendingContent !== undefined) {
+          iterator.interrupt();
+          unusedSlot = false;
+        }
+      } else {
+        pendingContent = undefined;
       }
+      return content;
     };
     do {
       try {
@@ -298,7 +304,15 @@ export function sequential(cb, options = {}) {
     async function retrieveRemaining() {
       let stop = false, aborted = false;
       pendingContent = undefined;
-      flushFn = () => updateContent({});
+      flushFn = (use) => {
+        const content = pendingContent;
+        if (use) {
+          updateContent({});
+        } else {
+          pendingContent = undefined;
+        }
+        return content;
+      }
       do {
         try {
           const { value, done } = await iterator.next();

@@ -501,6 +501,33 @@ describe('#useSequentialState()', function() {
       await assertions[2].done();
     });
   })
+  it('should abandon pending state when flush is called with false', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const steps = createSteps(), assertions = createSteps(act);
+      const results = [];
+      let f;
+      function Test() {
+        const state = useSequentialState(async function*({ defer, flush }) {
+          f = flush;
+          defer(Infinity);
+          await assertions[0];
+          yield 'Whiskey drink';
+          steps[1].done();
+          await assertions[1];
+        }, []);
+        results.push(state);
+        return state;
+      }
+      const el = createElement(Test);
+      await create(el);
+      expect(results).to.eql([ undefined ]);
+      await assertions[0].done();
+      const state = f(false);
+      expect(state).to.equal('Whiskey drink');
+      await assertions[1].done();
+      expect(results).to.eql([ undefined ]);
+    });
+  })
   it('should fulfill promise returned by mount', async function() {
     let promise;
     await withTestRenderer(async ({ create }) => {

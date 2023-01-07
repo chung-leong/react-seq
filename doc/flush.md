@@ -1,6 +1,6 @@
-# flush(fn)
+# flush(use = true)
 
-Perform deferred update immediately
+Perform deferred update immediately or abandon it
 
 ## Providers
 
@@ -9,11 +9,16 @@ Perform deferred update immediately
 * [`useSequentialState`](useSequentialState.md)
 * [`useProgressiveState`](useProgressiveState.md)
 
+## Parameters
+
+* `use` - `<boolean>` If true, the pending update will not occur
+* `return` The pending content or state
+
 ## Syntax
 
 ```js
 function Widget({ id }) {
-  return useSequential(async function*({ defer }) {
+  return useSequential(async function*({ defer, flush }) {
     defer(500);
     yield 'Hello';
     flush();    // display 'Hello' now
@@ -27,4 +32,10 @@ function Widget({ id }) {
 A flush will happen automatically when the generator function awaits a promise from the
 [event manager](./manageEvents.md).
 
-This function probably has no real usage scenarios.
+`flush(false)` can be used in a catch block to abandon incomplete updates.
+
+`flush(true)` probably has no real usage scenarios.
+
+## Examples
+
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
