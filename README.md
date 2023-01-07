@@ -23,7 +23,7 @@ npm install --save-dev react-seq
 * [Dynamic page loading and navigation](#dynamic-page-loading-and-navigation)
 * [Page transition](#page-transition)
 * [Authentication and authorization](#authentication-and-authorization)
-* [Management of complex state](#management-of-complex-state)
+* [State management](#state-management)
 
 ## Other topics
 
@@ -158,7 +158,49 @@ inside the finally block.
 
 ## Authentication and authorization
 
-## Management of complex state
+## State management
+
+State management using an async generator function is generally much easier, even when no inherently async operations
+like data retrieval are involved. First of all, you have a variable scope that persists over time. When you need to
+remember something, just set a local variable. At the same time the number of states of you need to maintain is
+sharply reduced, thanks to async functions' ability to halt mid-execution. Consider the following example. It's a
+hook that listens for a sequence of keystrokes matching the well-known
+[Konami code](https://en.wikipedia.org/wiki/Konami_Code):
+
+```js
+function useKonamiCode() {
+  return useSequentialState(async function*({ initial, mount, manageEvents, signal }) {
+    initial(false);
+    const [ on, eventual ] = manageEvents();
+    await mount();
+    window.addEventListener('keydown', on.key.filter(e => e.key), { signal });
+    while (!(
+         await eventual.key.value() === 'ArrowUp'
+      && await eventual.key.value() === 'ArrowUp'
+      && await eventual.key.value() === 'ArrowDown'
+      && await eventual.key.value() === 'ArrowDown'
+      && await eventual.key.value() === 'ArrowLeft'
+      && await eventual.key.value() === 'ArrowRight'
+      && await eventual.key.value() === 'ArrowLeft'
+      && await eventual.key.value() === 'ArrowRight'
+      && await eventual.key.value() === 'b'
+      && await eventual.key.value() === 'a'
+    ));
+    yield true;
+  }, []);
+}
+```
+
+Notice how there isn't an array holding the keys that the user has pressed. No number indicating which portion of
+the sequence has matched thus far either. There are no progress-tracking variables. We don't need them because the
+JavaScript engine is tracking progress for us. It knows where in the code it has stopped.
+
+Note also the use of `signal` in the call to
+[`addEventListener`](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener). That eliminates
+the need to call `removeEventListener`.
+
+For further demonstration of how React-seq can help you manage state, please consult the
+[media capture example](./examples/media-cap/README.md).
 
 ## Error handling
 
