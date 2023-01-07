@@ -43,3 +43,10 @@
 * [`linearize`](./linearize.md)
 * [`meanwhile`](./meanwhile.md)
 * [`stasi`](./stasi.md)
+
+## Inspector classes
+
+* [`ConsoleLogger`](./ConsoleLogger.md)
+* [`Inspector`](./Inspector.md)
+* [`InspectorContext`](./InspectorContext.md)
+* [`PromiseLogger`](./PromiseLogger.md)
