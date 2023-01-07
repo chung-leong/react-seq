@@ -216,9 +216,61 @@ instance.
 React-seq comes with two built-in inspectors: [`ConsoleLogger`](./doc/ConsoleLogger.md) and
 [`PromiseLogger`](./doc/PromiseLogger.md). You can create you own by extending [`Inspector`](./doc/Inspector.md).
 
-The [Payment form example](./examples/payment/README.md#logging) shows how logging is activated.
+
+The [Payment form example](./examples/payment/README.md#logging) makes use of `ConsoleLogger`:
+
+```js
+export default function App() {
+  const logger = useMemo(() => new ConsoleLogger(), []);
+  return (
+    <div className="App">
+      <header className="App-header">
+        <p>Payment Page Example</p>
+      </header>
+      <InspectorContext.Provider value={logger}>
+        <PaymentPage />
+      </InspectorContext.Provider>
+    </div>
+  );
+}
+```
 
 ## Unit testing
+
+For the purpose of unit testing React-seq provides two functions:
+[`withTestRenderer`](./doc/test-utils/withTestRenderer.md) and [`withRestDOM`](./doc/test-utils/withRestDOM.md).
+One utilizes [React Test Renderer](https://reactjs.org/docs/test-renderer.html) while the other relies on the
+presence of the DOM. They have the same interface.
+
+The following is a test case from the [Payment form example](./examples/payment/README.md#unit-testing):
+
+```js
+import { withTestRenderer } from 'react-seq/test-utils';
+import { PaymentPage } from './PaymentPage.js';
+import { PaymentSelectionScreen } from './PaymentSelectionScreen.js';
+import { PaymentMethodBLIK } from './PaymentMethodBLIK.js';
+import { PaymentProcessingScreen } from './PaymentProcessingScreen.js';
+import { PaymentCompleteScreen } from './PaymentCompleteScreen.js';
+
+test('payment with BLIK', async () => {
+  await withTestRenderer(<PaymentPage />, async ({ awaiting, showing, shown, resolve }) => {
+    expect(showing()).toBe(PaymentSelectionScreen);
+    expect(awaiting()).toBe('selection');
+    await resolve({ selection: { name: 'BLIK', description: 'Payment using BLIK' } });
+    expect(showing()).toBe(PaymentMethodBLIK);
+    expect(awaiting()).toBe('submission.or.cancellation');
+    await resolve({ submission: { number: '123 456' } });
+    expect(shown()).toContain(PaymentProcessingScreen);
+    expect(showing()).toBe(PaymentCompleteScreen);
+    expect(awaiting()).toBe(undefined);
+  });
+});
+```
+
+`withTestRenderer` renders the component and awaits the first stoppage point. A stoppage point is either the
+termination of a hook's generator or an `await` on a promise of the event manager. When one of the two occurs,
+the callback is invoked. The test code can then check whether the expected outcome has been achieved then force
+the component to move to the next stoppage point by manually settling the awaited promise. 
 
 ## ESLint configuration
 

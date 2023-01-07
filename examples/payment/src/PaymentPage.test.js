@@ -3,7 +3,6 @@ import { PaymentPage } from './PaymentPage.js';
 import { PaymentSelectionScreen } from './PaymentSelectionScreen.js';
 import { PaymentMethodBLIK } from './PaymentMethodBLIK.js';
 import { PaymentProcessingScreen } from './PaymentProcessingScreen.js';
-import { PaymentErrorScreen } from './PaymentErrorScreen.js';
 import { PaymentCompleteScreen } from './PaymentCompleteScreen.js';
 
 test('payment with BLIK', async () => {
