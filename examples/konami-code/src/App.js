@@ -33,8 +33,8 @@ export default function App() {
 function useKonamiCode() {
   return useSequentialState(async function*({ initial, mount, manageEvents, signal }) {
     initial(false);
-    const [ on, eventual ] = manageEvents();
     await mount();
+    const [ on, eventual ] = manageEvents();
     window.addEventListener('keydown', on.key.filter(e => e.key), { signal });
     while (!(
          await eventual.key.value() === 'ArrowUp'

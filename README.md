@@ -163,16 +163,16 @@ inside the finally block.
 State management using an async generator function is generally much easier, even when no inherently async operations
 like data retrieval are involved. First of all, you have a variable scope that persists over time. When you need to
 remember something, just set a local variable. At the same time the number of states of you need to maintain is
-sharply reduced, thanks to async functions' ability to halt mid-execution. Consider the following example. It's a
-hook that listens for a sequence of keystrokes matching the well-known
-[Konami code](https://en.wikipedia.org/wiki/Konami_Code):
+sharply reduced, thanks to async functions' ability to halt mid-execution. Consider the
+[the following example](./examples/konami-code/README.md). It's a hook that listens for a sequence of keystrokes
+matching the well-known [Konami code](https://en.wikipedia.org/wiki/Konami_Code):
 
 ```js
 function useKonamiCode() {
   return useSequentialState(async function*({ initial, mount, manageEvents, signal }) {
     initial(false);
-    const [ on, eventual ] = manageEvents();
     await mount();
+    const [ on, eventual ] = manageEvents();
     window.addEventListener('keydown', on.key.filter(e => e.key), { signal });
     while (!(
          await eventual.key.value() === 'ArrowUp'
@@ -195,7 +195,7 @@ Notice how there isn't an array holding the keys that the user has pressed. No n
 the sequence has matched thus far either. There are no progress-tracking variables. We don't need them because the
 JavaScript engine is tracking progress for us. It knows where in the code it has stopped.
 
-Note also the use of `signal` in the call to
+Note also the use of [`signal`](./doc/signal.md) in the call to
 [`addEventListener`](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener). That eliminates
 the need to call `removeEventListener`.
 

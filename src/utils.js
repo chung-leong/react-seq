@@ -236,7 +236,7 @@ export function isSyncGenerator(obj) {
 }
 
 export function isAbortError(err) {
-  return err instanceof Error && (err.name === 'AbortError' || err.code === 20);
+  return err instanceof Abort || (err instanceof Error && (err.name === 'AbortError' || err.code === 20));
 }
 
 export class Abort extends Error {}
