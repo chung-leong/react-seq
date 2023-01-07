@@ -56,6 +56,102 @@ npm install --save-dev react-seq
 
 ## Loading of remote data
 
+Retrieval of data from a remote server is probably the most common async operation in web applications. React-seq
+lets you accomplish this task using different approaches. You can use `useSequential` to construct each part of
+a page as data arrives:
+
+```js
+import { useSequential } from 'react-seq';
+
+function ProductPage({ productId }) {
+  return useSequential(async function*({ fallback, defer }) {
+    fallback(<div class="spinner"/>);
+    defer(200);
+    const product = await fetchProduct(productId);
+    const { ProductDescription } = await import('./ProductDescription.js');
+    yield (
+      <div>
+        <ProductDescription product={product} />
+      </div>
+    );
+    const related = await fetchRelatedProducts(product);
+    const { ProductCarousel } = await import('./ProductCarousel.js');
+    yield (
+      <div>
+        <ProductDescription product={product} />
+        <ProductCarousel products={related} />
+      </div>
+    );
+    const promoted = await fetchPromotedProducts();
+    const { ProductCarousel } = await import('./ProductCarousel.js');
+    yield (
+      <div>
+        <ProductDescription product={product} />
+        <ProductCarousel products={related} />
+        <ProductCarousel products={promoted} />
+      </div>
+    );
+    /* ... */
+  }, [ productId ]);
+}
+```
+
+You can periodically update the page with the help of an endless loop:
+
+```js
+function ProductPage({ productId }) {
+  return useSequential(async function*({ fallback, defer, manageEvents, flush }) {
+    fallback(<div class="spinner"/>);
+    const [ on, eventual ] = manageEvents();
+    for (let i = 0;; i++) {
+      defer(i === 0 ? 200 : Infinity);
+      try {
+        const product = await fetchProduct(productId);
+        const { ProductDescription } = await import('./ProductDescription.js');
+        yield (
+          <div>
+            <ProductDescription product={product} onUpdate={on.updateRequest} />
+          </div>
+        );
+        const related = await fetchRelatedProducts(product);
+        const { ProductCarousel } = await import('./ProductCarousel.js');
+        yield (
+          <div>
+            <ProductDescription product={product} onUpdate={on.updateRequest} />
+            <ProductCarousel products={related} />
+          </div>
+        );
+        const promoted = await fetchPromotedProducts();
+        const { ProductCarousel } = await import('./ProductCarousel.js');
+        yield (
+          <div>
+            <ProductDescription product={product} onUpdate={on.updateRequest} />
+            <ProductCarousel products={related} />
+            <ProductCarousel products={promoted} />
+          </div>
+        );
+      } catch (err) {
+        if (i === 0) {
+          throw err;
+        } else {
+          // abandon partially rendered page
+          flush(false);
+        }
+      } finally {
+        await eventual.updateRequest.for(5).minutes;
+      }
+    }
+    /* ... */
+  }, [ productId ]);
+}
+```
+
+The example above demonstrates the use of React-seq's [event manager](./doc/managerEvents.md). It's a key component
+of the library. Its auto-generated promises and handlers provide the connection between your user interface and
+your async code. Here, it allows the user to manually trigger an update: Calling `on.updateRequest` causes the
+fulfillment of the `eventual.updateRequest` promise. That releases the generator function from the `await` operation
+inside the finally block.
+
 ## Dynamic page loading and navigation
 
 ## Page transition
@@ -270,7 +366,7 @@ test('payment with BLIK', async () => {
 `withTestRenderer` renders the component and awaits the first stoppage point. A stoppage point is either the
 termination of a hook's generator or an `await` on a promise of the event manager. When one of the two occurs,
 the callback is invoked. The test code can then check whether the expected outcome has been achieved then force
-the component to move to the next stoppage point by manually settling the awaited promise. 
+the component to move to the next stoppage point by manually settling the awaited promise.
 
 ## ESLint configuration
 
