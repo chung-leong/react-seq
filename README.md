@@ -22,7 +22,7 @@ npm install --save-dev react-seq
 * [Loading of remote data](#loading-of-remote-data)
 * [Dynamic page loading and navigation](#dynamic-page-loading-and-navigation)
 * [Page transition](#page-transition)
-* [Authentication and authorization](#authentication-and-authorization)
+* [Authentication](#authentication)
 * [State management](#state-management)
 
 ## Other topics
@@ -156,7 +156,52 @@ inside the finally block.
 
 ## Page transition
 
-## Authentication and authorization
+React-seq's ability to handle nested async generator tends itself nicely to performing page transition. All we would
+need is a function that takes an element and returns a generator producing the right sequence. It can output
+anything. The only requirement is that the last item coming from the generator is the next screen.
+
+## Authentication
+
+The ability to insert whole sequence of pages anywhere also makes it rather easy to handle authentication. If a
+particular section of our app is restricted to logged-in users, all we would have to do is place a line atop the
+code for that section:
+
+```js
+  yield handleLogin(methods);
+```
+
+`handleLogin` might look something like this:
+
+```js
+async function* handleLogin({ manageEvents }) {
+  const [ on, eventual ] = manageEvents();
+  const { ScreenLogin } = await import('./screens/ScreenLogin.js');
+  let error;
+  for (;;) {
+    yield <ScreenLogin onSubmit={on.credentials} lastError={error} />;
+    const { credentials } = await eventual.credentials;
+    try {
+      await authenticateUser(credentials);
+      return;
+    } catch (err) {
+      error = err;
+    }
+  }
+}
+```
+
+A call to the function might also happen in the app's catch block, to deal with expired user session:
+
+```js
+  } catch (err) {
+    if (err instanceof HTTPError && err.status === 401) {
+      yield handleLogin(methods);
+    } else {
+      yield <ScreenError error={err} onRetry={on.retryRequest} />
+      await eventual.retryRequest;
+    }
+  }
+```
 
 ## State management
 
