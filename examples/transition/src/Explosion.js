@@ -20,6 +20,13 @@ export class Explosion {
       }
       const { manageEvents } = this.methods;
       const [ on, eventual ] = manageEvents();
+      // Video clip coutesy of haciyevisax809793
+      // https://www.vecteezy.com/members/haciyevisax809793
+      //
+      // Fire Explosion Transition To The Camera green screen. Realistic fire explosion transition with alpha channel. Stock Videos by Vecteezy
+      // https://www.vecteezy.com/video/11168324-fire-explosion-transition-to-the-camera-green-screen-realistic-fire-explosion-transition-with-alpha-channel
+      //
+      // Converted to webm using ffmpeg
       const video = <video src="/explosion.webm" autoPlay onPlay={on.videoStart} onEnded={on.videoEnd} />;
       const explosion = createPortal(video, this.container);
       yield <Fragment>{previous}{explosion}</Fragment>;
