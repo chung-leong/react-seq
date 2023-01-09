@@ -20,7 +20,7 @@ npm install --save-dev react-seq
 ## Usage scenarios
 
 * [Loading of remote data](#loading-of-remote-data)
-* [Dynamic page loading and navigation](#dynamic-page-loading-and-navigation)
+* [Page navigation](#page-navigation)
 * [Page transition](#page-transition)
 * [Authentication](#authentication)
 * [State management](#state-management)
@@ -152,13 +152,25 @@ your async code. Here, it allows the user to manually trigger an update: Calling
 fulfillment of the `eventual.updateRequest` promise. That releases the generator function from the `await` operation
 inside the finally block.
 
-## Dynamic page loading and navigation
+## Page navigation
 
 ## Page transition
 
 React-seq's ability to handle nested async generator tends itself nicely to performing page transition. All we would
 need is a function that takes an element and returns a generator producing the right sequence. It can output
-anything. The only requirement is that the last item coming from the generator is the next screen.
+anything. The only requirement is that the last item coming from the generator is the next page.
+
+Suppose you want to fill the screen with a fire ball when the user navigates to a different page (because it's a web
+site for fans of professional wrestling?). The first item of the transition sequence would be the current page
+overlaid with a clip of an explosion. Once the clip has played to some midway point where the screen is fully engulfed
+in flame, the generator outputs the next page overlaid with the same clip. Finally, when the clip has reached its end,
+the generator outputs only the next page.
+
+![Transition sequence](./doc/img/transition.jpg)
+
+Thanks to the syntactic sugar provided by React-seq's event manager, orchestrating such a sequence is quite easy.
+
+To see the concept described here in action, check out the [Transition example](./examples/transition/README.md).
 
 ## Authentication
 
@@ -174,6 +186,9 @@ code for that section:
 
 ```js
 async function* handleLogin({ manageEvents }) {
+  if (isAuthenticated()) {
+    return;
+  }
   const [ on, eventual ] = manageEvents();
   const { ScreenLogin } = await import('./screens/ScreenLogin.js');
   let error;
@@ -193,15 +208,20 @@ async function* handleLogin({ manageEvents }) {
 A call to the function might also happen in the app's catch block, to deal with expired user session:
 
 ```js
-  } catch (err) {
-    if (err instanceof HTTPError && err.status === 401) {
-      yield handleLogin(methods);
-    } else {
-      yield <ScreenError error={err} onRetry={on.retryRequest} />
-      await eventual.retryRequest;
+    } catch (err) {
+      if (err instanceof HTTPError && err.status === 401) {
+        yield handleLogin(methods);
+      } else {
+        yield <ScreenError error={err} onRetry={on.retryRequest} />
+        await eventual.retryRequest;
+      }
     }
   }
 ```
+
+If the user manages to log in, then our catch block has successfully resolved the error. The loop sends the user back
+to where he was before (since the route hasn't changed) and what ever being done there would no longer cause an error.
+Everything works as it should.
 
 ## State management
 
