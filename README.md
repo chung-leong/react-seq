@@ -352,7 +352,8 @@ function App() {
           /* ... */
         }
       } catch (err) {
-        yield <ErrorPage error={err} />;
+        yield <ErrorPage error={err} onRetry={on.retry} />;
+        await eventual.retry;
       }
     }
   }, []);
@@ -438,12 +439,28 @@ class ErrorBoundary extends Component {
 }
 ```
 
+Suppose the call to `fetchTags` in `ArticleList` causes a 404 Not Found error to be thrown. This error will first
+bubble through the React component tree as shown in the following diagram (stage 1):
+
 ![Error propagation](./doc/img/error-propagation.jpg)
+
+When it reaches the error boundary, it teleports to the spot of the current await operation. From there it bubbles
+through three try blocks (stage 2). As none of these would stop it, it pops through `handleNewsSection` and
+finally gets caught by the catch block in `App` (stage 3).
+
+Basically, errors will resurface at (or close to) the decision points that led eventually to their occurrence.
+From the perspective of `handleNewsSection`, yielding `ArticleList` is what caused the error. It pops up on the very
+next line. Action. Consequence. Intuitively, this is how we expect exception handling would work. And in general, the
+code responsible for triggering an error is in the best position to handle it.
+
+Of course, not much can be done about a fatal error like a 404 aside from throwing up an error message. In the
+[Transition example](./examples/transition/README.md), you'll find a scenario where catching an error in a local
+try-catch block actual makes sense.
 
 ## Server-side rendering
 
 React-seq has built-in support for a simple kind of server-side rendering (SSR), where server-generated HTML
-is basically used as an app's fallback screen. Only a single function call is needed:
+is essentially used as an app's fallback screen. Only a single function call is needed:
 
 ```js
   fastify.get('/*', async (req, reply) => {
