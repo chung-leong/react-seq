@@ -1,4 +1,4 @@
-export function PaymentCompleteScreen() {
+export default function PaymentCompleteScreen() {
   return (
     <div className="payment complete">
       <h2>Payment Successful</h2>

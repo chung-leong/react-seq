@@ -1,4 +1,4 @@
-export function PaymentErrorScreen({ error, onConfirm }) {
+export default function PaymentErrorScreen({ error, onConfirm }) {
   return (
     <div className="payment error">
       <h2>Payment Failed</h2>

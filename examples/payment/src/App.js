@@ -1,7 +1,7 @@
 import './css/App.css';
 import { useMemo } from 'react';
 import { InspectorContext, ConsoleLogger } from 'react-seq';
-import { PaymentPage } from './PaymentPage.js'
+import PaymentPage from './PaymentPage.js'
 
 export default function App() {
   const logger = useMemo(() => new ConsoleLogger(), []);

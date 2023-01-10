@@ -1,6 +1,6 @@
 import '../css/ScreenEcho1.css';
 
-export function ScreenEcho1({ onNext }) {
+export default function ScreenEcho1({ onNext }) {
   return (
     <div className="Screen ScreenEcho1">
       <h1 className="title">Echo #1</h1>

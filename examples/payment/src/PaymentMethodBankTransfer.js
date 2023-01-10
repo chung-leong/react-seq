@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export function PaymentMethodBankTransfer({ onSubmit, onCancel }) {
+export default function PaymentMethodBankTransfer({ onSubmit, onCancel }) {
   const [ routingNumber, setRoutingNumber ] = useState('0123456789');
   const [ accountNumber, setAccountNumber ] = useState('0123456789');
   const [ name, setName ] = useState('Incontinentia Buttocks');

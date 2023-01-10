@@ -1,9 +1,9 @@
 import { withTestRenderer } from 'react-seq/test-utils';
-import { PaymentPage } from './PaymentPage.js';
-import { PaymentSelectionScreen } from './PaymentSelectionScreen.js';
-import { PaymentMethodBLIK } from './PaymentMethodBLIK.js';
-import { PaymentProcessingScreen } from './PaymentProcessingScreen.js';
-import { PaymentCompleteScreen } from './PaymentCompleteScreen.js';
+import PaymentPage from './PaymentPage.js';
+import PaymentSelectionScreen from './PaymentSelectionScreen.js';
+import PaymentMethodBLIK from './PaymentMethodBLIK.js';
+import PaymentProcessingScreen from './PaymentProcessingScreen.js';
+import PaymentCompleteScreen from './PaymentCompleteScreen.js';
 
 test('payment with BLIK', async () => {
   await withTestRenderer(<PaymentPage />, async ({ awaiting, showing, shown, resolve }) => {

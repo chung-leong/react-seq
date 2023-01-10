@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import '../css/ScreenDelta.css';
 
-export function ScreenDelta({ text, onNext, onText, onDetour }) {
+export default function ScreenDelta({ text, onNext, onText, onDetour }) {
   const [ currentText, setText ] = useState(text || '');
   const onChange = useCallback((evt) => {
     const { value } = evt.target;

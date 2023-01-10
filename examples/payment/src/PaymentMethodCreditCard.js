@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export function PaymentMethodCreditCard({ onSubmit, onCancel }) {
+export default function PaymentMethodCreditCard({ onSubmit, onCancel }) {
   const [ number, setNumber ] = useState('0123 4567 8901 2345');
   const [ name, setName ] = useState('Biggus Dickus');
   const [ expiration, setExpiration ] = useState('12/2023');

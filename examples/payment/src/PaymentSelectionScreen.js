@@ -1,4 +1,4 @@
-export function PaymentSelectionScreen({ methods, onSelect }) {
+export default function PaymentSelectionScreen({ methods, onSelect }) {
   return (
     <div className="payment selection">
       <h2>Select a Payment Method</h2>

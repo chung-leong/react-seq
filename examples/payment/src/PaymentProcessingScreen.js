@@ -1,4 +1,4 @@
-export function PaymentProcessingScreen({ method }) {
+export default function PaymentProcessingScreen({ method }) {
   return (
     <div className="payment complete">
       <h2>{method.description}</h2>

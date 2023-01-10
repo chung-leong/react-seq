@@ -1,7 +1,7 @@
 import { Fragment, Children } from 'react';
 import './css/Crossfade.css';
 
-export class Crossfade {
+export default class Crossfade {
   constructor(methods) {
     this.methods = methods;
     this.previous = null;

@@ -1,6 +1,6 @@
 import '../css/ScreenCharlie.css';
 
-export function ScreenCharlie({ count, onNext }) {
+export default function ScreenCharlie({ count, onNext }) {
   if (count % 3 === 0) {
     throw new ThirdTimeNotTheCharm(`Thou shalst not count to ${count}`);
   }

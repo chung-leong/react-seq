@@ -1,9 +1,9 @@
 import { useSequentialRouter, arrayProxy } from 'array-router';
 import { useSequential } from 'react-seq';
-import { Crossfade } from './Crossfade.js';
+import Crossfade from './Crossfade.js';
 import './css/App.css';
 
-export function App() {
+export default function App() {
   const [ parts, query, rMethods, { createContext, createBoundary } ] = useSequentialRouter();
   return createContext(useSequential(async (sMethods) => {
     const methods = { ...rMethods, ...sMethods };
@@ -31,7 +31,7 @@ export function App() {
       return [ proxy, query ];
     };
     methods.transition = new Crossfade(methods);
-    const { main } = await import('./main.js');
+    const { default: main } = await import('./main.js');
     return main({}, methods);
   }, [ parts, query, rMethods, createBoundary ]));
 }

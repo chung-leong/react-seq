@@ -2,7 +2,7 @@ import { Fragment, Children } from 'react';
 import { createPortal } from 'react-dom';
 import './css/Explosion.css';
 
-export class Explosion {
+export default class Explosion {
   constructor(methods) {
     this.methods = methods;
     this.previous = null;

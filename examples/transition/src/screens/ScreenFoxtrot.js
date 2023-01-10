@@ -1,6 +1,6 @@
 import '../css/ScreenFoxtrot.css';
 
-export function ScreenFoxtrot({ onNext }) {
+export default function ScreenFoxtrot({ onNext }) {
   return (
     <div className="Screen ScreenFoxtrot">
       <h1 className="title">Foxtrot</h1>

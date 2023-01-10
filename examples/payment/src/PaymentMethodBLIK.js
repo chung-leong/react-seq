@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export function PaymentMethodBLIK({ onSubmit, onCancel }) {
+export default function PaymentMethodBLIK({ onSubmit, onCancel }) {
   const [ number, setNumber ] = useState('012 456');
 
   const onNumberChange = useCallback(evt => setNumber(evt.target.value), []);

@@ -216,7 +216,7 @@ And here's where we create our `Crossfade` object:
 Finally, we load the `main` function from a file and invoke it:
 
 ```js
-    const { main } = await import('./main.js');
+    const { default: main } = await import('./main.js');
     return main({}, methods);
   }, [ parts, query, rMethods, createBoundary ]));
 }
@@ -269,7 +269,7 @@ In the try block, our code checks what's in `route.screen`. Initially, the [foll
 
 ```js
       if (route.screen === undefined) {
-        const { ScreenStart } = await import('./screens/ScreenStart.js');
+        const { default: ScreenStart } = await import('./screens/ScreenStart.js');
         yield to(<ScreenStart onNext={on.alfa} />);
         await eventual.alfa;
         route.screen = 'alfa';
@@ -290,7 +290,7 @@ When you click the button on the page, `route.screen` is set to "alfa". This cha
 
 ```js
       } else if (route.screen === 'alfa') {
-        const { ScreenAlfa } = await import('./screens/ScreenAlfa.js');
+        const { default: ScreenAlfa } = await import('./screens/ScreenAlfa.js');
         yield to(<ScreenAlfa onNext={on.bravo} />);
         await eventual.bravo;
         route.screen = 'bravo';
@@ -308,7 +308,7 @@ end up in the [next clause](./src/main.js#L26):
 
 ```js
       } else if (route.screen === 'bravo') {
-        const { ScreenBravo } = await import('./screens/ScreenBravo.js');
+        const { default: ScreenBravo } = await import('./screens/ScreenBravo.js');
         yield to(<ScreenBravo onNext={on.charlie} onSkip={on.delta} />);
         const res = await eventual.charlie.or.delta;
         if ('charlie' in res) {
@@ -324,7 +324,7 @@ value will be either `{ charlie: ... }` or `{ delta: ... }`. If it's the former,
 
 ```js
       } else if (route.screen === 'charlie') {
-        const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
+        const { default: ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
         try {
           state.count ??= 1;
           yield to(<ScreenCharlie count={state.count++} onNext={on.delta} />);
@@ -357,7 +357,7 @@ The `if` clause for [`ScreenDelta`](./src/ScreenDelta.js) also has a try-catch b
 
 ```js
       } else if (route.screen === 'delta') {
-        const { ScreenDelta } = await import('./screens/ScreenDelta.js');
+        const { default: ScreenDelta } = await import('./screens/ScreenDelta.js');
         try {
           state.text ??= '';
           yield to(<ScreenDelta text={state.text} onText={t => state.text = t} onNext={on.echo} />);
@@ -388,7 +388,7 @@ The next section, Echo, loads and calls a function:
 
 ```js
       } else if (route.screen === 'echo') {
-        const { echo } = await import('./echo.js');
+        const { default: echo } = await import('./echo.js');
         state.echo ??= {};
         yield echo(state.echo, methods);
         route.screen = 'foxtrot';
@@ -402,7 +402,7 @@ The final section just send us back to section Alfa:
 
 ```js
       } else if (route.screen === 'foxtrot') {
-        const { ScreenFoxtrot } = await import('./screens/ScreenFoxtrot.js');
+        const { default: ScreenFoxtrot } = await import('./screens/ScreenFoxtrot.js');
         yield to(<ScreenFoxtrot onNext={on.alfa} />);
         await eventual.alfa;
         route.screen = 'alfa';
@@ -432,7 +432,7 @@ export async function* echo(state, methods) {
       if (route.screen === undefined) {
         replacing(() => route.screen = '1');
       } else if (route.screen === '1') {
-        const { ScreenEcho1 } = await import('./screens/ScreenEcho1.js');
+        const { default: ScreenEcho1 } = await import('./screens/ScreenEcho1.js');
         yield to(<ScreenEcho1 onNext={on.next} />);
         await eventual.next;
         route.screen = '2';
@@ -441,7 +441,7 @@ export async function* echo(state, methods) {
       } else if (route.screen === '3') {
         /* code omitted */
       } else if (route.screen === '4') {
-        const { ScreenEcho4 } = await import('./screens/ScreenEcho4.js');
+        const { default: ScreenEcho4 } = await import('./screens/ScreenEcho4.js');
         yield to(<ScreenEcho4 onNext={on.next} />);
         await eventual.next;
         delete route.screen;
@@ -466,7 +466,7 @@ section's catch block. Here's the code once again:
 
 ```js
       } else if (route.screen === 'charlie') {
-        const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
+        const { default: ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
         try {
           state.count ??= 1;
           yield to(<ScreenCharlie count={state.count++} onNext={on.delta} />);
@@ -549,7 +549,7 @@ Our "Charlie" section would look like this:
 
 ```js
       } else if (route.screen === 'charlie') {
-        const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
+        const { default: ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
         try {
           yield <ScreenCharlie count={state.count++} onNext={on.delta} />;
           await eventual.delta;

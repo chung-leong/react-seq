@@ -1,6 +1,6 @@
 import '../css/ScreenAlfa.css';
 
-export function ScreenAlfa({ onNext }) {
+export default function ScreenAlfa({ onNext }) {
   return (
     <div className="Screen ScreenAlfa">
       <h1 className="title">Alfa</h1>

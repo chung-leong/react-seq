@@ -1,6 +1,6 @@
 import '../css/ScreenStart.css';
 
-export function ScreenStart({ onNext }) {
+export default function ScreenStart({ onNext }) {
   return (
     <div className="Screen ScreenStart">
       <h1 className="title">Start</h1>

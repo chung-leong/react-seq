@@ -1,6 +1,6 @@
 import '../css/ScreenBravo.css';
 
-export function ScreenBravo({ onNext, onSkip }) {
+export default function ScreenBravo({ onNext, onSkip }) {
   return (
     <div className="Screen ScreenBravo">
       <h1 className="title">Bravo</h1>

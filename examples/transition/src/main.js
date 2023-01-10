@@ -1,6 +1,6 @@
 import './css/main.css';
 
-export async function* main(state, methods) {
+export default async function* main(state, methods) {
   const { manageRoute, manageEvents, transition, wrap, throw404, isDetour } = methods;
   const [ route ] = manageRoute({ screen: 0 });
   const [ on, eventual ] = manageEvents();
@@ -14,17 +14,17 @@ export async function* main(state, methods) {
   for (;;) {
     try {
       if (route.screen === undefined) {
-        const { ScreenStart } = await import('./screens/ScreenStart.js');
+        const { default: ScreenStart } = await import('./screens/ScreenStart.js');
         yield to(<ScreenStart onNext={on.alfa} />);
         await eventual.alfa;
         route.screen = 'alfa';
       } else if (route.screen === 'alfa') {
-        const { ScreenAlfa } = await import('./screens/ScreenAlfa.js');
+        const { default: ScreenAlfa } = await import('./screens/ScreenAlfa.js');
         yield to(<ScreenAlfa onNext={on.bravo} />);
         await eventual.bravo;
         route.screen = 'bravo';
       } else if (route.screen === 'bravo') {
-        const { ScreenBravo } = await import('./screens/ScreenBravo.js');
+        const { default: ScreenBravo } = await import('./screens/ScreenBravo.js');
         yield to(<ScreenBravo onNext={on.charlie} onSkip={on.delta} />);
         const res = await eventual.charlie.or.delta;
         if ('charlie' in res) {
@@ -33,7 +33,7 @@ export async function* main(state, methods) {
           route.screen = 'delta';
         }
       } else if (route.screen === 'charlie') {
-        const { ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
+        const { default: ScreenCharlie, ThirdTimeNotTheCharm } = await import('./screens/ScreenCharlie.js');
         try {
           state.count ??= 1;
           yield to(<ScreenCharlie count={state.count++} onNext={on.delta} />);
@@ -47,7 +47,7 @@ export async function* main(state, methods) {
           }
         }
       } else if (route.screen === 'delta') {
-        const { ScreenDelta } = await import('./screens/ScreenDelta.js');
+        const { default: ScreenDelta } = await import('./screens/ScreenDelta.js');
         try {
           state.text ??= '';
           yield to(<ScreenDelta text={state.text} onText={t => state.text = t} onNext={on.echo} />);
@@ -67,12 +67,12 @@ export async function* main(state, methods) {
           }
         }
       } else if (route.screen === 'echo') {
-        const { echo } = await import('./echo.js');
+        const { default: echo } = await import('./echo.js');
         state.echo ??= {};
         yield echo(state.echo, methods);
         route.screen = 'foxtrot';
       } else if (route.screen === 'foxtrot') {
-        const { ScreenFoxtrot } = await import('./screens/ScreenFoxtrot.js');
+        const { default: ScreenFoxtrot } = await import('./screens/ScreenFoxtrot.js');
         yield to(<ScreenFoxtrot onNext={on.alfa} />);
         await eventual.alfa;
         route.screen = 'alfa';

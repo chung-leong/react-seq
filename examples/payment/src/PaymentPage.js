@@ -1,7 +1,7 @@
 import './css/PaymentPage.css';
 import { useSequential } from 'react-seq';
 
-export function PaymentPage() {
+export default function PaymentPage() {
   return useSequential(async function*({ fallback, manageEvents }) {
     fallback(<PaymentLoading />);
 
@@ -12,10 +12,9 @@ export function PaymentPage() {
     // load input forms for the different methods
     const forms = {};
     for (const method of methods) {
-      const module = await import(`./PaymentMethod${method.name}.js`);
-      forms[method.name] = module[`PaymentMethod${method.name}`];
+      forms[method.name] = await import(`./PaymentMethod${method.name}.js`);
     }
-    const { PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
+    const { default: PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
 
     const [ on, eventual ] = manageEvents();
     let success = false;
@@ -26,9 +25,9 @@ export function PaymentPage() {
         const { selection } = await eventual.selection;
         method = selection;
       }
-      const PaymentMethod = forms[method.name];
+      const PaymentMethod = forms[method.name].default;
       yield <PaymentMethod onSubmit={on.submission} onCancel={on.cancellation} />;
-      const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
+      const { default: PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
       // wait for user to submit the form or hit cancel button
       const { submission } = await eventual.submission.or.cancellation;
       if (!submission) {
@@ -39,11 +38,11 @@ export function PaymentPage() {
       yield <PaymentProcessingScreen method={method} />;
       try {
         const payment = await processPayment(method, submission);
-        const { PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
+        const { default: PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
         yield <PaymentCompleteScreen payment={payment} />;
         success = true;
       } catch (err) {
-        const { PaymentErrorScreen } = await import('./PaymentErrorScreen.js');
+        const { default: PaymentErrorScreen } = await import('./PaymentErrorScreen.js');
         yield <PaymentErrorScreen error={err} onConfirm={on.confirmation} />;
         await eventual.confirmation;
       }
