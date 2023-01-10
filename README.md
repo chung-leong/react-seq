@@ -154,6 +154,65 @@ inside the finally block.
 
 ## Page navigation
 
+You can use a `useSequential` hook to handle page navigation for you app in the following manner:
+
+```js
+export default function App() {
+  const [ parts, query, { trap, throw404, isDetour } ] = useSequentialRouter();
+  return useSequential(async function* (methods) {
+    const { reject, manageEvents } = methods;
+    trap('detour', (err) => {
+      reject(err);
+      return true;
+    });
+    const [ on, eventual ] = manageEvents();
+    for (;;) {
+      try {
+        if (parts[0] === 'products') {
+          if (parts[1]) {
+            const { default: ProductDetails } = await import('./ProductDetails.js');
+            yield <ProductDetails id={parts[1]} onReturn={on.return} />;
+            await eventual.return;
+          } else {
+            const { default: ProductList } = await import('./ProductList.js');
+            yield <ProductList onSelect={on.selection} />;
+            const { selection } = await eventual.selection;
+            parts[1] = selection;
+          }
+        } else if (parts[0] === 'news') {
+          if (parts[1]) {
+            const { default: Article } = await import('./Article.js');
+            yield <Article id={parts[1]} onReturn={on.return} />;
+            await eventual.return;
+          } else {
+            const { default: ArticleList } = await import('./ArticleList.js');
+            yield <ArticleList onSelect={on.selection} />;
+            const { selection } = await eventual.selection;
+            parts[1] = selection;
+          }
+        } else if (parts[0] === 'notifications') {
+          /* ... */
+        } else {
+          throw404();
+        }
+      } catch (err) {
+        if (isDetour(err)) {
+          err.proceed();
+        } else {
+          yield <ErrorPage error={err} onRetry={on.retry} />;
+          await eventual.retry;
+        }
+      }
+    }
+  }, [ parts, query, trap, isDetour ]);
+}
+```
+
+The example above uses [Array-router](https://github.com/chung-leong/array-router), a companion solution designed
+to work well with React-seq. It's a minimalist "router" that turns the browser location into an array of path
+parts and an object containing query variables. And that is. Actual routing is done using JavaScript control
+structures.
+
 ## Page transition
 
 React-seq's ability to handle nested async generator tends itself nicely to performing page transition. All we would
@@ -301,7 +360,7 @@ function App() {
 
 async function *handleNewsSection({ wrap, manageEvents }) {
   const [ on, eventual ] = manageEvents();
-  const unwrap = wrap(children => <NewsSectionFrame>{children}</NewsSectionFrame>);
+  const unwrap = wrap(children => <NewsSection>{children}</NewsSection>);
   let articleId;
   try {
     for (;;) {
@@ -378,6 +437,8 @@ class ErrorBoundary extends Component {
   }
 }
 ```
+
+![Error propagation](./doc/img/error-propagation.jpg)
 
 ## Server-side rendering
 
