@@ -169,26 +169,28 @@ export default function App() {
     for (;;) {
       try {
         if (parts[0] === 'products') {
-          if (parts[1]) {
-            const { default: ProductDetails } = await import('./ProductDetails.js');
-            yield <ProductDetails id={parts[1]} onReturn={on.return} />;
-            await eventual.return;
-          } else {
+          if (!parts[1]) {
             const { default: ProductList } = await import('./ProductList.js');
             yield <ProductList onSelect={on.selection} />;
             const { selection } = await eventual.selection;
             parts[1] = selection;
+          } else {
+            const { default: ProductDetails } = await import('./ProductDetails.js');
+            yield <ProductDetails id={parts[1]} onReturn={on.return} />;
+            await eventual.return;
+            delete parts[1];
           }
         } else if (parts[0] === 'news') {
-          if (parts[1]) {
-            const { default: Article } = await import('./Article.js');
-            yield <Article id={parts[1]} onReturn={on.return} />;
-            await eventual.return;
-          } else {
+          if (!parts[1]) {
             const { default: ArticleList } = await import('./ArticleList.js');
             yield <ArticleList onSelect={on.selection} />;
             const { selection } = await eventual.selection;
             parts[1] = selection;
+          } else {
+            const { default: Article } = await import('./Article.js');
+            yield <Article id={parts[1]} onReturn={on.return} />;
+            await eventual.return;
+            delete parts[1];
           }
         } else if (parts[0] === 'notifications') {
           /* ... */
@@ -208,14 +210,87 @@ export default function App() {
 }
 ```
 
-The example above uses [Array-router](https://github.com/chung-leong/array-router), a companion solution designed
+The example uses [Array-router](https://github.com/chung-leong/array-router), a companion solution designed
 to work well with React-seq. It's a minimalist "router" that turns the browser location into an array of path
 parts and an object containing query variables. And that is. Actual routing is done using JavaScript control
 structures.
 
+The code above follows the Yield-Await-Promise model. We output some user-interface elements then wait for a
+user response. We then act upon that response, causing likely the displaying of a different page. our code is in
+full control of navigation. It alters the route components and interprets them. Clicks on hyperlinks and use of
+the browser's back/forward buttons are treated as exceptions. If a detour request manages to reach the top-level
+try-catch block, it gets approved.
+
+React-seq can handle nested generators. `useSequential` will in effect [flatten](./doc/linearize.md) the generator
+provided by its callback. That allows us to break a long generator functions into more manageable subroutines:
+
+```js
+export default function App() {
+  const [ parts, query, { trap, throw404, isDetour } ] = useSequentialRouter();
+  return useSequential(async function* (methods) {
+    const { reject, manageEvents } = methods;
+    trap('detour', (err) => {
+      reject(err);
+      return true;
+    });
+    const [ on, eventual ] = manageEvents();
+    for (;;) {
+      try {
+        if (parts[0] === 'products') {
+          yield handleProductSection(parts, query, methods);
+        } else if (parts[0] === 'news') {
+          yield handleNewsSection(parts, query, methods);
+        } else if (parts[0] === 'notifications') {
+          /* ... */
+        } else {
+          throw404();
+        }
+      } catch (err) {
+        if (isDetour(err)) {
+          err.proceed();
+        } else {
+          yield <ErrorPage error={err} onRetry={on.retry} />;
+          await eventual.retry;
+        }
+      }
+    }
+  }, [ parts, query, trap, isDetour ]);
+}
+
+async function *handleProductSection(parts, query, methods) {
+  const { manageEvents } = methods;
+  const [ on, eventual ] = manageEvents();
+  try {
+    for (;;) {
+      if (!parts[1]) {
+        const { default: ProductList } = await import('./ProductList.js');
+        yield <ProductList onSelect={on.selection} />;
+        const { selection } = await eventual.selection;
+        parts[1] = selection;
+      } else {
+        const { default: ProductDetails } = await import('./ProductDetails.js');
+        yield <ProductDetails id={parts[1]} onReturn={on.return} />;
+        await eventual.return;
+        delete parts[1];
+      }
+    }
+  } finally {
+    // do clean-up here
+  }
+}
+```
+
+Since there is no `break` or `return` inside the loop, the only way to exit the product section is via an exception
+(probably a detour request). When that happens, code in the finally block will run. If the function had made changes
+specific to this section, it can roll them back here.
+
+Please note that certain implementation details are left out of the code snippet presented above for brevity sake.
+Consult the [Transition example](./examples/transition/README.md) for something that better represent a
+fully-developed, real-world solution. You'll also find further discussion on the Yield-Await-Promise model.
+
 ## Page transition
 
-React-seq's ability to handle nested async generator tends itself nicely to performing page transition. All we would
+React-seq's ability to handle nested async generator lends itself nicely to performing page transition. All we would
 need is a function that takes an element and returns a generator producing the right sequence. It can output
 anything. The only requirement is that the last item coming from the generator is the next page.
 

@@ -135,11 +135,11 @@ Now let us examine how our Crossfade class is put to use.
 
 ## App component
 
-The example app uses [Array-router](https://github.com/chung-leong/array-router), a minimalist library also used
-in the other examples. The specialized hook
-[`useSequentialRouter`](https://github.com/chung-leong/array-router/doc/useSequentialRouter.md)
-is used here. It differs from [`useRouter`](https://github.com/chung-leong/array-router/doc/useRouter.md) in that
-it does not trigger component updates when the route changes. It also offers more flexibility on how he context
+The example app uses [Array-router](https://github.com/chung-leong/array-router/README.md), a minimalist library also
+used in the other examples. The specialized hook
+[`useSequentialRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useSequentialRouter.md)
+is used here. It differs from [`useRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useRouter.md) in
+that it does not trigger component updates when the route changes. It also offers more flexibility on how he context
 provider and error boundary are created.
 
 After creating the router, we call [`useSequential`](../../doc/useSequential.md). Instead of an async generator
@@ -170,7 +170,7 @@ The error boundary needs to be inside the element created by `useSequential`. If
 would get unmounted by React when an error occurs, causing the generator to be shut down.
 
 We then wait for the component to mount, then use the router's
-[`trap`](https://github.com/chung-leong/array-router/doc/trap.md) function to capture errors caught by its
+[`trap`](https://github.com/chung-leong/array-router/blob/main/doc/trap.md) function to capture errors caught by its
 error boundary. We use [`reject`](../../doc/reject.md) to redirect the error to the active `await` statement:
 
 ```js
@@ -239,7 +239,8 @@ export async function* main(state, methods) {
 
 `manageEvents` and `wrap` come from `useSequential`, while `throw404` and `isDetour` are provided by the router.
 
-`manageRoute` returns a [proxy object](https://github.com/chung-leong/array-router/doc/arrayProxy.md), whose `screen` property is mapped to the first part of the path. When the path is "/alfa", `route.screen` will be "alfa".
+`manageRoute` returns a [proxy object](https://github.com/chung-leong/array-router/blob/main/doc/arrayProxy.md), whose
+`screen` property is mapped to the first part of the path. When the path is "/alfa", `route.screen` will be "alfa".
 
 The function then enters the main loop, containing a [try-catch block](./src/main.js#L14):
 
@@ -249,8 +250,8 @@ The function then enters the main loop, containing a [try-catch block](./src/mai
 ```
 
 The [catch block](./src/main.js#L82) handles
-[detour requests](https://github.com/chung-leong/array-router/doc/RouteChangePending.md) (always approving them)
-and shows an error screen:
+[detour requests](https://github.com/chung-leong/array-router/blob/main/doc/RouteChangePending.md) (always approving
+them) and shows an error screen:
 
 ```js
     } catch (err) {
