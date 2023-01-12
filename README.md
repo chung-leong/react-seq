@@ -152,6 +152,65 @@ your async code. Here, it allows the user to manually trigger an update: Calling
 fulfillment of the `eventual.updateRequest` promise. That releases the generator function from the `await` operation
 inside the finally block.
 
+Since data loading happens so frequently in web applications, React-seq provides a specialized hook for doing this:
+[`useProgressive`](./doc/useProgressive.md). The hook functions as a sort of async-to-sync translator, turning
+promises and generators into objects and arrays.
+
+Consider the following component taken from the [Star Wars API example](./examples/swapi/README.md):
+
+```js
+export default function Character({ id }) {
+  return useProgressive(async ({ type, defer, suspend, signal }) => {
+    type(CharacterUI);
+    defer(200);
+    suspend(`character-${id}`);
+    const person = await fetchOne(`people/${id}`, { signal });
+    return {
+      person,
+      films: fetchMultiple(person.films, { signal }),
+      species: fetchMultiple(person.species, { signal }),
+      homeworld: fetchOne(person.homeworld, { signal }),
+      vehicles: fetchMultiple(person.vehicles, { signal }),
+      starships: fetchMultiple(person.starships, { signal }),
+    };
+  }, [ id ]);
+}
+```
+
+(Note the lack of `await` in front of many of the fetch calls.)
+
+The object returned by the callback would contain this:
+
+```js
+{
+  person: [object],
+  films: [async generator],
+  species: [async generator],
+  homeworld: [promise],
+  vehicles: [async generator],
+  starships: [async generator]
+}
+```
+
+The component `CharacterUI` would receive this as props:
+
+```js
+{
+  person: [object],
+  films: [array],
+  species: [array],
+  homeworld: [object],
+  vehicles: [array],
+  starships: [array]
+}
+```
+
+The various arrays would grow over time as data is retrieved from the remote server.
+
+It's possible to create a generator that pauses and resumes on user interaction. The
+[Word Press example](./examples/wordpress.md) shows how this can be used to implement an infinite-scrolling article
+list. The [React Native version of the example](./examples/wordpress-react-native.md) is also worth checking out.
+
 ## Page navigation
 
 You can use a `useSequential` hook to handle page navigation for you app in the following manner:
