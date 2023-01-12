@@ -211,6 +211,37 @@ It's possible to create a generator that pauses and resumes on user interaction.
 [Word Press example](./examples/wordpress.md) shows how this can be used to implement an infinite-scrolling article
 list. The [React Native version of the example](./examples/wordpress-react-native.md) is also worth checking out.
 
+Besides using [`useSequential`](./doc/useSequential.md) and [`useProgressive`](./doc/useProgressive.md), you can
+also load data with the help of React-seq's state hooks: [`useSequentialState`](./doc/useSequentialState.md)
+and [`useProgressiveState`](./doc/useProgressiveState.md). Instead of React elements, these hooks return simple values
+(usually objects). They are useful for components that handle user input. For example:
+
+```js
+function SearchBar() {
+  const categories = useSequentialState(async function*({ signal }) {
+    initial([]);
+    const res = await fetch('/api/categories/', { signal });
+    yield res.json();
+  }, []);
+  const [ query, setQuery ] = useState('');
+  const [ category, setCategory ] = useState('');
+  return (
+    <div className="SearchBar">
+      <input type="text" value={query} onChange={evt => setQuery(evt.target.value)} />
+      <select value={category} onChange={evt => setCategory(evt.target.value)} >
+        {categories.map(c => (
+          <option value={c.id}>{c.name}</option>
+        ))}
+      </select>
+    </div>
+  );
+}
+```
+
+State hooks are also the right ones to use generally when you are creating custom hooks. Consult the
+[alternate implementation of the Star Wars API example](./examples/swapi-hook/README.md) to learn more about
+the advantages and drawbacks.
+
 ## Page navigation
 
 You can use a `useSequential` hook to handle page navigation for you app in the following manner:
