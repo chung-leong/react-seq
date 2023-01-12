@@ -185,15 +185,8 @@ We use `trap` again to capture "detour" events. A detour is either the use of th
 a click on a link. It's an error object that we also redirect to the active `await` statement using `reject`:
 
 ```js
-    let detouring;
     trap('detour', (err) => {
-      if (!detouring) {
-        detouring = true;
-        err.onSettlement = () => detouring = false;
-        reject(err);
-      } else {
-        err.prevent();
-      }
+      reject(err);
       return true;
     });
 ```

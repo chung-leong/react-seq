@@ -15,15 +15,8 @@ export default function App() {
       reject(err);
       return false;
     });
-    let detouring;
     trap('detour', (err) => {
-      if (!detouring) {
-        detouring = true;
-        err.onSettlement = () => detouring = false;
-        reject(err);
-      } else {
-        err.prevent();
-      }
+      reject(err);
       return true;
     });
     methods.manageRoute = (def) => {
