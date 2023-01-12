@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import sinon from 'sinon';
 import { withSilentConsole } from './error-handling.js';
 import { EventManager } from '../src/event-manager.js';
 
@@ -57,10 +56,11 @@ describe('#delay()', function() {
     }
     expect(error).to.be.instanceOf(Abort);
   })
-  it('should remove listener on signal timeout fires', async function() {
+  it('should remove listener from signal when timeout fires', async function() {
     const abortController = new AbortController();
     const { signal } = abortController;
-    const spy = sinon.spy(signal, 'removeEventListener');
+    let called = false;
+    signal.removeEventListener = () => called = true;
     let error;
     try {
       await delay(20, { signal });
@@ -68,7 +68,7 @@ describe('#delay()', function() {
       error = err;
     }
     expect(error).to.be.undefined;
-    expect(spy.called).to.be.true;
+    expect(called).to.be.true;
   })
 })
 
