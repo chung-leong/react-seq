@@ -44,31 +44,30 @@ form without delay:
 
 ```js
   // load input forms for the different methods
-  const forms = {};
-  for (const method of methods) {
-    const module = await import(`./PaymentMethod${method.name}.js`);
-    forms[method.name] = module[`PaymentMethod${method.name}`];
-  }
+    const forms = {};
+    for (const method of methods) {
+      forms[method.name] = await import(`./PaymentMethod${method.name}.js`);
+    }
 ```
 
 Finally we load the selection screen itself:
 
 ```js
-  const { PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
+    const { PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
 ```
 
 Now we're ready to take down the fallback placeholder and show some real content:
 
 ```js
-  const [ on, eventual ] = manageEvents();
-  let success = false;
-  let method = null;
-  while (!success) {
-    if (!method) {
-      yield <PaymentSelectionScreen methods={methods} onSelect={on.selection} />;
-      const { selection } = await eventual.selection;
-      method = selection;
-    }
+    const [ on, eventual ] = manageEvents();
+    let success = false;
+    let method = null;
+    while (!success) {
+      if (!method) {
+        yield <PaymentSelectionScreen methods={methods} onSelect={on.selection} />;
+        const { selection } = await eventual.selection;
+        method = selection;
+      }
 ```
 
 Initially, we don't know what is the user's preferred payment method. So we show the selection screen. Later, if
@@ -114,16 +113,16 @@ Now that the user has selected a method, we display the corresponding form, pass
 as the `onSubmit` handler and `on.cancellation` as the `onCancel` handler:
 
 ```js
-  const PaymentMethod = forms[method.name];
-  yield <PaymentMethod onSubmit={on.submission} onCancel={on.cancellation} />;
-  const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
-  // wait for user to submit the form or hit cancel button
-  const { submission } = await eventual.submission.or.cancellation;
-  if (!submission) {
-    // go back to selection screen
-    method = null;
-    continue;
-  }
+      const PaymentMethod = forms[method.name].default;
+      yield <PaymentMethod onSubmit={on.submission} onCancel={on.cancellation} />;
+      const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
+      // wait for user to submit the form or hit cancel button
+      const { submission } = await eventual.submission.or.cancellation;
+      if (!submission) {
+        // go back to selection screen
+        method = null;
+        continue;
+      }
 ```
 
 Here we wait for two events: `submission` or `cancellation`. If the user didn't hit the submit button, then obviously
@@ -136,17 +135,17 @@ Given how unlikely it is and how minor is the consequence, we'll just let it be.
 Once we have the user response, we call a function to process the payment, putting up a new screen first:
 
 ```js
-yield <PaymentProcessingScreen method={method} />;
-try {
-  const payment = await processPayment(method, submission);
-  const { PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
-  yield <PaymentCompleteScreen payment={payment} />;
-  success = true;
-} catch (err) {
-  const { PaymentErrorScreen } = await import('./PaymentErrorScreen.js');
-  yield <PaymentErrorScreen error={err} onConfirm={on.confirmation} />;
-  await eventual.confirmation;
-}
+      yield <PaymentProcessingScreen method={method} />;
+      try {
+        const payment = await processPayment(method, submission);
+        const { PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
+        yield <PaymentCompleteScreen payment={payment} />;
+        success = true;
+      } catch (err) {
+        const { PaymentErrorScreen } = await import('./PaymentErrorScreen.js');
+        yield <PaymentErrorScreen error={err} onRetry={on.retryRequest} />;
+        await eventual.retryRequest;
+      }
 ```
 
 Since, this is just a demo the function doesn't do anything except randomly failing on occasions. If that happens we

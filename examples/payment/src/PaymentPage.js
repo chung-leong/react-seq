@@ -43,8 +43,8 @@ export default function PaymentPage() {
         success = true;
       } catch (err) {
         const { default: PaymentErrorScreen } = await import('./PaymentErrorScreen.js');
-        yield <PaymentErrorScreen error={err} onConfirm={on.confirmation} />;
-        await eventual.confirmation;
+        yield <PaymentErrorScreen error={err} onRetry={on.retryRequest} />;
+        await eventual.retryRequest;
       }
     }
   }, []);
