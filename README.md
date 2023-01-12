@@ -1,8 +1,8 @@
 # React-seq ![ci](https://img.shields.io/github/actions/workflow/status/chung-leong/react-seq/node.js.yml?branch=main&label=Node.js%20CI&logo=github) ![nycrc config on GitHub](https://img.shields.io/nycrc/chung-leong/react-seq)
 
 React-seq is a light-weight library that helps you take full advantage of async functions and generators while
-developing React apps. It provides a set of hooks for managing processes that complete over time, such as loading
-of code and data. It's designed for React 18 and above.
+developing React apps. It provides a set of hooks for managing processes that require time to complete.
+It's designed for React 18 and above.
 
 ## Installation
 
@@ -20,10 +20,10 @@ npm install --save-dev react-seq
 ## Usage scenarios
 
 * [Loading of remote data](#loading-of-remote-data)
-* [Page navigation](#page-navigation)
-* [Page transition](#page-transition)
-* [Authentication](#authentication)
-* [State management](#state-management)
+* [Handling page navigation](#handling-page-navigation)
+* [Adding transition effects](#adding-transition-effects)
+* [Handling authentication](#handling-authentication)
+* [Managing complex states](#managing-complex-states)
 
 ## Other topics
 
@@ -68,24 +68,23 @@ function ProductPage({ productId }) {
     fallback(<div class="spinner"/>);
     defer(200);
     const product = await fetchProduct(productId);
-    const { ProductDescription } = await import('./ProductDescription.js');
+    const { default: ProductDescription } = await import('./ProductDescription.js');
     yield (
-      <div>
+      <div className="stage-1">
         <ProductDescription product={product} />
       </div>
     );
     const related = await fetchRelatedProducts(product);
-    const { ProductCarousel } = await import('./ProductCarousel.js');
+    const { default: ProductCarousel } = await import('./ProductCarousel.js');
     yield (
-      <div>
+      <div className="stage-2">
         <ProductDescription product={product} />
         <ProductCarousel products={related} />
       </div>
     );
     const promoted = await fetchPromotedProducts();
-    const { ProductCarousel } = await import('./ProductCarousel.js');
     yield (
-      <div>
+      <div className="stage-3">
         <ProductDescription product={product} />
         <ProductCarousel products={related} />
         <ProductCarousel products={promoted} />
@@ -107,24 +106,23 @@ function ProductPage({ productId }) {
       defer(i === 0 ? 200 : Infinity);
       try {
         const product = await fetchProduct(productId);
-        const { ProductDescription } = await import('./ProductDescription.js');
+        const { default: ProductDescription } = await import('./ProductDescription.js');
         yield (
-          <div>
+          <div className="stage-1">
             <ProductDescription product={product} onUpdate={on.updateRequest} />
           </div>
         );
         const related = await fetchRelatedProducts(product);
-        const { ProductCarousel } = await import('./ProductCarousel.js');
+        const { default: ProductCarousel } = await import('./ProductCarousel.js');
         yield (
-          <div>
+          <div className="stage-2">
             <ProductDescription product={product} onUpdate={on.updateRequest} />
             <ProductCarousel products={related} />
           </div>
         );
         const promoted = await fetchPromotedProducts();
-        const { ProductCarousel } = await import('./ProductCarousel.js');
         yield (
-          <div>
+          <div className="stage-3">
             <ProductDescription product={product} onUpdate={on.updateRequest} />
             <ProductCarousel products={related} />
             <ProductCarousel products={promoted} />
@@ -152,9 +150,9 @@ your async code. Here, it allows the user to manually trigger an update: Calling
 fulfillment of the `eventual.updateRequest` promise. That releases the generator function from the `await` operation
 inside the finally block.
 
-Since data loading happens so frequently in web applications, React-seq provides a specialized hook for doing this:
-[`useProgressive`](./doc/useProgressive.md). The hook functions as a sort of async-to-sync translator, turning
-promises and generators into objects and arrays.
+Since data loading happens so frequently in web applications, React-seq provides a specialized hook:
+[`useProgressive`](./doc/useProgressive.md). It works as a sort of async-to-sync translator, turning promises
+and generators into objects and arrays.
 
 Consider the following component taken from the [Star Wars API example](./examples/swapi/README.md):
 
@@ -207,8 +205,8 @@ The component `CharacterUI` would receive this as props:
 
 The various arrays would grow over time as data is retrieved from the remote server.
 
-It's possible to create a generator that pauses and resumes on user interaction. The
-[Word Press example](./examples/wordpress.md) shows how this can be used to implement an infinite-scrolling article
+It's possible to create a generator that pauses and resumes on user action. The
+[Word Press example](./examples/wordpress.md) shows how this was used to implement an infinite-scrolling article
 list. The [React Native version of the example](./examples/wordpress-react-native.md) is also worth checking out.
 
 Besides using [`useSequential`](./doc/useSequential.md) and [`useProgressive`](./doc/useProgressive.md), you can
@@ -242,7 +240,7 @@ State hooks are also the right ones to use generally when you are creating custo
 [alternate implementation of the Star Wars API example](./examples/swapi-hook/README.md) to learn more about
 the advantages and drawbacks.
 
-## Page navigation
+## Handling page navigation
 
 You can use a `useSequential` hook to handle page navigation for you app in the following manner:
 
@@ -268,7 +266,7 @@ export default function App() {
             const { default: ProductDetails } = await import('./ProductDetails.js');
             yield <ProductDetails id={parts[1]} onReturn={on.return} />;
             await eventual.return;
-            delete parts[1];
+            parts.splice(1);
           }
         } else if (parts[0] === 'news') {
           if (!parts[1]) {
@@ -280,7 +278,7 @@ export default function App() {
             const { default: Article } = await import('./Article.js');
             yield <Article id={parts[1]} onReturn={on.return} />;
             await eventual.return;
-            delete parts[1];
+            parts.splice(1);
           }
         } else if (parts[0] === 'notifications') {
           /* ... */
@@ -302,14 +300,15 @@ export default function App() {
 
 The example uses [Array-router](https://github.com/chung-leong/array-router), a companion solution designed
 to work well with React-seq. It's a minimalist "router" that turns the browser location into an array of path
-parts and an object containing query variables. And that is. Actual routing is done using JavaScript control
+parts and an object containing query variables. And that's it. Actual routing is done using JavaScript control
 structures.
 
 The code above follows the Yield-Await-Promise model. We output some user-interface elements then wait for a
-user response. We then act upon that response, causing likely the displaying of a different page. our code is in
-full control of navigation. It alters the route components and interprets them. Clicks on hyperlinks and use of
-the browser's back/forward buttons are treated as exceptions. If a detour request manages to reach the top-level
-try-catch block, it gets approved.
+user response. We then act upon that response, causing the displaying of a different page.
+
+Our code is in full control of navigation. It alters the route components and interprets them. Clicks on hyperlinks
+and use of the browser's back/forward buttons are treated as exceptions. If a detour request manages to reach
+the top-level try-catch block, it gets approved.
 
 React-seq can handle nested generators. `useSequential` will in effect [flatten](./doc/linearize.md) the generator
 provided by its callback. That allows us to break a long generator functions into more manageable subroutines:
@@ -374,11 +373,11 @@ Since there is no `break` or `return` inside the loop, the only way to exit the 
 (probably a detour request). When that happens, code in the finally block will run. If the function had made changes
 specific to this section, it can roll them back here.
 
-Please note that certain implementation details are left out of the code snippet presented above for brevity sake.
+Please note that certain implementation details are left out of the code snippets above for brevity sake.
 Consult the [Transition example](./examples/transition/README.md) for something that better represent a
 fully-developed, real-world solution. You'll also find further discussion on the Yield-Await-Promise model.
 
-## Page transition
+## Adding transition effects
 
 React-seq's ability to handle nested async generator lends itself nicely to performing page transition. All we would
 need is a function that takes an element and returns a generator producing the right sequence. It can output
@@ -396,11 +395,11 @@ Thanks to the syntactic sugar provided by React-seq's event manager, orchestrati
 
 To see the concept described here in action, check out the [Transition example](./examples/transition/README.md).
 
-## Authentication
+## Handling authentication
 
 The ability to insert whole sequence of pages anywhere also makes it rather easy to handle authentication. If a
-particular section of our app is restricted to logged-in users, all we would have to do is place a line atop the
-code for that section:
+particular section of our app is restricted to logged-in users only, all we would have to do is place a line atop
+that section:
 
 ```js
   yield handleLogin(methods);
@@ -414,7 +413,7 @@ async function* handleLogin({ manageEvents }) {
     return;
   }
   const [ on, eventual ] = manageEvents();
-  const { ScreenLogin } = await import('./screens/ScreenLogin.js');
+  const { default: ScreenLogin } = await import('./screens/ScreenLogin.js');
   let error;
   for (;;) {
     yield <ScreenLogin onSubmit={on.credentials} lastError={error} />;
@@ -429,7 +428,7 @@ async function* handleLogin({ manageEvents }) {
 }
 ```
 
-A call to the function might also happen in the app's catch block, to deal with expired user session:
+A call to this function might also happen in the app's catch block, to deal with expired user session:
 
 ```js
     } catch (err) {
@@ -447,12 +446,12 @@ If the user manages to log in, then our catch block has successfully resolved th
 to where he was before (since the route hasn't changed) and what ever being done there would no longer cause an error.
 Everything works as it should.
 
-## State management
+## Managing complex states
 
 State management using an async generator function is generally much easier, even when no inherently async operations
 like data retrieval are involved. First of all, you have a variable scope that persists over time. When you need to
-remember something, just set a local variable. At the same time the number of states of you need to maintain is
-sharply reduced, thanks to async functions' ability to halt mid-execution. Consider the
+remember something, just set a local variable. At the same time the number of states of you need to track is sharply
+reduced, thanks to async functions' ability to halt mid-execution. Consider the
 [the following example](./examples/konami-code/README.md). It's a hook that listens for a sequence of keystrokes
 matching the well-known [Konami code](https://en.wikipedia.org/wiki/Konami_Code):
 
@@ -517,8 +516,8 @@ function App() {
           /* ... */
         }
       } catch (err) {
-        yield <ErrorPage error={err} onRetry={on.retry} />;
-        await eventual.retry;
+        yield <ErrorPage error={err} onRetry={on.retryRequest} />;
+        await eventual.retryRequest;
       }
     }
   }, []);
@@ -531,9 +530,7 @@ async function *handleNewsSection({ wrap, manageEvents }) {
   try {
     for (;;) {
       try {
-        if (articleId) {
-          /* ... */
-        } else {
+        if (!articleId) {
           try {
             yield <ArticleList onSelect={on.selection} />;
             // wait for an article to be selected
@@ -541,6 +538,8 @@ async function *handleNewsSection({ wrap, manageEvents }) {
           } catch (err) {
             // handle errors from ArticleList
           }
+        } else {
+          /* ... */
         }
       } catch (err) {
         if (err instanceof CMSError) {
@@ -605,7 +604,7 @@ class ErrorBoundary extends Component {
 ```
 
 Suppose the call to `fetchTags` in `ArticleList` causes a 404 Not Found error to be thrown. This error will first
-bubble through the React component tree as shown in the following diagram (stage 1):
+bubble through the React component tree as shown in this diagram (stage 1):
 
 ![Error propagation](./doc/img/error-propagation.jpg)
 
@@ -615,10 +614,11 @@ finally gets caught by the catch block in `App` (stage 3).
 
 Basically, errors will resurface at (or close to) the decision points that led eventually to their occurrence.
 From the perspective of `handleNewsSection`, yielding `ArticleList` is what caused the error. It pops up on the very
-next line. Action. Consequence. Intuitively, this is how we expect exception handling would work. And in general, the
-code responsible for triggering an error is in the best position to handle it.
+next line. Action followed by consequence. Intuitively, this is how we expect exception handling would work. And in
+general, the code responsible for triggering an error is going to be in the best position to make decisions on how
+it should be handled.
 
-Of course, not much can be done about a fatal error like a 404 aside from throwing up an error message. In the
+Of course, not much can be done about a fatal error like a 404 aside from putting up an error message. In the
 [Transition example](./examples/transition/README.md), you'll find a scenario where catching an error in a local
 try-catch block actual makes sense.
 
@@ -636,7 +636,7 @@ is essentially used as an app's fallback screen. Only a single function call is 
 ```
 
 [`renderInChildProc`](./doc/server/renderInChildProc.md) will generate the page using the app's production build.
-You don't need to make any change to your project's configuration. You only need to enable
+You don't need to make changes to your project's build configuration. You only need to enable
 [hydration](./doc/client/hydrateRoot.md) and [render-to-server](./doc/client/renderToServer.md) in your app's
 boot-strap code:
 
