@@ -745,3 +745,14 @@ Add the following to your project's `package.json` so Jest would transpile the l
     ]
   },
 ```
+
+## Compatibility
+
+React-seq makes use of
+[JavaScript proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy). According
+to Mozilla, it is available in the following environment:
+
+![Proxy compatibility](./doc/img/proxy-compatibility.jpg)
+
+Since the functionality in question cannot be polyfilled, React-seq does not work in any version of Internet Explorer
+or Opera Mini.
