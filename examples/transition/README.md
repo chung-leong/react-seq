@@ -1,10 +1,10 @@
 # Transition example
 
-React-seq is useful for tasks that take time. A very good example is page transition. By definition that always
-occurs over time. Initially, only the old page is shown. Then both the old page and the new page are partially
-visible. Finally, only the new page is shown.
+React-seq is useful for tasks that take time. A very good example is screen transition. By definition that always
+occurs over time. Initially, only the old screen is shown. Then both the old screen and the new screen are partially
+visible. Finally, only the new screen is shown.
 
-This example will show you how natural it is to deal with page transition using async generator. It'll also
+This example will show you how natural it is to handle transition using async generators. It'll also
 introduce you to the Yield-Await-Promise model of building a web application.
 
 ## Seeing the code in action
@@ -16,34 +16,34 @@ open up.
 
 ## Crossfade operation
 
-First of all, let us look at the code responsible for performing page transition. We're not going to be overly
-ambitious here. We'll going to implement a relatively simple transition: a crossfade. The old page will go from an
-opacity of 1 to 0, while the new page will go from an opacity of 0 to 1.
+First, let us look at the transition code. We're not being overly ambitious here. The transition effect is going to
+be relatively simple: a crossfade. The old screen will go from an opacity of 1 to 0, while the new screen will go
+from an opacity of 0 to 1.
 
 From inside a [`useSequential`](../../doc/useSequential.md) hook we can yield either a React element or an async
-generator representing a sequence of React elements. That makes implementing page transition very easy. Instead of
-doing this:
+generator representing a sequence of React elements. That makes it every easy to add transition effects to an app.
+We just need to go from this:
 
 ```js
-  yield <ScreenAlfa />
+  yield <ScreenAlfa />;
 ```
 
-Which would cause `ScreenAlfa` to immediately replace what was there before, we would need to do this:
+Which would cause `ScreenAlfa` to immediately replace what was there before, to this:
 
 ```js
   yield f(<ScreenAfla />);
 ```
 
-Where `f` returns an async generator whose last item is `<ScreenAfla />`. Items coming before will be what
-the transition effect dictates. They could be, in theory, anything and in any number. For the purpose of this
-example we'll stick with basic CSS. Over the course of the transition, three things need to be rendered:
+Where `f` returns an async generator whose last item is `<ScreenAfla />`. Items coming before will be dictated by
+the effect in question. In theory, they could be anything and in any number. For this example we'll stick with basic
+CSS. Over the course of the transition, three things need to be rendered:
 
 1. The old screen with opacity = 1 and the new screen with opacity = 0
 2. The old screen with final opacity = 0 and the new screen with final opacity = 1
 3. The new screen only
 
-We'll need to keep track of the screen that's actively being shown. For that we use a class.
-Here's the constructor of [Crossfade](./src/Crossfade.js):
+We'll need to keep track of the screen that's currently displayed. For that we use a class. Here's the constructor
+of [Crossfade](./src/Crossfade.js):
 
 ```js
 export class Crossfade {
@@ -54,8 +54,8 @@ export class Crossfade {
   }
 ```
 
-The `to` method is responsible for performing a transition to a new screen. For ergonomic reason we want it
-bound to the object. Since there's no arrow function syntax for generator functions, we resort to the following
+A method named `to` is used to bring a new screen into view. For ergonomic reason we want the method
+bound to the instance. Since there's no arrow function syntax for generator functions, we resort to the following
 construct:
 
 ```js
@@ -75,11 +75,11 @@ If there is a previous screen and it's of a different type, we output both it an
 transition states ([.Crossfade .out](./src/css/Crossfade.css#10) and [.Crossfade .in](./src/css/Crossfade.css#19)):
 
 ```js
-  let currentKey;
-  if (!previous || isSameType(previous, element)) {
-    currentKey = previousKey;
-  } else {
-    currentKey = ++this.previousKey;
+    let currentKey;
+    if (!previous || isSameType(previous, element)) {
+      currentKey = previousKey;
+    } else {
+      currentKey = ++this.previousKey;
       const { manageEvents } = this.methods;
       const [ on, eventual ] = manageEvents();
       yield (
@@ -94,7 +94,7 @@ transition states ([.Crossfade .out](./src/css/Crossfade.css#10) and [.Crossfade
 We then wait 25 milliseconds to ensure that the DOM nodes are ready. There's probably a better way to do
 this. Using a timer happens to easy and reliable. I'm open to suggestion.
 
-After the brief pause we add "end" to the classname of the two div's:
+After this brief pause we add "end" to the class names of the two div's:
 
 ```js
       yield (
@@ -107,7 +107,7 @@ After the brief pause we add "end" to the classname of the two div's:
     } // end of if (previous)
 ```
 
-That sets the transition into motion. This time we actually have an event we can wait for:
+That sets the transition into motion. This time we actually have an event we can await:
 [transitionend](https://developer.mozilla.org/en-US/docs/Web/API/Element/transitionend_event). When both transitions
 are done we proceed to the final step, namely rendering only the new screen:
 
@@ -120,7 +120,7 @@ are done we proceed to the final step, namely rendering only the new screen:
   }).bind(this);
 ```
 
-This is what happens immediately when there is no previous screen or it's the same type as the incoming one.
+This is what would happen immediately when there is no previous screen or it's the same type as the upcoming one.
 
 `Crossfade` provides a second method that prevents a transition from occurring. The logic is pretty simple:
 
@@ -139,7 +139,7 @@ The example app uses [Array-router](https://github.com/chung-leong/array-router/
 used in the other examples. The specialized hook
 [`useSequentialRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useSequentialRouter.md)
 is used here. It differs from [`useRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useRouter.md) in
-that it does not trigger component updates when the route changes. It also offers more flexibility on how he context
+that it does not trigger component updates when the route changes. It also offers more flexibility on how its context
 provider and error boundary are created.
 
 After creating the router, we call [`useSequential`](../../doc/useSequential.md). Instead of an async generator
@@ -160,7 +160,7 @@ We use [`fallback`](../../doc/fallback.md) to provide a fallback element:
     fallback(<ScreenLoading />);
 ```
 
-We use [`wrap`](../../doc/wrap.md) to place the router's error boundary around the contents from the generator:
+We use [`wrap`](../../doc/wrap.md) to place the router's error boundary around contents from the generator:
 
 ```js
     wrap(children => createBoundary(children));
@@ -170,7 +170,7 @@ The error boundary needs to be inside the element created by `useSequential`. If
 would get unmounted by React when an error occurs, causing the generator to be shut down.
 
 We then wait for the component to mount, then use the router's
-[`trap`](https://github.com/chung-leong/array-router/blob/main/doc/trap.md) function to capture errors caught by its
+[`trap`](https://github.com/chung-leong/array-router/blob/main/doc/trap.md) function to capture errors caught at its
 error boundary. We use [`reject`](../../doc/reject.md) to redirect the error to the active `await` statement:
 
 ```js
@@ -206,7 +206,7 @@ And here's where we create our `Crossfade` object:
     methods.transition = new Crossfade(methods);
 ```
 
-Finally, we load the `main` function from a file and invoke it:
+Finally, we load the `main` function from a file and invoke it, giving it a state object and a bundle of methods:
 
 ```js
     const { default: main } = await import('./main.js');
@@ -215,8 +215,8 @@ Finally, we load the `main` function from a file and invoke it:
 }
 ```
 
-And that's it. The basic idea here is that `App` provides the basic plumbing, while all the "real" actions actually
-take place inside `main`. Let us look at what this function does:
+And that's it. The idea here is that `App` provides the basic plumbing, while the "real" actions take place inside
+`main`. Let us look at what this function does:
 
 ## The main function
 
@@ -235,7 +235,7 @@ export async function* main(state, methods) {
 `manageRoute` returns a [proxy object](https://github.com/chung-leong/array-router/blob/main/doc/arrayProxy.md), whose
 `screen` property is mapped to the first part of the path. When the path is "/alfa", `route.screen` will be "alfa".
 
-The function then enters the main loop, containing a [try-catch block](./src/main.js#L14):
+The function then enters an endless loop holding a [try-catch block](./src/main.js#L14):
 
 ```js
   for (;;) {
@@ -244,22 +244,23 @@ The function then enters the main loop, containing a [try-catch block](./src/mai
 
 The [catch block](./src/main.js#L82) handles
 [detour requests](https://github.com/chung-leong/array-router/blob/main/doc/RouteChangePending.md) (always approving
-them) and shows an error screen:
+them) and shows an error screen for other error types:
 
 ```js
     } catch (err) {
       if (isDetour(err)) {
         await err.proceed();
       } else {
-        yield <ScreenError error={err} onConfirm={on.confirm} />;
-        await eventual.confirm;
+        yield <ScreenError error={err} onRetry={on.retryRequest} />;
+        await eventual.retryRequest;
       }
     }
   }
 }
 ```
 
-In the try block, our code checks what's in `route.screen`. Initially, the [following](./src/main.js#L16) will match:
+Within the try block, our code checks what's in `route.screen`. Initially, the [following](./src/main.js#L16)
+will match:
 
 ```js
       if (route.screen === undefined) {
@@ -272,15 +273,15 @@ In the try block, our code checks what's in `route.screen`. Initially, the [foll
 
 [`ScreenStart`](./src/ScreenStart.js) is dynamically loaded. We then use `to` in `CrossFade` to transition to it.
 Since there is no previous screen, `to` will yield the element and immediately return. We then begin awaiting the
-promise `eventual.alfa`, which is fulfilled when `on.alfa` is called.
+promise `eventual.alfa`. It is fulfilled when `on.alfa` is called.
 
-Well, that's the basics of the Yield-Await-Promise model. We yield a visual element that prompts the user to do
+That's the basics of the Yield-Await-Promise model. We yield a visual element that prompts the user to do
 something then wait for him to do so. It's that simple. The model is reminiscent of the sort of simply text
-programs that you might have written in your first-year CS class. Instead of a simple text prompt sent to the
+programs that you might have written in your first-year CS class. Instead of a text prompt sent to the
 terminal, here we're outputting an HTML component, through React, to the web browser.
 
-When you click the button on the page, `route.screen` is set to "alfa". This changes the location from
-"http://localhost:3000/" to "http://localhost:3000/alfa", which sends us into the [next clause](./src/main.js#L21):
+When you click the button on the page, `route.screen` gets set to "alfa". This changes the location from
+"http://localhost:3000/" to "http://localhost:3000/alfa", sending us to the [next clause](./src/main.js#L21):
 
 ```js
       } else if (route.screen === 'alfa') {
@@ -294,8 +295,8 @@ When you click the button on the page, `route.screen` is set to "alfa". This cha
 The code is essentially identical to the section above. A transition will actually happen this time.
 
 If you hit the browser's back button, `await eventual.bravo` will throw with a `RouteChangePending` error. This lands
-in the catch block, which tells the router to proceed with the change. `route.screen` becomes `undefined` again and
-matches the first `if` clause.
+in the catch block, which tells the router to proceed with the change. `route.screen` becomes `undefined` and
+matches the first `if` clause once again.
 
 If you click the button on the page instead, the promise is fulfilled and `route.screen` is set to "bravo". We
 end up in the [next clause](./src/main.js#L26):
@@ -313,8 +314,8 @@ end up in the [next clause](./src/main.js#L26):
       } else ...
 ```
 
-This screen has two buttons. We have to await two promises: `charlie` or `delta`. The promise fulfillment
-value will be either `{ charlie: ... }` or `{ delta: ... }`. If it's the former, then we go to the Charlie section:
+This screen has two buttons. We have to await two promises: `charlie` or `delta`. The fulfillment value will
+be either `{ charlie: ... }` or `{ delta: ... }`. If it's the former, we go to the Charlie clause:
 
 ```js
       } else if (route.screen === 'charlie') {
@@ -375,7 +376,7 @@ The `if` clause for [`ScreenDelta`](./src/ScreenDelta.js) also has a try-catch b
 
 This time we're catching the `RouteChangePending` error. When it occurs, we ask `ScreenDelta` to put up a
 dialog box by giving it a `onDetour` handler. We expect it to be called with either `true` or `false`. In the
-first case, we rethrow the error so the outer catch block will approve the detour. Otherwise the detour gets
+first case, we rethrow the error so the outer catch block will approve the detour. Otherwise the detour is
 prevented and we land back in `ScreenDelta`.
 
 The next section, Echo, loads and calls a function:
@@ -455,8 +456,8 @@ land in the catch block of `main`.
 
 ## Error handling
 
-Let us return to section "Charlie" and consider how an error emitted by `ScreenCharlie` would land in that
-section's catch block. Here's the code once again:
+Let us return to the Charlie clause and consider how an error emitted by `ScreenCharlie` would land in that
+clause's catch block. Here's the code once again:
 
 ```js
       } else if (route.screen === 'charlie') {
@@ -487,8 +488,8 @@ provides one in [App](./src/App.js#12):
     wrap(children => createBoundary(children));
 ```
 
-This boundary hands the error to the router, which in turns gives it to the [trap function we provided]
-(./src/App.js#14)):
+This boundary hands the error to the router, which in turns gives it to the
+[trap function we provided](./src/App.js#14):
 
 ```js
       trap('error', (err) => {
@@ -497,15 +498,15 @@ This boundary hands the error to the router, which in turns gives it to the [tra
       });
 ```
 
-`reject` causes the current await operation to throw with the error. What and where is this operation? Well,
-React would encounter the error as soon as its tries to render `ScreenCharlie` with a count divisible by three.
-This happens in [Crossfade.js](./src/Crossfade.js#L21):
+`reject` causes the current await operation to rethrow the error. What and where is this operation? Well,
+React would encounter the error as soon as its tries to render `ScreenCharlie`. This happens in
+[Crossfade.js](./src/Crossfade.js#L21):
 
 ```js
       yield (
         <div className="Crossfade">
           <div key={previousKey} className="out">{previous}</div>
-          <div key={currentKey} className="in">{element}</div>        // <--- ScreenCharlie
+          <div key={currentKey} className="in">{element}</div>    // <--- ScreenCharlie
         </div>
       );
 ```
@@ -516,16 +517,15 @@ The await statement immediately below is where the error gets rethrown:
       await eventual.transitionReady.for(25).milliseconds;
 ```
 
-Since `Crossfade.to` doesn't use a try-catch block, the error will pop through (and shuts down) the generator.
+Since `Crossfade.to` doesn't do a try-catch, the error will pop through (and shuts down) the generator.
 React-seq will catch this error and redirect it to the parent generator using
-[AsyncGenerator.throw](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator/throw),
-which does the following (from Mozilla):
+[AsyncGenerator.throw](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncGenerator/throw). It does the following (from Mozilla):
 
 > The throw() method of an async generator acts as if a throw statement is inserted in the generator's body at
 > the current suspended position, which informs the generator of an error condition and allows it to handle the
 > error, or perform cleanup and close itself.
 
-`main`'s "current suspended position" at this point would be between [the following two lines](./src/main.js#L33):
+The "current suspended position" of `main` at this point would be between the [following two lines](./src/main.js#L39):
 
 ```js
           yield to(<ScreenCharlie count={state.count++} onNext={on.delta} />);
@@ -538,8 +538,8 @@ Whowee! That error sure went on one heck of a trip! You don't need to fully unde
 Just remember that there's a mechanism in place that allows you to handle errors where doing so makes intuitive
 sense.
 
-Before we leave the topic of error handling, let us consider the scenario where we aren't doing page transition.
-Our "Charlie" section would look like this:
+Before we leave the topic of error handling, let us consider the scenario where we aren't doing transition.
+Our Charlie clause would look like this:
 
 ```js
       } else if (route.screen === 'charlie') {
@@ -561,12 +561,12 @@ Our "Charlie" section would look like this:
 The code is identical except there's no `to(...)` after `yield`. What happens in this case? Exactly the same outcome,
 with error thrown by `await eventual.delta` instead.
 
-## Going out a bang
+## Going out with a bang
 
 Now for something fun. In [Explosion.js](./src/Explosion.js), you'll find code for an explosive transition effect.
 To see it in action, simply replace all occurences of "Crossfade" with "Explosion" in [App.js](./src/App.js).
 
-It probably doesn't work correctly in Safari, but then again who does?
+It probably doesn't work in Safari, but then again who does?
 
 ## Final thoughts
 
@@ -575,8 +575,8 @@ a lot of ifs, yields, and awaits. One of the main goals of React-seq is to let p
 features more effectively, features related to the async model in particular.
 
 As said elsewhere, async generators aren't just dynamically generated arrays. You should think of them as timelines,
-sequences of events. In this example, the sequences are fairly simple: just transitions from page to page.
+sequences of events. In this example, the sequences are fairly simple: just transitions from screen to screen.
 Potentially much more complex sequences can be constructed, complete with server and user interactions. And thanks to
 Rect-seq ability to handle nested generators, they would only be a function call away. I will explore the
 possibilities further in the future as ideas come to me. If you have some ideas of your own, please feel free to
-share it in the [dicussion board](https://github.com/chung-leong/react-seq/discussions).
+share them in the [dicussion board](https://github.com/chung-leong/react-seq/discussions).

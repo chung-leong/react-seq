@@ -83,8 +83,8 @@ export default async function* main(state, methods) {
       if (isDetour(err)) {
         await err.proceed();
       } else {
-        yield <ScreenError error={err} onConfirm={on.confirm} />;
-        await eventual.confirm;
+        yield <ScreenError error={err} onRetry={on.retryRequest} />;
+        await eventual.retryRequest;
       }
     }
   }
