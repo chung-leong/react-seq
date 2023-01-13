@@ -4,8 +4,14 @@ import {
   setting,
   settings,
 } from '../index.js';
+import {
+  defaultSettings,
+} from '../src/settings.js';
 
 describe('#setting()', function() {
+  before(function() {
+    settings(defaultSettings);
+  });
   it('should throw when the setting is unknown', function() {
     expect(() => setting('cow')).to.throw();
   })

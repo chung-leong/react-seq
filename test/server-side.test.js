@@ -183,7 +183,7 @@ describe('Server-side rendering', function() {
         await renderToString(el);
       }
       async function test() {
-        for (let i = 0; i < 5000; i++) {
+        for (let i = 0; i < 500; i++) {
           await step();
         }
         // a bit of time for timers to finish

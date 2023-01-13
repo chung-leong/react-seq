@@ -1,8 +1,9 @@
-const currentSettings = {
+export const defaultSettings = {
   ssr: false,
   ssr_timeout: 3000,
   ssr_timeout_handler: null,
 };
+const currentSettings = { ...defaultSettings };
 
 const hooks = [];
 
