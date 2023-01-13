@@ -6,14 +6,9 @@ Return a object whose properties that grow over time as data arrives
 
 ```js
 function ProductPage({ productId }) {
-  const [ state, on ] = useProgressiveState(async function({ defer, initial, usable }) => {
+  const [ state, on ] = useProgressiveState(async function({ defer, initial }) => {
     initial({});
     defer(100);
-    usable({
-      producer: true,   // undefined is acceptable
-      related: true,    
-      reviews: true,    
-    });
     const product = await fetchProduct(productId);
     // no await for the following calls
     const producer = fetchProducer(product);  
@@ -32,12 +27,12 @@ function ProductPage({ productId }) {
 * `deps` - `<any[]>`
 * `return` `<Object>`
 
-## Callback function
+## Callback function parameters
 
-* `funcs` `<Object>` An object containing configuration functions
+* `methods` `<Object>` An object containing the hook's methods
 * `return` `{ [key]: <Promise>|<AsyncGenerator>|<Generator>|<any> }`
 
-## Configuration and management functions
+## Configuration and management methods
 
 * [`defer`](./defer.md)
 * [`flush`](./flush.md)

@@ -1,7 +1,7 @@
 # Star Wars API example
 
 In this example, we're going to build a simple website that displays information about Star Wars. We're going to
-be using [useProgressive](../../doc/useProgress.md), a specialized hook for feeding data into a component in
+be using [useProgressive](../../doc/useProgressive.md), a specialized hook for feeding data into a component in
 a piece-meal fashion. Given any number of async generators, it will translate them into progressively filled arrays.
 
 ## Seeing the code in action

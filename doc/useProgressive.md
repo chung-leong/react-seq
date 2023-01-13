@@ -28,12 +28,12 @@ function ProductPageUI(product, producer, relatedProducts = []) {
 * `deps` - `<any[]>` Variables that the async function depends on, changes of which will cause it to be rerun
 * `return` `<Element>`
 
-## Callback function
+## Callback function parameters
 
-* `funcs` `<Object>` An object containing configuration functions
+* `methods` `<Object>` An object containing the hook's methods
 * `return` `{ [key]: <Promise>|<AsyncGenerator>|<Generator>|<any> }`
 
-## Configuration and management functions
+## Configuration and management methods
 
 * [`defer`](./defer.md)
 * [`element`](./element.md)
@@ -51,10 +51,10 @@ function ProductPageUI(product, producer, relatedProducts = []) {
 
 ## Progressive loading explained
 
-In a nutshell, `useProgressive` translates async "stuff" like promises and async generators into regular JavaScript
-data structures like objects and arrays. The example above creates three props. `product` is a regular object (since
+In a nutshell, `useProgressive` translates async "stuff" like promises and generators into regular JavaScript data 
+structures like objects and arrays. The example above creates three props. `product` is a regular object (since
 `await` was used). `producer` is a promise to an object (since `await was not used`). `relatedProducts` is an async
-generator that yields objects. The final props that `ProductPageUI` receives will be:
+generator that yields objects. The final props received by `ProductPageUI` will be:
 
 ```js
 {

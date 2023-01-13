@@ -61,7 +61,7 @@ export default function App() {
 
 ## React-only hook
 
-Our [React-only hook](./src/App.js#L42) perform the search in a `useEffect` hook:
+Our [React-only hook](./src/App.js#L42) performs the search in a `useEffect` hook:
 
 ```js
 function useNPMList1(search) {
@@ -124,7 +124,7 @@ have a single one so this is complete overkill.
 
 ## Cost in code bloat
 
-Using `useSequentialState` adds about ~3kb (gzipped) to a codebase, while `useProgressiveState` adds another 2kb:
+Using `useSequentialState` adds about ~4kb (gzipped) to a codebase, while `useProgressiveState` adds another 2kb:
 
 ![screenshot](./img/screenshot-2.jpg)
 
@@ -132,7 +132,7 @@ Using `useSequentialState` adds about ~3kb (gzipped) to a codebase, while `usePr
 
 As was said at the beginning, this example involves a marginal usage scenario. We're not taking advantage of
 React-seq's key features, such as handling async errors using error boundaries. Still, the library makes
-coding a bit easier, the code a little more intuitive. Whether the convenience is worth 3kb really depends on the
+coding a bit easier, the code a little more intuitive. Whether the convenience is worth 4kb really depends on the
 nature of a given project.
 
 Thank you for your time. As usual, if you have any question or comment, feel free to make use of the project's

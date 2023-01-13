@@ -76,7 +76,7 @@ for some reason we need to start over, we skip this step.
 We use the `yield` operator to hand contents to React. Here we have a `<PaymentSelectionScreen />`. Its `onSelect` is
 set to `on.selection`. Where is this `on.selection` coming from?
 
-The two objects returned by `manageEvents` on [line 20](./src/PaymentPage.js#L20), `on` and `eventual`, are
+The two objects returned by `manageEvents` on [line 19](./src/PaymentPage.js#L19), `on` and `eventual`, are
 [JavaScript proxy objects](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy).
 Their properties are dynamically generated. `eventual` automatically generates promises while `on` automatically
 generates handlers that resolve these promises.

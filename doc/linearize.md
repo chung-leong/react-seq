@@ -10,6 +10,10 @@ Flatten an async generator
   }
 ```
 
+## Parameters
+
+* `generator` - `<AsyncGenerator>` An async generator that can potentially yield async generators
+
 ## Notes
 
 Any error uncaught by a child generator will be thrown again in the parent generator. Thus the following code:

@@ -45,7 +45,7 @@ function App() {
 }
 ```
 
-`useNobelPrize` is our custom hook. It returns an object containing information concerning the prize awarded
+`useNobelPrize` is our custom hook. It returns an object about information concerning the prize awarded
 in the given category and year--or `undefined` when it hasn't yet retrieved anything.
 
 ## The hook

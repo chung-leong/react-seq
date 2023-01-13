@@ -24,12 +24,12 @@ function ProductPage({ productId }) {
 * `deps` - `<any[]>` Variables that the async generator function depends on, changes of which will cause it to be rerun
 * `return` `<any>`
 
-## Callback function
+## Callback function parameters
 
-* `funcs` `<Object>` An object containing configuration functions
+* `methods` `<Object>` An object containing the hook's methods
 * `yield`  `<any>` or `<AsyncGenerator>`
 
-## Configuration and management functions
+## Configuration and management methods
 
 * [`defer`](./defer.md)
 * [`flush`](./flush.md)

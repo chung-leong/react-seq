@@ -35,12 +35,12 @@ function ProductPage({ productId }) {
 * `deps` - `<any[]>` Variables that the async generator function depends on, changes of which will cause it to be rerun
 * `return` `<Element>`
 
-## Callback function
+## Callback function parameters
 
-* `funcs` `<Object>` An object containing configuration functions
+* `methods` `<Object>` An object containing the hook's methods
 * `yield`  `<Element>` or `<AsyncGenerator>`
 
-## Configuration and management functions
+## Configuration and management methods
 
 * [`defer`](./defer.md)
 * [`fallback`](./fallback.md)
@@ -60,14 +60,14 @@ function ProductPage({ productId }) {
 ```js
   return useSequential(async ({ fallback }) => {
     fallback(<Loading />);
-    const { main } = await import('./main.js');
+    const { default: main } = await import('./main.js');
     return main();
   });
 ```
 
 Async generators themselves can yield async generators. This allows you to break one long sequence into multiple
-sub-routines. For error handling purpose, sub-generators yielded by a generator are handled as though their items'
-retrieval take place within the calling function. The following:
+shorter ones. For error handling purpose, sub-generators yielded by a generator are handled as though their items'
+retrieval takes place within the calling function. The following:
 
 ```js
   try {
@@ -96,6 +96,9 @@ another async generator function, errors arising there will be caught here too.
 
 Use `linearize` if you have code that needs to deal with nested async generators and you want the same error
 propagation behavior.
+
+The generator function's return value is currently not used. You will get a warning during development if 
+you return anything other than `undefined`.
 
 ## Examples
 

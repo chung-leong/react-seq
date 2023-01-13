@@ -1,4 +1,4 @@
-# manageEvents(options = {})
+# manageEvents()
 
 Manage events with the help of automatically generated promises
 
@@ -28,6 +28,10 @@ function Widget({ id }) {
     const click = await eventual.alpha.or.beta.or.gamma;
     if (click.alpha) {
       /* ... */
+    } else if (click.beta) {
+      /* ... */
+    } else {
+      /* ... */
     }
   })
 }
@@ -35,16 +39,16 @@ function Widget({ id }) {
 
 ## Parameters
 
-* `options` - `{ warning = false }` When `warning` is true, a warning will appear in the development console whenever
-a handler without a corresponding promise is called or a promise without a corresponding handler is awaited upon.
+* `return` - `[ <Proxy>, <Proxy> ]` Two proxy objects, one producting handlers, the other promises. They are invariant 
+per hook. Multiple calls would yield the same pair.
 
 ## Magical Objects: `on` and `eventual`
 
 `manageEvent` returns two objects, `on` and `eventual`. They are JavaScript
 [`Proxy`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects.
-Their properties are dynamically generated. When `on.click` is accessed, a handler gets automatically created,
-which fulfills the promise returned by `eventual.click` when called. The value given to the handler will be placed
-in a object, keyed by the name of the handler/promise. So `on.click(1)` would result in `eventual.click` resolving
+Their properties are dynamically generated. When `on.click` is accessed, a handler gets automatically created.
+Calling it fulfills the promise returned by `eventual.click`. The value given to the handler will be placed
+in a object, keyed by the name of the handler/promise. Thus `on.click(1)` would result in `eventual.click` resolving
 to `{ click: 1 }`.
 
 Upon fulfillment the promise `eventual.click` vanishes. Accessing `eventual.click` again would create a new,
@@ -58,10 +62,10 @@ Error objects are treated like any other values. You can force the rejection of 
 
 ## Fulfillment value filtering
 
-You can attach a filter function to a handler so that only certain values would trigger the fulfillment of a
-promise:
+You can attach a filter function to a handler so that only certain values would trigger fulfillment:
 
 ```js
+// respond to left click only
 yield (
   <div>
     <button onClick={on.click.filter(evt => evt.button === 0 ? evt : undefined)}>OK</button>
@@ -128,7 +132,7 @@ Meanwhile, `eventual.click.and.keyPress.and.mouseOver` is equivalent to:
 
 ```js
 Promise.all([
-  Promise.all([ eventual.click, eventual.keyPress ]).then(arr => arr.flat()),
+  Promise.all([ eventual.click, eventual.keyPress ]),
   eventual.mouseOver
 ]).then(arr => arr.flat().reduce((a, i) => Object.assign(a, i), {}));
 ```
@@ -151,9 +155,9 @@ const res = await fetch(url, { signal });
 await eventual('json', res.json()).and.click;
 ```
 
-## Imposing Time Limit
+## Imposing time limit
 
-You can use the `for` keyword to put a limit on waiting time:
+You can use the `for` keyword to put a limit on wait time:
 
 ```js
 const res = await eventual.click.or.keyPress.for(3).minutes;
