@@ -168,6 +168,9 @@ export function sequentialState(cb, setState, setError, options = {}) {
           updateState({ conditional: true });
         } else {
           stop = true;
+          if (process.env.NODE_ENV === 'development' && value !== undefined) {
+            console.warn('Return value from generator function is not undefined');
+          }
         }
       } catch (err) {
         if (err instanceof Interruption) {

@@ -1647,4 +1647,34 @@ describe('#useSequential()', function() {
       expect(toJSON()).to.eql({ type: 'span', props: {}, children: [ 'Bear' ] });
     });
   })
+  it('should issue a warning when return value from generator function is not undefined', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const output = {};
+      await withSilentConsole(async () => {
+        function Test() {
+          return useSequential(async function*() {
+            return "hello";
+          }, []);
+        }
+        const el = createElement(Test);
+        await create(el);    
+      }, output);
+      expect(output.warn).to.contain('not undefined');
+    });
+    // test scenario where something was yielded as well
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const output = {};
+      await withSilentConsole(async () => {
+        function Test() {
+          return useSequential(async function*() {
+            yield 'hello';
+            return 'hello';
+          }, []);
+        }
+        const el = createElement(Test);
+        await create(el);    
+      }, output);
+      expect(output.warn).to.contain('not undefined');
+    });
+  })
 })

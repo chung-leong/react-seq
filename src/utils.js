@@ -175,6 +175,7 @@ export async function* linearize(generator) {
   const stack = [ generator ];
   let source = null;
   let error = null;
+  let retval;
   // we need a try-finally block to ensure correct clean-up when generator is terminated prematurely
   try {
     // keep going until the stack is empty
@@ -204,6 +205,7 @@ export async function* linearize(generator) {
           }
         } else {
           source = null;
+          retval = value;
         }
         // if there was an error, it was handled by the parent's catch block
         error = null;
@@ -221,6 +223,7 @@ export async function* linearize(generator) {
       await source.return();
     }
   }
+  return retval;
 }
 
 export function isPromise(obj) {

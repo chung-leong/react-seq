@@ -694,4 +694,19 @@ describe('#useSequentialState()', function() {
       expect(toJSON()).to.equal('This sucks!');
     })
   })
+  it('should issue a warning when return value from generator function is not undefined', async function() {
+    await withTestRenderer(async ({ create, toJSON, act }) => {
+      const output = {};
+      await withSilentConsole(async () => {
+        function Test() {
+          return useSequentialState(async function*() {
+            return "hello";
+          }, []);
+        }
+        const el = createElement(Test);
+        await create(el);    
+      }, output);
+      expect(output.warn).to.contain('not undefined');
+    });
+  })
 })

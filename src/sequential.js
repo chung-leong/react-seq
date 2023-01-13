@@ -188,7 +188,10 @@ export function sequential(cb, options = {}) {
           }
         } else {
           stop = finished = true;
-        }
+          if (process.env.NODE_ENV === 'development' && value !== undefined) {
+            console.warn('Return value from generator function is not undefined');
+          }
+      }
       } catch (err) {
         if (err instanceof Timeout) {
           // time limit has been reached--need to resolve the promise now
@@ -321,6 +324,9 @@ export function sequential(cb, options = {}) {
             updateContent({ conditional: true });
           } else {
             stop = true;
+            if (process.env.NODE_ENV === 'development' && value !== undefined) {
+              console.warn('Return value from generator function is not undefined');
+            }
           }
         } catch (err) {
           if (err instanceof Interruption) {
