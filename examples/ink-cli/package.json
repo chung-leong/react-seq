@@ -7,7 +7,7 @@
 		"node": ">=16"
 	},
 	"scripts": {
-		"start": "NODE_NO_WARNINGS=1 node --experimental-loader ./jsx.mjs cli.mjs",
+		"start": "node --experimental-loader ./jsx.mjs cli.mjs",
 		"test": "xo && ava"
 	},
 	"files": [
