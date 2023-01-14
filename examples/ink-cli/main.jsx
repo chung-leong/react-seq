@@ -36,5 +36,5 @@ function Phase({ number, current, children }) {
   } else {
     status = <Text> </Text>;
   }
-  return <Text bold={bold}>{status} {children}</Text>;
+  return <Text bold={bold}> {status} {children}</Text>;
 }
