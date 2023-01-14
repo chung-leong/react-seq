@@ -19,9 +19,9 @@ export default async function* main({ fallback }) {
 function BusinessPlan({ phase }) {
   return (
     <>
-      <Phase number={1} current={phase}>Steal underpants</Phase>
+      <Phase number={1} current={phase}>Stealing underpants</Phase>
       <Phase number={2} current={phase}>???</Phase>
-      <Phase number={3} current={phase}>Profits</Phase>
+      <Phase number={3} current={phase}>Collecting profits</Phase>
     </>
   );
 }
