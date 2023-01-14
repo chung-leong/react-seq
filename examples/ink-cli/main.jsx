@@ -1,11 +1,11 @@
-import React from 'react';
+import { delay } from 'react-seq';
 import { Text } from 'ink';
 import InkSpinner from 'ink-spinner';
-import { delay } from 'react-seq';
 
 const Spinner = InkSpinner.default;
 
-export default async function* main() {
+export default async function* main({ fallback }) {
+  fallback(<Text />);
   let phase = 1;
   yield <BusinessPlan phase={phase++} />;
   await delay(3000);

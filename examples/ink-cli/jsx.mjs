@@ -23,14 +23,7 @@ export async function load(url, context, nextLoad) {
     const { source: rawSource } = await nextLoad(url, { ...context, format });
     const { code: transformedSource } = transformSync(rawSource, {
       plugins: [
-        [
-          jsxTransform,
-          {
-            pragma: 'React.createElement',
-            pragmaFrag: 'React.Fragment',
-            useBuiltIns: true
-          }
-        ]
+        [ jsxTransform, { runtime: 'automatic' } ],
       ],
       filename: fileURLToPath(url),
       sourceMaps: 'inline',

@@ -1,14 +1,6 @@
-import { createElement, Component } from 'react';
-import { render, Text } from 'ink';
+import { createElement } from 'react';
 import { useSequential } from 'react-seq';
+import { render } from 'ink';
+import main from 'main.jsx';
 
-function App() {
-	return useSequential(async (methods) => {
-		const { fallback } = methods;
-		fallback(createElement(Text, {}, ''));
-		const { default: main } = await import('./main.jsx');
-		return main(methods);
-	});
-}
-
-render(createElement(App));
+render(createElement(() => useSequential(main, [])));
