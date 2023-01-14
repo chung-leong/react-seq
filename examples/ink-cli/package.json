@@ -1,0 +1,58 @@
+{
+	"name": "ink-cli",
+	"version": "0.0.0",
+	"license": "MIT",
+	"bin": "run",
+	"engines": {
+		"node": ">=16"
+	},
+	"scripts": {
+		"start": "NODE_NO_WARNINGS=1 node --experimental-loader ./jsx.mjs cli.mjs",
+		"test": "xo && ava"
+	},
+	"files": [
+		"run",
+		"cli.mjs",
+		"jsx.mjs",
+		"main.jsx"
+	],
+	"dependencies": {
+		"@babel/core": "^7.20.12",
+		"@babel/plugin-transform-react-jsx": "^7.20.7",
+		"ink": "^3.2.0",
+		"ink-spinner": "^4.0.3",
+		"react": "^18.2.0",
+		"react-seq": "^0.7.8"
+	},
+	"ava": {
+		"babel": true,
+		"require": [
+			"@babel/register"
+		]
+	},
+	"babel": {
+		"presets": [
+			"@babel/preset-env",
+			"@babel/preset-react"
+		]
+	},
+	"xo": {
+		"extends": "xo-react",
+		"rules": {
+			"react/prop-types": "off"
+		}
+	},
+	"devDependencies": {
+		"@ava/babel": "^2.0.0",
+		"@babel/preset-env": "^7.20.2",
+		"@babel/preset-react": "^7.18.6",
+		"@babel/register": "^7.18.9",
+		"ava": "^5.1.0",
+		"chalk": "^4.1.2",
+		"eslint-config-xo-react": "^0.27.0",
+		"eslint-plugin-react": "^7.32.0",
+		"eslint-plugin-react-hooks": "^4.6.0",
+		"ink-testing-library": "^2.1.0",
+		"xo": "^0.39.1"
+	}
+}

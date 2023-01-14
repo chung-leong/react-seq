@@ -1,0 +1,2 @@
+#!/bin/sh
+NODE_NO_WARNINGS=1 node --experimental-loader ./jsx.mjs cli.mjs
