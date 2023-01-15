@@ -7,13 +7,16 @@ const Spinner = InkSpinner.default;
 export default async function* main({ fallback }) {
   fallback(<Text />);
   let phase = 1;
-  yield <BusinessPlan phase={phase++} />;
+  yield <BusinessPlan phase={phase} />;
   await stealUnderpants();
-  yield <BusinessPlan phase={phase++} />;
+  phase++;
+  yield <BusinessPlan phase={phase} />;
   await _?.();
-  yield <BusinessPlan phase={phase++} />;
+  phase++;
+  yield <BusinessPlan phase={phase} />;
   await collectProfits();
-  yield <BusinessPlan phase={phase++} />;
+  phase++;
+  yield <BusinessPlan phase={phase} />;
 }
 
 async function stealUnderpants() {
