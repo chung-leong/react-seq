@@ -1,6 +1,6 @@
 {
 	"name": "ink-cli",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"license": "MIT",
 	"bin": "./cli.mjs",
 	"engines": {
@@ -8,6 +8,8 @@
 	},
 	"scripts": {
 		"start": "./transpile.mjs && node ./cli.mjs",
+		"debug": "./transpile.mjs && node --inspect-brk ./cli.mjs",
+		"build": "./transpile.mjs",
 		"test": "xo && ava"
 	},
 	"files": [

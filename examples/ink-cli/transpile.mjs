@@ -44,7 +44,7 @@ function renameJSX({ types:t }) {
           },
           CallExpression: (path)  => {
             const { node } = path;
-            if (node.callee.type === 'Import' && node.arguments?.length === 1) {
+            if (t.isImport(node.callee)) {
               const [ source ] = node.arguments;
               if (t.isStringLiteral(source)) {
                 if (ext.test(source.value)) {
@@ -54,8 +54,8 @@ function renameJSX({ types:t }) {
                 // insert replacement operation for non-static path
                 // import(path)  ==>  import((path + "").replace(/\.jsx/, ""))
                 const toString = t.binaryExpression('+', source, t.stringLiteral(''));
-                const regExp = t.regExpLiteral(ext.source, ext.flags);
                 const replace = t.memberExpression(toString, t.identifier('replace'));
+                const regExp = t.regExpLiteral(ext.source, ext.flags);
                 const call = t.callExpression(replace, [ regExp, t.stringLiteral('.mjs') ]);
                 node.arguments = [ call ];
               }
