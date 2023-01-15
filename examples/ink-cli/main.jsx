@@ -8,12 +8,24 @@ export default async function* main({ fallback }) {
   fallback(<Text />);
   let phase = 1;
   yield <BusinessPlan phase={phase++} />;
-  await delay(3000);
+  await stealUnderpants();
   yield <BusinessPlan phase={phase++} />;
-  await delay(3000);
+  await _?.();
   yield <BusinessPlan phase={phase++} />;
-  await delay(3000);
+  await collectProfits();
   yield <BusinessPlan phase={phase++} />;
+}
+
+async function stealUnderpants() {
+  await delay(3000);
+}
+
+async function _() {
+  await delay(3000);
+}
+
+async function collectProfits() {
+  await delay(3000);
 }
 
 function BusinessPlan({ phase }) {

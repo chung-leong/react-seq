@@ -12,10 +12,10 @@ npm install --save-dev react-seq
 
 ## Hooks
 
-* [`useSequential`](./doc/useSequential.md) - Returns the last element outputted by an async generator function.
-* [`useProgressive`](./doc/useProgressive.md) - Returns an element filled with data from multiple async sources.
-* [`useSequentialState`](./doc/useSequentialState.md) - Return the last value outputted by an async generator function.
-* [`useProgressiveState`](./doc/useProgressiveState.md) - Return an object whose properties are drawn from async sources.
+* [`useSequential`](./doc/useSequential.md) - Return the last element outputted by an async generator function
+* [`useProgressive`](./doc/useProgressive.md) - Return an element filled with data from multiple async sources
+* [`useSequentialState`](./doc/useSequentialState.md) - Return the last value outputted by an async generator function
+* [`useProgressiveState`](./doc/useProgressiveState.md) - Return an object whose properties are drawn from async sources
 
 ## Usage scenarios
 
@@ -53,7 +53,7 @@ npm install --save-dev react-seq
 * [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
 * [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
 * [Transition](./examples/transition/README.md) <sup>`useSequential`</sup>
-* [Ink CLI](./examples/transition/README.md) <sup>`useSequential`</sup>
+* [Ink CLI](./examples/ink-cli/README.md) <sup>`useSequential`</sup>
 
 ## Loading of remote data
 

@@ -1,22 +1,24 @@
 # Ink CLI Example
 
-On prior occasions I've mentioned how React-seq allows you to program in a manner similiar to writing CLI 
-program. In this example, we're going to create an actual CLI program, with the help of 
-[Ink](https://github.com/vadimdemedes/ink), a React renderer that targets the terminal. Since CLI programs
-often involves time-consuming operations, React-seq complements Ink very nicely.
+On prior occasions I've mentioned how React-seq lets you employ an imperative model of programming, used 
+often for text-based, CLI programs. In this example, we're going to create an actual CLI program. 
+We'll make use of [Ink](https://github.com/vadimdemedes/ink), a React renderer that targets the terminal. 
+Since CLI programs often involves time-consuming operations, React-seq complements Ink rather nicely.
 
 ## Seeing the code in action
 
 Go to the `examples/ink-cli` folder. Run `npm install` then `npm start`. 
 
-![screenshot](./img/screenshot-1.jpg)
+![Screenshot](./img/screenshot-1.jpg)
 
-To run the script directly without the transpilation step, run `./cli.mjs`.
+You can skip the transpilation step and run the script directly:
+
+![Screenshot](./img/screenshot-2.jpg)
 
 ## Working with JSX
 
-Since Node.js can't run code containing JSX directly, this example comes with a [script](./transpile.mjs) 
-that transpile all .jsx files in the working folder to .mjs. It was written in anticipation of being 
+Since Node.js can't run code containing JSX, this example comes with a [script](./transpile.mjs) that 
+transpiles all .jsx files in the working folder to .mjs. It was written in anticipation of being 
 reused. It is capable of handling dynamic import (with non-static path as well), something not done in 
 this example. Feel free to make use of it in your own project.
 
@@ -44,31 +46,33 @@ function.
 
 ## The main function
 
-[`main.jsx`](./main.jsx) is where the bulk of the program's code is expected to be contained. 
-Since this is just a demo, the main function is quite short: 
+[`main.jsx`](./main.jsx) is where the bulk of the program's code is expected to reside:
 
 ```js
 export default async function* main({ fallback }) {
   fallback(<Text />);
   let phase = 1;
-  yield <BusinessPlan phase={phase++} />;
-  await delay(3000);
-  yield <BusinessPlan phase={phase++} />;
-  await delay(3000);
-  yield <BusinessPlan phase={phase++} />;
-  await delay(3000);
-  yield <BusinessPlan phase={phase++} />;
+  yield <BusinessPlan phase={phase} />;
+  await stealUnderpants();
+  phase++;
+  yield <BusinessPlan phase={phase} />;
+  await _?.();
+  phase++;
+  yield <BusinessPlan phase={phase} />;
+  await collectProfits();
+  phase++;
+  yield <BusinessPlan phase={phase} />;
 }
 ```
 
-We aren't actually doing anything here. Just pretending to be busy. In a real app where the `delay` 
-calls occur would have large blocks of async code doing useful things. After each stage is 
-completed, the UI gets updated to reflect that fact.
+We're just pretending to be busy here. Nothing is actually happening. No one will lose their 
+underpants as a result of you running this demo. In a real program the functions would do 
+actual work like downloading a file or unpacking a tarball. But you get the idea.
 
 Note the use of [`fallback`](../../fallback.md). Ink does not like `<Suspense>` without a 
 fallback for some reason. An error would occur if we don't give it that empty text block. A
 real-life program that performs lengthy initiation might actually use `fallback` to indicate 
-to the user that it's starting up.
+that it's starting up.
 
 ## UI components
 
@@ -109,10 +113,11 @@ UI for your CLI program doesn't require that much added effort compared to doing
 calls to `console.log`. Your end users will certainly appreciate it.
 
 Be sure to read through the [documentation of Ink](https://github.com/vadimdemedes/ink) if 
-you are unfamiliar with it. It's a very powerful framework for CLI development. This 
-example has barely scratched the surface. There're numerous components for handling user 
-input, like text input and drop-down. With the help of React-seq, using them is arguably 
-easier than using `readline`.
+you are not already familiar with it. It's a very powerful framework for CLI development. 
+This  example has barely scratched the surface. There're numerous components for handling 
+user input, like text input and drop-down. With the help of React-seq, making use of them is 
+fairly straight forward. Trying to build a sensible input scheme using `readline` would 
+certainly be way harder.
 
 Thanks for reading! As always, if you have any question, feel free to ask on the 
 [discussion board](https://github.com/chung-leong/react-seq/discussions). Please give the 
