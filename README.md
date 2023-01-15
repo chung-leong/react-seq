@@ -53,6 +53,7 @@ npm install --save-dev react-seq
 * [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
 * [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
 * [Transition](./examples/transition/README.md) <sup>`useSequential`</sup>
+* [Ink CLI](./examples/transition/README.md) <sup>`useSequential`</sup>
 
 ## Loading of remote data
 

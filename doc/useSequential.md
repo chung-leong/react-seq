@@ -104,3 +104,4 @@ you return anything other than `undefined`.
 
 * [Payment form](../examples/payment/README.md)
 * [Transition](../examples/transition/README.md)
+* [Ink CLI](./examples/transition/README.md)
