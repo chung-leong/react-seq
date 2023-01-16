@@ -50,7 +50,7 @@ export function Counter() {
 ```
 
 The generator version is not only easier to understand, it also allows you to utilize the debugger much more effectively.
-You can step through the code line by line and easily set conditional break points.
+You can step through the code line by line and easily set conditional breakpoints.
 
 The convinence of React-seq comes at the cost of higher memory usage. It's expected that you would only use it only in
 higher-level components. 
@@ -90,10 +90,10 @@ higher-level components.
 
 * [Payment form](./examples/payment/README.md) <sup>`useSequential`</sup>
 * [Star Wars API](./examples/swapi/README.md) <sup>`useProgressive`</sup>
-* [Word Press](./examples/wordpress.md) <sup>`useProgressive`</sup>
+* [Word Press](./examples/wordpress/README.md) <sup>`useProgressive`</sup>
 * [Nobel Prize API](./examples/nobel/README.md) <sup>`useSequentialState`</sup>
 * [Star Wars API (alternate implementation)](./examples/swapi-hook/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
-* [Word Press (React Native)](./examples/wordpress-react-native.md) <sup>`useProgressive`</sup>
+* [Word Press (React Native)](./examples/wordpress-react-native/README.md) <sup>`useProgressive`</sup>
 * [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
 * [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
 * [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
