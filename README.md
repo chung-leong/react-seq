@@ -81,10 +81,10 @@ higher-level components.
 
 ## API reference
 
-* [Hooks and other functions](./doc/index.md)
-* [Server-side rendering](./doc/server/index.md)
-* [Client-side SSR support](./doc/client/index.md)
-* [Test utilities](./doc/test-utils/index.md)
+* [Hooks and other functions](./doc/README.md)
+* [Server-side rendering](./doc/server/README.md)
+* [Client-side SSR support](./doc/client/README.md)
+* [Test utilities](./doc/test-utils/README.md)
 
 ## List of examples
 
