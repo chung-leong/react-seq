@@ -10,6 +10,51 @@ It's designed for React 18 and above.
 npm install --save-dev react-seq
 ```
 
+## Basic usage
+
+React only:
+
+```js
+import { useState, useEffect } from 'react';
+
+export function Counter() {
+  const [ count, setCount ] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCount(c => c + 1);
+    }, 200);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+  return <div>{count} tests passed</div>;
+}
+```
+
+React + React-seq:
+
+```js
+import { useSequentialState, delay } from 'react-seq';
+
+export function Counter() {
+  const count = useSequentialState(async function*({ initial }) {
+    let count = 0;
+    initial(count++);
+    while (true) {
+      await delay(200);
+      yield count++;
+    }
+  }, []);
+  return <div>{count} tests passed</div>;
+}
+```
+
+The generator version is not only easier to understand, it also allows you to utilize the debugger much more effectively.
+You can step through the code line by line and easily set conditional break points.
+
+The convinence of React-seq comes at the cost of higher memory usage. It's expected that you would only use it only in
+higher-level components. 
+
 ## Hooks
 
 * [`useSequential`](./doc/useSequential.md) - Return the last element outputted by an async generator function
