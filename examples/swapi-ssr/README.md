@@ -6,7 +6,7 @@ In this example we're going to enhance the [Star Wars API example](../swapi/READ
 ## Seeing the code in action
 
 Go to the `examples/swapi-ssr` folder. Run `npm install` and then `npm build`. Once the production build is
-ready, run `npm start` to star the HTTP server. A browser window should automatically open up:
+ready, run `npm start` to start the HTTP server. A browser window should automatically open up:
 
 ![progress](./img/progress.jpg)
 
@@ -38,14 +38,14 @@ that you aren't physically there.
 
 Creating the impression that your website loads quickly is the key motivation of SSR. People dislike staring at
 a spinner or a progress bar. In theory, adding a 10 second load time to an article that requires 10 minutes to
-read should be immaterial. Of course, people don't think in such a way because we aren't completely rational
+read should be immaterial. Of course, people don't think in such a way. Humans just aren't completely rational
 beings. Unless a site produces meaningful contents within seconds, visitors will bolt en masse.
 
 ## Server code
 
-Enough discussion about human nature. Let us look at some code. For the purpose of this example, we're
-using [`Fastify`](https://www.fastify.io/), a more modern alternative to [`Express`](https://expressjs.com/).
-Our [HTTP server](./server/index.mjs) is initiated inside an IIAFE:
+Enough discussion about human nature. Let us look at some code. For the server, we'll be using 
+[`Fastify`](https://www.fastify.io/), a more modern alternative to [`Express`](https://expressjs.com/). Our 
+[HTTP server](./server/index.mjs) is initiated inside an IIAFE:
 
 ```js
 (async () => {
@@ -184,8 +184,8 @@ Gungan > Jar Jar Binks and reloading the page:
 
 ![console](./img/console.jpg#)
 
-As you can see, React-seq will make use of source maps to give you the precise location in the original source file
-when an error occurs.
+As you can see, React-seq will make use of source maps to give you the precise location in the 
+[original source file](./src/Character.js#L25) when an error occurs.
 
 ## Server-side packages
 

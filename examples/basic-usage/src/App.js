@@ -27,10 +27,10 @@ function CounterReactSeq() {
   const count = useSequentialState(async function*({ initial }) {
     let count = 0;
     initial(count++);
-    while (true) {
+    do {
       await delay(200);
       yield count++;
-    }
+    } while (true);
   }, []);
 	return <div>{count} tests passed</div>;
 }

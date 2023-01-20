@@ -1,6 +1,6 @@
 # useProgressiveState(cb, deps)
 
-Return a object whose properties that grow over time as data arrives
+Return an object with properties that grow over time as data arrives
 
 ## Syntax
 
@@ -23,8 +23,8 @@ function ProductPage({ productId }) {
 
 ## Parameters
 
-* `cb` - `<AsyncFunction>`
-* `deps` - `<any[]>`
+* `cb` - `<AsyncFunction>` An async function that sets up data sources and configure the operation
+* `deps` - `<any[]>` Variables that the async function depends on, changes of which will cause it to be rerun
 * `return` `<Object>`
 
 ## Callback function parameters
@@ -50,6 +50,32 @@ Consult its documentation for more information.
 
 Since states returned by `useProgressiveState` are always objects, its default initial state is `{}`, unlike
 [`useSequentialState`](./useSequentialState.md), which has `undefined` as its default initial state.
+
+Do not use [`initial](./initial.md) to set default properties, as they can get overwritten by `undefined`. 
+The following is incorrect:
+
+```js
+  const { categories, tags } = useProgressiveState(async ({ initial, signal }) => {
+    initial({ categories: [], tags: [] });
+    return {
+      categories: fetchCategories({ signal }), 
+      tags: fetchTags({ signal }),
+    };
+  }, []);
+```
+
+Either `categories` or `tags` will revert to `undefined` when the other generator yields first.
+
+Use JavaScript's standard way of assigning default values intead:
+
+```js
+  const { categories = [], tags = [] } = useProgressiveState(async ({ signal }) => {
+    return {
+      categories: fetchCategories({ signal }), 
+      tags: fetchTags({ signal }),
+    };
+  }, []);
+```
 
 ## Examples
 

@@ -62,7 +62,7 @@ component that so happens to be loading at the same time.
 
 ## Notes
 
-`suspend` and [`fallback`](./fallback.js) cannot be used at the same time. No `<React.Suspense>` means no fallback.
+`suspend` and [`fallback`](./fallback.md) cannot be used at the same time. No `<React.Suspense>` means no fallback.
 
 A suspending component is mounted when it unsuspends (i.e. when the generator yields something). Awaiting
 [`mount`](./mount.md) before that happens will cause a deadlock:

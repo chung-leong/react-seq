@@ -1,6 +1,6 @@
 # Ink CLI Example
 
-On prior occasions I've mentioned how React-seq lets you employ an imperative model of programming, used 
+On prior occasions I've mentioned how React-seq lets you employ imperative programming, a model used 
 often for text-based, CLI programs. In this example, we're going to create an actual CLI program. 
 We'll make use of [Ink](https://github.com/vadimdemedes/ink), a React renderer that targets the terminal. 
 Since CLI programs often involves time-consuming operations, React-seq complements Ink rather nicely.
@@ -17,7 +17,7 @@ You can skip the transpilation step and run the script directly:
 
 ## Working with JSX
 
-Since Node.js can't run code containing JSX, this example comes with a [script](./transpile.mjs) that 
+Since Node.js cannot run code containing JSX, this example comes with a [script](./transpile.mjs) that 
 transpiles all .jsx files in the working folder to .mjs. It was written in anticipation of being 
 reused. It is capable of handling dynamic import (with non-static path as well), something not done in 
 this example. Feel free to make use of it in your own project.
@@ -41,7 +41,7 @@ render(<App />);
 ```
 
 The `App` component is as barebone as can be. All it does is return what 
-[`useSequential`](../../doc/useSequential.md) returns. The real actions take place inside the main 
+[`useSequential`](../../doc/useSequential.md) returns. The real action takes place inside the main 
 function.
 
 ## The main function

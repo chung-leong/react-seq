@@ -60,7 +60,7 @@ export will be used.
 ## Notes
 
 In theory, `arg` can be a string as well (meaning a plain-old HTML element will get created). Such usage is highly
-improbable, however. [`element`](./element.js) is the function to use if you don't wish to define a
+improbable, however. [`element`](./elements the function to use if you don't wish to define a
 separate component.
 
 ## Examples

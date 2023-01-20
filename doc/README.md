@@ -34,7 +34,7 @@
 * [`generateProps`](./generateProps.md)
 * [`progressive`](./progressive.md)
 * [`progressiveState`](./progressiveState.md)
-* [`sequence`](./sequence.md)
+* [`sequential`](./sequential.md)
 * [`sequentialState`](./sequentialState.md)
 
 ## Utility functions

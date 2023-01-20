@@ -1,7 +1,7 @@
 # Payment form example
 
-This example demonstrates form handling using React-seq. It shows how the use of an async generator makes dynamic
-JS import both easy and natural. It also showcases React-seq's event management system.
+This example demonstrates form handling using React-seq. It shows how using async generators makes dynamic
+JS import easy and natural. It also showcases React-seq's event management system.
 
 ## Seeing the code in action
 
@@ -26,7 +26,7 @@ the contents of our component. Using object destructuring we obtain a pair of fu
   fallback(<PaymentLoading />);
 ```
 
-This set the fallback placeholder. A loading message will be on screen until our generator output the payment method
+This sets the fallback placeholder. A loading message will be on screen until our generator output the payment method
 selection screen. For that to happen, we need to know what payment methods are available to the user. In real life,
 that could depend on he where lives, what the product is, and other factors. We would need to contact the server
 for this information. To do so, we dynamically load the module responsible for processing payment and call
@@ -39,7 +39,7 @@ for this information. To do so, we dynamically load the module responsible for p
   const methods = await getPaymentMethods();
 ```
 
-We then preload the form used each payment method so that when the user makes a selection, we can display the correct
+We then preload the form used by each payment method so that when the user makes a selection, we can display the correct
 form without delay:
 
 ```js
@@ -53,7 +53,7 @@ form without delay:
 Finally we load the selection screen itself:
 
 ```js
-    const { PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
+    const { default: PaymentSelectionScreen } = await import('./PaymentSelectionScreen.js');
 ```
 
 Now we're ready to take down the fallback placeholder and show some real content:
@@ -81,10 +81,10 @@ The two objects returned by `manageEvents` on [line 19](./src/PaymentPage.js#L19
 Their properties are dynamically generated. `eventual` automatically generates promises while `on` automatically
 generates handlers that resolve these promises.
 
-This bit of magic provided by the event manager represents one of the key advantages of using React-seq. It allows
-you to use React in a more imperative fashion. Instead of passively reacting to events, you proactively seek out an
-answer. The prompt-and-wait-for-response logic you see above in a way is reminiscent of the sort of console programs
-you might have written in your first-year CS class:
+This bit of magic provided by the event manager is a key feature of React-seq. It allows you to use React in a 
+more imperative fashion. Instead of passively reacting to events, you proactively seek out an answer. The 
+prompt-and-wait-for-response logic you see above is reminiscent of console programs you might have  written in 
+your first-year CS class:
 
 ```c
   int success = FALSE;
@@ -99,9 +99,15 @@ you might have written in your first-year CS class:
 This style of programming is easier to understand since it's closer to how we humans communicate. Debugging is easier
 too, as the execution point doesn't jump all over the place.
 
-Anyway, let us move on. Promises from the event manager return fulfillment value inside an object, with the name of
-the promise as the key. Doing so allows us to figure out which promise was fulfilled when there are multiple promises
-involved. In this case there's just one promise: `selection`. We pluck out the value and assign it to `method`.
+The event manager let you await multiple promises at the same time. `await eventual.selection.or.cancellation` 
+produces either `{ selection: [value] }` or `{ cancellation: [value] }.` `await eventual.selection.and.cancellation` 
+produces `{ selection: [value], cancellation: [value] }` meanwhile. The fulfillment value is wrapped in an object 
+even when you're awaiting a single promise. That's why in our example we have the following:
+
+```js
+      const { selection } = await eventual.selection;
+      method = selection;
+```
 
 Alternatively, we could have used the following line instead:
 
@@ -115,7 +121,7 @@ as the `onSubmit` handler and `on.cancellation` as the `onCancel` handler:
 ```js
       const PaymentMethod = forms[method.name].default;
       yield <PaymentMethod onSubmit={on.submission} onCancel={on.cancellation} />;
-      const { PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
+      const { default: PaymentProcessingScreen } = await import('./PaymentProcessingScreen.js');
       // wait for user to submit the form or hit cancel button
       const { submission } = await eventual.submission.or.cancellation;
       if (!submission) {
@@ -125,12 +131,12 @@ as the `onSubmit` handler and `on.cancellation` as the `onCancel` handler:
       }
 ```
 
-Here we wait for two events: `submission` or `cancellation`. If the user didn't hit the submit button, then obviously
-he hit the other, in which case we clear `method` and start the loop from the top again.
+If the user didn't hit the submit button, then obviously he hit the other, in which case we clear 
+`method` and start the loop from the top again.
 
-While the user is filling the form, we use the occasion to load in the next screen. In theory, if the user types
-really really fast, he could submit a response before we start waiting for it. There're ways we can fix this.
-Given how unlikely it is and how minor is the consequence, we'll just let it be.
+We load in the next screen while the user is busy filling the form. In theory, if he types really really 
+fast, he could submit a response before we start waiting for it. There're ways we can fix this. Given how 
+unlikely it is and how minor is the consequence, we'll just let it be.
 
 Once we have the user response, we call a function to process the payment, putting up a new screen first:
 
@@ -138,11 +144,11 @@ Once we have the user response, we call a function to process the payment, putti
       yield <PaymentProcessingScreen method={method} />;
       try {
         const payment = await processPayment(method, submission);
-        const { PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
+        const { default: PaymentCompleteScreen } = await import('./PaymentCompleteScreen.js');
         yield <PaymentCompleteScreen payment={payment} />;
         success = true;
       } catch (err) {
-        const { PaymentErrorScreen } = await import('./PaymentErrorScreen.js');
+        const { default: PaymentErrorScreen } = await import('./PaymentErrorScreen.js');
         yield <PaymentErrorScreen error={err} onRetry={on.retryRequest} />;
         await eventual.retryRequest;
       }
@@ -208,7 +214,7 @@ script, with proper mocking, wouldn't have this kind of unpredictability.
 
 ## Final thoughts
 
-In a typical web application (or any computer program, for that matter), we would have code that reacts to user input
+In a typical web application (or any computer program, for that matter), we have code that reacts to user input
 and code that acts on the user's behalf. React-seq basically lets you deal with this second part too within React. I
-hope you find this approach potentially useful. Thank you for your time. As always
+hope you find this approach useful. Thank you for your time. As always
 [comments and suggestions](https://github.com/chung-leong/react-seq/discussions) are totally welcomed.

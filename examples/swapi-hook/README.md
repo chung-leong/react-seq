@@ -1,7 +1,7 @@
-# Star Wars API example
+# Star Wars API example redux
 
-React-seq provides four hooks. Each of these is designed for particular usage scenarios. In this example, we're
-going to reimplement the previous [Star Wars API example](../swapi/README.md) the two state hooks:
+React-seq provides four hooks. Each of them is designed for particular usage scenarios. In this example, we're
+going to reimplement the previous [Star Wars API example](../swapi/README.md) using the two state hooks:
 [useSequentialState](../../doc/useSequentialState.md) and [useProgressiveState](../../doc/useProgressiveState.md).
 Neither is the optimal tool for the task. We're going to discuss what the shortcomings are.
 
@@ -140,7 +140,7 @@ section in [package.json](./package.json):
   },
 ```
 
-Okay, moving on. `useSWAPI` runs a infinite loop:
+Returning to our hook, `useSWAPI` runs a infinite loop:
 
 ```js
     for (let i = 0;; i++) {
@@ -200,15 +200,15 @@ consumer) or until the refresh time is reached:
       }
 ```  
 
-You can verify that the does refresh itself by opening the development console.
+You can verify that the component does refresh itself by opening the development console.
 
 ## Downsides of using state hooks
 
 As said at the beginning, the state hooks require less of a buy-in. The element returning hooks
 ([useSequential](../../useSequential.md) and [useProgressive](../../useProgressive.md)), by their nature, are
 closer to the presentation layer. More of your code needs to conform to React-seq's way of doing things. The use
-of React-seq state hooks can be easily isolated to a single file, as we've done so in this example. If sudden you
-decide that this library stinks, you could remove the dependency without much effort.
+of React-seq state hooks can be easily isolated to a single file, as we've done so in this example. If one day 
+you decide that this library stinks, you could remove the dependency without much effort.
 
 What are the downsides then? The state hooks are not integrated into React's
 [suspension scheme](https://reactjs.org/docs/react-api.html#reactsuspense). That means the component wouldn't
@@ -218,8 +218,7 @@ only handles the lazy loading of the components, not data retrieval.
 The lack of suspension also means the component cannot be fully rendered on the server side. Only its initial state
 will get rendered.
 
-Page transition is also poorer, since React cannot wait just a little bit for the component to get into its ready
-state.
+Page transition is also poorer, since React cannot wait for the component to get to its ready state.
 
 Clicking around in the example app, you'll notice the experience does not feel as smooth as the original example.
 A large part of that is due to the way we have implemented our hook. It doesn't yield data in a terribly progressive
@@ -268,15 +267,15 @@ Note the hook's return statement: Only the state is returned here. No update fun
 `useProgressiveState` is simply not designed for that. It's designed for loading data only once.
 
 A [third implementation](./src/swapi-uss-gp.js) is available that gives you both improved progressive
-display and the ability to refresh the data. Just change the import statement to `'./swapi-uss-gp.js'`. This
+display and the ability to refresh. Just change the import statement to `'./swapi-uss-gp.js'`. This
 hook is basically a combination of the other two. I'll leave it up to you to figure out how it works :-)
 
 ## Final thoughts
 
 React-seq is not a framework. It can be best described as a box of various glues. Using the glue code provided by
 the library you glue your async code to React. Depending on the circumstance you might choose one glue over another.
-Sometimes a tight coupling is good. Other times it might not be so good. For instance, when you anticipate that
-you need to take things apart and rearrange them in the future.
+Sometimes a tight coupling is good. Other times it might not be so good. When you anticipate that you need to 
+take things apart and rearrange them in the future, for instance.
 
 Anyway, thanks for reading! I hope you haven't gotten sick of staring at Star Wars info by this point. As always,
 if you have any question or comment, feel free to post it on

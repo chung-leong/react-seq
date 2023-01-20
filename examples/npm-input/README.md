@@ -9,7 +9,7 @@ alternative implementations with the help of React-seq. The exercise should give
 
 ## Seeing the code in action
 
-Go to the `examples/payment` folder. Run `npm install` then `npm start`. A browser window should automatically
+Go to the `examples/npm-input` folder. Run `npm install` then `npm start`. A browser window should automatically
 open up.
 
 ![screenshot](./img/screenshot-1.jpg)

@@ -18,7 +18,7 @@ function useProductInfo(productId) {
     yield { product };
     /* ... */
     yield { product, producer, reviews };
-  });
+  }, [ productId ]);
   return info;
 }
 
@@ -46,26 +46,8 @@ The default initial value for [`useSequentialState`](useSequentialState.md) is `
 initial value for [`useProgressiveState`](useProgressiveState.md) is an empty object (since that hook always returns
 objects).
 
-Do not use `initial` to set default values of properties, since that opens up the possibility of the generator setting
-them back to `undefined`. This is especially likely when [`useProgressiveState`](./useProgressiveState.js) is
-involved. Use JavaScript's standard way of setting default values instead.
-
-This is good:
-
-```js
-  const { products = [] } = useProgressiveState(async () => {
-    /* ... */
-  }, [ categoryId ])
-```
-
-This is bad:
-
-```js
-  const { products } = useProgressiveState(async ({ initial }) => {
-    initial({ products: [] });
-    /* ... */
-  }, [ categoryId ])
-```
+Do not use `initial` with [`useProgressiveState`](./useProgressiveState.md). See the hook's documentation for an 
+explanation.
 
 ## Examples
 

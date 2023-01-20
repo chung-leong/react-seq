@@ -31,7 +31,7 @@ function ProductPage({ productId }) {
 
 ## Parameters
 
-* `cb` - `<AsyncGeneratorFunction>` An async generator function that returns different contents over time
+* `cb` - `<AsyncGeneratorFunction>` An async generator function that outputs different contents over time
 * `deps` - `<any[]>` Variables that the async generator function depends on, changes of which will cause it to be rerun
 * `return` `<Element>`
 

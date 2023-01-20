@@ -40,10 +40,10 @@ export function Counter() {
   const count = useSequentialState(async function*({ initial }) {
     let count = 0;
     initial(count++);
-    while (true) {
+    do {
       await delay(200);
       yield count++;
-    }
+    } while (true);
   }, []);
   return <div>{count} tests passed</div>;
 }
@@ -52,7 +52,7 @@ export function Counter() {
 The generator version is not only easier to understand, it also allows you to utilize the debugger much more effectively.
 You can step through the code line by line and easily set conditional breakpoints.
 
-The convinence of React-seq comes at the cost of higher memory usage. It's expected that you would only use it only in
+The convinence of React-seq comes at the cost of higher memory usage. It's expected that you would only use it in
 higher-level components. 
 
 ## Hooks
@@ -78,6 +78,7 @@ higher-level components.
 * [Unit testing](#unit-testing)
 * [ESLint configuration](#eslint-configuration)
 * [Jest configuration](#jest-configuration)
+* [Browser compatibility](#browser-compatibility)
 
 ## API reference
 
@@ -90,10 +91,10 @@ higher-level components.
 
 * [Payment form](./examples/payment/README.md) <sup>`useSequential`</sup>
 * [Star Wars API](./examples/swapi/README.md) <sup>`useProgressive`</sup>
-* [Word Press](./examples/wordpress/README.md) <sup>`useProgressive`</sup>
+* [WordPress](./examples/wordpress/README.md) <sup>`useProgressive`</sup>
 * [Nobel Prize API](./examples/nobel/README.md) <sup>`useSequentialState`</sup>
 * [Star Wars API (alternate implementation)](./examples/swapi-hook/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
-* [Word Press (React Native)](./examples/wordpress-react-native/README.md) <sup>`useProgressive`</sup>
+* [WordPress (React Native)](./examples/wordpress-react-native/README.md) <sup>`useProgressive`</sup>
 * [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
 * [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
 * [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
@@ -103,7 +104,7 @@ higher-level components.
 ## Loading of remote data
 
 Retrieval of data from a remote server is probably the most common async operation in web applications. React-seq
-lets you accomplish this task using different approaches. You can use `useSequential` to construct each part of
+lets you accomplish this task through different approaches. You can use `useSequential` to construct each part of
 a page as data arrives:
 
 ```js
@@ -111,7 +112,7 @@ import { useSequential } from 'react-seq';
 
 function ProductPage({ productId }) {
   return useSequential(async function*({ fallback, defer }) {
-    fallback(<div class="spinner"/>);
+    fallback(<div className="spinner"/>);
     defer(200);
     const product = await fetchProduct(productId);
     const { default: ProductDescription } = await import('./ProductDescription.js');
@@ -146,7 +147,7 @@ You can periodically update the page with the help of an endless loop:
 ```js
 function ProductPage({ productId }) {
   return useSequential(async function*({ fallback, defer, manageEvents, flush }) {
-    fallback(<div class="spinner"/>);
+    fallback(<div className="spinner"/>);
     const [ on, eventual ] = manageEvents();
     for (let i = 0;; i++) {
       defer(i === 0 ? 200 : Infinity);
@@ -191,14 +192,14 @@ function ProductPage({ productId }) {
 ```
 
 The example above demonstrates the use of React-seq's [event manager](./doc/managerEvents.md). It's a key component
-of the library. Its auto-generated promises and handlers provide the connection between your user interface and
+of the library. Its automatically generated promises and handlers connect your user interface with
 your async code. Here, it allows the user to manually trigger an update: Calling `on.updateRequest` causes the
 fulfillment of the `eventual.updateRequest` promise. That releases the generator function from the `await` operation
 inside the finally block.
 
 Since data loading happens so frequently in web applications, React-seq provides a specialized hook:
 [`useProgressive`](./doc/useProgressive.md). It works as a sort of async-to-sync translator, turning promises
-and generators into objects and arrays.
+and generators into ordinary objects and arrays.
 
 Consider the following component taken from the [Star Wars API example](./examples/swapi/README.md):
 
@@ -252,7 +253,7 @@ The component `CharacterUI` would receive this as props:
 The various arrays would grow over time as data is retrieved from the remote server.
 
 It's possible to create a generator that pauses and resumes on user action. The
-[Word Press example](./examples/wordpress.md) shows how this was used to implement an infinite-scrolling article
+[WordPress example](./examples/wordpress.md) shows how this can be used to implement an infinite-scrolling article
 list. The [React Native version of the example](./examples/wordpress-react-native.md) is also worth checking out.
 
 Besides using [`useSequential`](./doc/useSequential.md) and [`useProgressive`](./doc/useProgressive.md), you can
@@ -315,17 +316,7 @@ export default function App() {
             parts.splice(1);
           }
         } else if (parts[0] === 'news') {
-          if (!parts[1]) {
-            const { default: ArticleList } = await import('./ArticleList.js');
-            yield <ArticleList onSelect={on.selection} />;
-            const { selection } = await eventual.selection;
-            parts[1] = selection;
-          } else {
-            const { default: Article } = await import('./Article.js');
-            yield <Article id={parts[1]} onReturn={on.return} />;
-            await eventual.return;
-            parts.splice(1);
-          }
+          /* ... */
         } else if (parts[0] === 'notifications') {
           /* ... */
         } else {
@@ -346,8 +337,7 @@ export default function App() {
 
 The example uses [Array-router](https://github.com/chung-leong/array-router), a companion solution designed
 to work well with React-seq. It's a minimalist "router" that turns the browser location into an array of path
-parts and an object containing query variables. And that's it. Actual routing is done using JavaScript control
-structures.
+parts and an object containing query variables. Actual routing is done using JavaScript control structures.
 
 The code above follows the Yield-Await-Promise model. We output some user-interface elements then wait for a
 user response. We then act upon that response, causing the displaying of a different page.
@@ -376,7 +366,7 @@ export default function App() {
         } else if (parts[0] === 'news') {
           yield handleNewsSection(parts, query, methods);
         } else if (parts[0] === 'notifications') {
-          /* ... */
+          yield handleNotificationSection(parts, query, methods);
         } else {
           throw404();
         }
@@ -420,7 +410,7 @@ Since there is no `break` or `return` inside the loop, the only way to exit the 
 specific to this section, it can roll them back here.
 
 Please note that certain implementation details are left out of the code snippets above for brevity sake.
-Consult the [Transition example](./examples/transition/README.md) for something that better represent a
+Consult the [transition example](./examples/transition/README.md) for something that better represent a
 fully-developed, real-world solution. You'll also find further discussion on the Yield-Await-Promise model.
 
 ## Adding transition effects
@@ -439,7 +429,7 @@ the generator outputs only the next page.
 
 Thanks to the syntactic sugar provided by React-seq's event manager, orchestrating such a sequence is quite easy.
 
-To see the concept described here in action, check out the [Transition example](./examples/transition/README.md).
+To see the concept described here in action, check out the [transition example](./examples/transition/README.md).
 
 ## Handling authentication
 
@@ -485,20 +475,19 @@ A call to this function might also happen in the app's catch block, to deal with
         await eventual.retryRequest;
       }
     }
-  }
 ```
 
-If the user manages to log in, then our catch block has successfully resolved the error. The loop sends the user back
-to where he was before (since the route hasn't changed) and what ever being done there would no longer cause an error.
-Everything works as it should.
+If the user manages to log in, that means our catch block has successfully resolved the error. The loop sends the user 
+back to where he was before (since the route hasn't changed) and whatever being done there would no longer cause an 
+error. Everything works as it should.
 
 ## Managing complex states
 
 State management using an async generator function is generally much easier, even when no inherently async operations
 like data retrieval are involved. First of all, you have a variable scope that persists over time. When you need to
-remember something, just set a local variable. At the same time the number of states of you need to track is sharply
-reduced, thanks to async functions' ability to halt mid-execution. Consider the
-[the following example](./examples/konami-code/README.md). It's a hook that listens for a sequence of keystrokes
+remember something, just set a local variable. At the same time the number of states that need be tracked are sharply
+reduced thanks to async functions' ability to halt mid-execution. Consider the
+[following example](./examples/konami-code/README.md). It's a hook that listens for a sequence of keystrokes
 matching the well-known [Konami code](https://en.wikipedia.org/wiki/Konami_Code):
 
 ```js
@@ -557,9 +546,9 @@ function App() {
       try {
         if (section === 'news') {
           // handle news section in a separate function
-          yield handleNewsSection({ methods });
+          yield handleNewsSection(methods);
         } else if (page === 'products') {
-          /* ... */
+          yield handleProductSection(methods);
         }
       } catch (err) {
         yield <ErrorPage error={err} onRetry={on.retryRequest} />;
@@ -582,7 +571,7 @@ async function *handleNewsSection({ wrap, manageEvents }) {
             // wait for an article to be selected
             articleId = await eventual.selection.value();
           } catch (err) {
-            // handle errors from ArticleList
+            // handle specific errors from ArticleList
           }
         } else {
           /* ... */
@@ -661,11 +650,11 @@ finally gets caught by the catch block in `App` (stage 3).
 Basically, errors will resurface at (or close to) the decision points that led eventually to their occurrence.
 From the perspective of `handleNewsSection`, yielding `ArticleList` is what caused the error. It pops up on the very
 next line. Action followed by consequence. Intuitively, this is how we expect exception handling would work. And in
-general, the code responsible for triggering an error is going to be in the best position to make decisions on how
-it should be handled.
+general, the code responsible for triggering an error is in the best position to make decisions on how it should be
+handled.
 
 Of course, not much can be done about a fatal error like a 404 aside from putting up an error message. In the
-[Transition example](./examples/transition/README.md), you'll find a scenario where catching an error in a local
+[transition example](./examples/transition/README.md), you'll find a scenario where catching an error in a local
 try-catch block actual makes sense.
 
 ## Server-side rendering
@@ -682,7 +671,7 @@ is essentially used as an app's fallback screen. Only a single function call is 
 ```
 
 [`renderInChildProc`](./doc/server/renderInChildProc.md) will generate the page using the app's production build.
-You don't need to make changes to your project's build configuration. You only need to enable
+No changes to your project's build configuration required. You only need to enable 
 [hydration](./doc/client/hydrateRoot.md) and [render-to-server](./doc/client/renderToServer.md) in your app's
 boot-strap code:
 
@@ -701,11 +690,11 @@ To see SSR in action, clone the repository and run the [Star Wars API SSR exampl
 
 ## Logging
 
-The library provides a mean for you to examine what happens inside its hooks. When a hook detects the presence of
+React-seq provides a mean for you to examine what happens inside its hooks. When a hook detects the presence of
 an [`InspectorContext`](./doc/InspectorContext.md), it will start reporting events to the given inspector
 instance.
 
-React-seq comes with two built-in inspectors: [`ConsoleLogger`](./doc/ConsoleLogger.md) and
+The library comes with two built-in inspectors: [`ConsoleLogger`](./doc/ConsoleLogger.md) and
 [`PromiseLogger`](./doc/PromiseLogger.md). You can create you own by extending [`Inspector`](./doc/Inspector.md).
 
 
@@ -731,8 +720,8 @@ export default function App() {
 
 For the purpose of unit testing React-seq provides two functions:
 [`withTestRenderer`](./doc/test-utils/withTestRenderer.md) and [`withRestDOM`](./doc/test-utils/withRestDOM.md).
-One utilizes [React Test Renderer](https://reactjs.org/docs/test-renderer.html) while the other relies on the
-presence of the DOM. They have the same interface.
+One utilizes [React Test Renderer](https://reactjs.org/docs/test-renderer.html) while the other relies on the DOM. 
+They have the same interface.
 
 The following is a test case from the [Payment form example](./examples/payment/README.md#unit-testing):
 
@@ -792,7 +781,7 @@ Add the following to your project's `package.json` so Jest would transpile the l
   },
 ```
 
-## Compatibility
+## Browser compatibility
 
 React-seq makes use of
 [JavaScript proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy). According

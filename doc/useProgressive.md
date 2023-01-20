@@ -1,6 +1,6 @@
 # useProgressive(cb, deps)
 
-Return a React element that displays partially completed views as data arrives
+Return a React element that displays progressively more contents as data arrives
 
 ## Syntax
 
@@ -102,7 +102,7 @@ If `usable({ producer: 1 })` were used instead, the props would be:
 }
 ```
 
-By default, the arrival of each item from a generator would cause an update. If the prop set has 3 generators, each
+By default, the arrival of each item from a generator causes an update. If the prop set has 3 generators, each
 yielding 100 times, then 300 updates would eventually occur. Generally you would use [`defer`](./defer.md) to limit
 the number of updates. The example above uses a delay of 100 milliseconds. That means at most 10 updates can happen
 in a second. If all 300 async operations required by our hypothetical component finish in 3 seconds, then only 30
@@ -115,6 +115,21 @@ You can catch errors encountered during data retrieval using an [error boundary]
 
 `useProgressive` uses [`useSequential`](./useSequential.md) and [`generateProps`](./generateProps.md) internally. With the help of
 these two functions you can with implement your own hook that provide additional functionalities.
+
+Nested generators get flattened (while arrays are not). You can output multiple items at the same time by yielding an array 
+iterator:
+
+```js
+async function *fetchArticles(categoryId, options) {
+  let url = `${baseURL}/categories/${categoryId}`;
+  do {
+    const res = await fetch(url, options);
+    const json = await res.json();
+    yield json.results.values();
+    url = json.next;
+  } while (url);
+ }
+```
 
 `type` accepts a JavaScript module. You can target different interface components in the following manner:
 

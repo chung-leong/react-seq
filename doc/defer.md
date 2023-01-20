@@ -39,7 +39,7 @@ present in the browser cache. For the first scenario, we'd want to render partia
 component as each resource arrives, so a visitor would not stare too long at a spinner. For the second scenario, we'd
 want to render only the complete view.
 
-Update deferment gives generated content a small window of opportunity to overwrite those preceding it, thereby
+Update deferment gives generated contents a small window of opportunity to overwrite those preceding it, thereby
 reducing the number of unnecessary updates and associated layout changes.
 
 In the example above, delay is set to 200ms. Suppose `taskA` requires 40ms, `taskB` requires 70ms, and
@@ -84,7 +84,7 @@ At 160ms, "Finished" appears as before.
 By default, contents get rendered immediately upon retrieval (i.e. delay = 0).
 
 Do not use small numbers. The difference between 0 and 1 is huge! A timer that fires 1000 a second is not
-something that you want. Remember, 24 FPS corresponds to a frame time of 42ms. A delay of ~200ms is barely
+something you want. Remember, 24 FPS corresponds to a frame time of 42ms. A delay of ~200ms is barely
 perceptible.
 
 During server-side rendering ([SSR](./settings.md)), deferment is always infinite. Content updates only occur at
@@ -101,7 +101,7 @@ maintain up-to-date information about a movie:
 
 ```js
 function MovieInfo({ id }) {
-  const [ info, update ] = useSequentialState(async function*({ defer, initial, manageEvents, signal }) {
+  const [ info, update ] = useSequentialState(async function*({ defer, flush, initial, manageEvents, signal }) {
     initial({});
     const [ on, eventual ] = manageEvents();
     const result = (info) => [ info, on.updateRequest ];
@@ -120,6 +120,9 @@ function MovieInfo({ id }) {
         // try again later unless it's the first loop
         if (i === 0) {
           throw err;
+        } else {
+          // throw out incomplete data set
+          flush(false);
         }
       } finally {
         // wait for update request or one hour

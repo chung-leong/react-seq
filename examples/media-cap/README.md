@@ -94,6 +94,19 @@ export function useMediaCapture(options = {}) {
     watchVolume = false,
   } = options;
   return useSequentialState(async function*({ initial, mount, manageEvents }) {
+```
+
+It starts out by extracting some option variables from the object given. Then it immediately calls
+[`useSequentialState`](../../doc/useSequentialState.md). The async generator function is where most of the action
+happens.
+
+We make use of three functions provided by `useSequentialState`: `initial` to set the hook's initial state, `mount`
+to ensure side-effects only occur for mounted components, and `manageEvents` to manage events with the
+help of promises.
+
+The generator function begins by declaring variables that will get sent to the hook consumer:
+
+```js
     let status = 'acquiring';
     let duration;
     let volume;
@@ -107,15 +120,6 @@ export function useMediaCapture(options = {}) {
     let selectedDeviceId;
 ```
 
-It starts out by extracting some option variables from the object given. Then it immediately calls
-[`useSequentialState`](../../doc/useSequentialState.md). The async generator function is where most of the action
-happens.
-
-We make use of three functions provided by `useSequentialState`: `initial` to set the hook's initial state, `mount`
-to run code during the `useEffect` phase of the component lifecycle, and `manageEvents` to manage events with the
-help of promises.
-
-The generator function begins by declaring variables that will get sent to the hook consumer.
 [Further down](./src/media-cap.js#L24), we see the functions that the hook consumer can call:
 
 ```js
@@ -470,16 +474,16 @@ You can find the answer to that question in the [documentation of
 > combined with a try...finally block.
 
 Another thing that you might wonder about is the fate of the second generator, the one created due to strict mode.
-What happens when a piece of async code gets permanently stuck waiting for a promise that would never get fulfilled?
+What happens when a piece of async code gets permanently stuck, waiting for a promise that would never get fulfilled?
 The answer is...it's pining for the fjords. Stone dead, in another word. The generator is no more. It has ceased to be.
 As there are no more external references to any part of the generator after it has reached the `await` statement, all
 associated objects become eligible for garbage collection. The generator has become an ex-generator.
 
 ## Final Thoughts
 
-I hope this example helped you gain some insight into what can be done with async generator and React-seq. Async
+I hope this example helped you gain some insight into what can be done with async generators and React-seq. Async
 generator is a very powerful addition to JavaScript. It's definitely far more useful than being just an array that
 you create dynamically. This example has nothing to do with arrays. We're using async generators to help us
-make a complex process with many moving parts more manageable, more understandable. I hope you managed to follow the
-code without difficulties. If there's anything unclear, please feel free to contact me or make use of the [discussion
-board](https://github.com/chung-leong/react-seq/discussions).
+make a complex process with many moving parts more manageable, more understandable, more debuggable. I hope you 
+managed to follow the code without difficulties. If there's anything unclear, please feel free to contact me or 
+make use of the [discussion board](https://github.com/chung-leong/react-seq/discussions).

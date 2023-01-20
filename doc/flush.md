@@ -11,7 +11,7 @@ Perform deferred update immediately or abandon it
 
 ## Parameters
 
-* `use` - `<boolean>` If true, the pending update will not occur
+* `use` - `<boolean>` If false, the pending update will not occur
 * `return` The pending content or state
 
 ## Syntax

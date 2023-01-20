@@ -81,17 +81,16 @@ export default function CharacterList() {
 All it does is call `useProgress`. The hook expects an async function as parameter. This function is responsible
 for setting up async generators. It is given a number of config functions. We use [`type`](../../doc/type.md) to
 specify the data recipient. We use [`defer`](../../doc/defer.md) to tell the hook that we don't it to rerender as soon
-as data becomes available but to instead check every 200ms. If three HTTP requests are needed to complete the page
-and all three complete in less than 200ms, only a single update would occur.
+as data becomes available but to instead check every 200ms. If three HTTP requests are needed and all three 
+complete in less than 200ms, only a single update would occur.
 
 We call [`usable`](../../doc/usable.md) to specify that the data set is valid when there's at least 10 items in every
 array. In this case, the criteria applies to `people`.
 
-We call [`suspend`](../../doc/suspend.md) to indicate that we want `useProgressive` to omit the `Suspense` element that
-it would normally wrap around the lazy component that it returns. `App` is already providing a `Suspense` with a
-fallback so we don't want another one at this level. Because we're allowing a suspension to "pop through" this
-component, `CharacterList`, we need to provide a unique key so that `useProgressive` can find the work it has
-performed already when the component is recreated when suspension ends. Without this key `useProgressive` would
+`useProgressive` normally returns a `Suspense` containing a lazy component. We call [`suspend`](../../doc/suspend.md)
+tell the hook to omit the suspense since we have on in `App` already. As we're allowing suspension to "pop through" 
+this component, we need to provide a unique key so that `useProgressive` can find the work it has
+performed already when the component is recreated at the end of suspension. Without this key `useProgressive` would
 infinitely repeat itself, each time thinking it's the first time due to the loss of state.
 
 The target component is very simple. It just produces a list of links using the component [List](./src/List.js):
@@ -150,7 +149,7 @@ export default function Character({ id }) {
 ```
 
 We need to fetch the record for the character in question to obtain the URLs to the related records. After that,
-the component is ready to show something to the user. Additional information will appear over time has it's
+the component is ready to show something to the user. Additional information will appear over time as it's
 retrieved from the server.
 
 `CharacterUI` is fairly basic:
@@ -226,8 +225,8 @@ export function* fetchMultiple(urls, options) {
 }
 ```
 
-Note that this is a *synchronous* generator. All the fetch requests are fired at the same time--not one after
-another. They could potentially be handled simultaneously if HTTP2 multiplexing is available.
+Note that this is a *synchronous* generator function. All the fetch requests are fired at the same time--not one 
+after another. They could potentially be handled simultaneously if HTTP2 multiplexing is available.
 
 `fetchList` retrieves the paginated list in a loop:
 
@@ -242,7 +241,7 @@ export async function* fetchList(url, options) {
 }
 ```
 
-Instead of yielding the array `results`, we yield a iterator. This tells `useProgress` to push the items of the array
+Instead of yielding the array `results`, we yield an iterator. This tells `useProgress` to push the items of the array
 and not the array itself into the resultant array.
 
 ## Error handling
@@ -268,9 +267,9 @@ will trigger a rerender of our `App` component. We end up here:
             })}
 ```
 
-Our attempt to access the array `parts` (which is actually a
+The attempt to access the array `parts` (which is actually a
 [proxy object](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy))
-will result in the captured error being thrown again. It lands in the catch block down below and is placed
+will result in the captured error being thrown again. It lands in the catch block down below and gets placed
 into an [`ErrorScreen`](./src/ErrorScreen.js):
 
 ![screenshot](./img/screenshot-2.jpg)

@@ -60,9 +60,10 @@ function useNPMList1(search) {
 
 function useNPMList2(search) {
   const searchDeferred = useDeferredValue(search.trim());
-  return useSequentialState(async function*({ signal }) {
+  return useSequentialState(async function*({ initial, signal }) {
+    initial([]);
     yield fetchPackages(searchDeferred, { signal });
-  }, [ searchDeferred ]) ?? [];
+  }, [ searchDeferred ]);
 }
 
 function useNPMList3(search) {

@@ -93,7 +93,7 @@ configure it to fire whenever we're within two screens of the bottom.
 
 ## Article control
 
-`ArticleUI` is structurally similar to [the original](../wordpress/src/ArticleList.js#L62). HTML tags are basically
+`ArticleUI` is structurally similar to [the original](../wordpress/src/ArticleList.js#L62). HTML tags were basically
 swapped out for their React Native equivalent:
 
 ```js
