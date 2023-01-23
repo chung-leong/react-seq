@@ -4,9 +4,9 @@ React-seq inspector base class
 
 ## Methods
 
-* `onEvent` - Handle events. Default implementation does nothing.
-* `onError` - Handle errors that occur in the inspector itself. Default implementation dump errors into the
-development console.
+* `onEvent` - Handle events (default implementation does nothing)
+* `onError` - Handle errors that occur in the inspector itself  (default implementation dump errors into the
+development console)
 
 ## Event types
 

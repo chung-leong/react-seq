@@ -14,8 +14,9 @@ if (typeof(window) === 'object') {
 
 ## Parameters
 
-* `element` - `<ReactElement>`
-* `options` - `<object>`
+* `element` - `<ReactElement>` The app element
+* `options` - `<object>` Options for 
+[`renderToReadableStream`](https://reactjs.org/docs/react-dom-server.html#rendertoreadablestream)
 
 ## Notes
 

@@ -13,9 +13,10 @@ const root = hydrateRoot(container, app);
 
 ## Parameters
 
-* `container` - `<DOMElement>`
-* `element` - `<ReactElement>`
-* `options` - `<object>`
+* `container` - `<DOMElement>` The container DOM element
+* `element` - `<ReactElement>` The app element
+* `options` - `<object>` Options for 
+[`renderToReadableStream`]https://reactjs.org/docs/react-dom-server.html#rendertoreadablestream
 
 ## Notes
 

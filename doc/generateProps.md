@@ -1,4 +1,4 @@
-# generateProps(asyncProps, usability) <sup>`async generator`</sup>
+# generateProps(asyncProps, usability) 
 
 Internal function used by [`progressive`](./progressive.md) and [`progressiveState`](./progressiveState.md)
 
@@ -21,12 +21,15 @@ for await (const props of generator) {
 
 ## Parameters
 
-* `asyncProps` - `<Object>`
-* `usables` - `<Object>`
+* `asyncProps` - `{ [key]: <Promise>|<AsyncGenerator>|<Generator>|<any> }`
+* `usability` - `{ [key]: <number>|<Function> }`
+* `return` <AsyncGenerator>
 
 ## Notes
 
-See documentation for [`useProgressive`](./useProgressive.md) for more details.
+See documentation for [`useProgressive`](./useProgressive.md) and [`usable`](./usable.md) for more details.
+
+`usability` must be an object. An empty object means no minimum requirements for all props. 
 
 ## Examples
 

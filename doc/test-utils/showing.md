@@ -10,4 +10,4 @@ Return the element type currently being displayed
 
 ## Notes
 
-`displaying` basically returns the last item of the array returned by [`displayed`](./displayed.md).
+`showing` basically returns the last item of the array from [`shown`](./shown.md).

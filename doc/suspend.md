@@ -38,8 +38,8 @@ export function Widget({ id }) {
 ## Parameters
 
 * `key` - `<string>` A unique key used to find the generated content during unsuspension. Must be used when the
-component calling [`useSequential`](useSequential.md) or [`useProgressive`](useProgressive.md) returns the result not
-wrapped with a [`<React.Suspense>`](https://reactjs.org/docs/react-api.html#reactsuspense) (second example). Must
+component calling [`useSequential`](useSequential.md) or [`useProgressive`](useProgressive.md) does not wrap
+the result with a [`<React.Suspense>`](https://reactjs.org/docs/react-api.html#reactsuspense) (second example). Must
 not be used if it does (first example).
 
 ## Suspension Explained

@@ -17,7 +17,7 @@ function Widget({ id, onError }) {
     unsuspend(() => setReady(true));
     yield <Something />;
     /* ... */
-  });
+  }, [ id ]);
   return (
     <div>
       <TopNavigation disabled={!ready} />

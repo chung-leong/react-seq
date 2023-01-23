@@ -14,24 +14,7 @@ function Product({ id }) {
   return useProgressive(async ({ fallback, type, usable, signal }) => {
     fallback(<Spinner />);
     type(ProductUI);
-    usable(0);
-    const product = await fetchProduct(id);
-    return {
-      product,
-      producer: fetchProducer(product.producer_id, { signal }),
-      categories: fetchProductCategories(product.category_ids, { signal }),
-      reviews: fetchProductReviews(product.id, { signal }),
-    };
-  }, [ id ]);
-}
-```
-
-```js
-function Product({ id }) {
-  return useProgressive(async ({ fallback, type, usable, signal }) => {
-    fallback(<Spinner />);
-    type(ProductUI);
-    usable({ producer: 1, categories: 1, reviews: 0 });
+    usable({ producer: 1, categories: 1 });
     const product = await fetchProduct(id);
     return {
       product,
@@ -45,46 +28,52 @@ function Product({ id }) {
 
 ## Parameters
 
-* `arg` - `<number>` or `<function>` or `<Object>` When the argument is a `<number>`, it indicates the
-minimum number of items an array needs to have. When it is a `<function>`, it is called with the array as parameter
-to determine whether the prop is usable at the given moment. When it is an `<Object>`, it's expected to contain
-the usability criteria for each individual property.
+* `arg` - `<number>` or `<Function>` or `{ [key]: <number>|<Function> }` When the argument is a `<number>`, 
+it indicates the minimum number of items an array needs to have. When it is a `<Function>`, it is called with 
+the array as parameter to determine whether the prop is usable at the given moment. When it is an `<Object>`, 
+it's expected to contain the usability criteria for each individual property.
 
 ## Usability Explained
 
-By default, `useProgressive` would wait until all properties have been fully resolved before rendering a component (
-or returning the state in case of [useProgressiveState](./useProgressiveState.md)). This behavior is obviously
-not very progressive. A visitor would end up staring at a spinner for a long time.
-
-`usable` lets you tell the hook that it's okay to render with an incomplete data set, that the target component
-is capable of handling missing data.
-
-The first example above uses `usable(0)` to indicate that all props can be empty. `product` would never be empty,
-of course, since it's retrieved already, but the others props will be empty at the beginning, assuming `fetchProducer`
-returns a promise to an object, `fetchProductReviews` returns a promise to an array, and `fetchProductCategories`
-returns an async generator. `useProgressive` immediately creates a `<ProductUI />` with the following props:
+By default, `useProgressive` and `useProgressiveState` assume that props can be empty. If the call to `usable` in 
+the example above were omitted, the first element created by `useProgressive` would have the following props:
 
 ```js
-{ product: [object], producer: undefined, categories: undefined, reviews: undefined }
+{ 
+  product: [object], 
+  producer: undefined, 
+  categories: undefined, 
+  reviews: undefined 
+}
 ```
 
-The second example has more stringent requirements: `producer` must be present and `categories` must have at least one
-element, while `reviews` can be empty. The first `<ProductUI />` that gets created will thus have the following props:
+The call to `usable` tells `useProgressive` to wait until there's one producer record and one category record. So 
+the first element will actually have the following props:
 
 ```js
-{ product: [object], producer: [object], categories: [ [object] ], reviews: undefined }`
+{ 
+  product: [object], 
+  producer: [object], 
+  categories: [ 
+    [object] 
+  ], 
+  reviews: undefined 
+}`
 ```
 
-(the assumptions here are that `reviews` doesn't arrive first and `categories` are fetched one at a time)
+(under the assumption that `categories` are fetched one at a time and `reviews` don't arrive first)
 
 ## Notes
+
+Specify a usability of `Infinity` if you want a prop to be fully resolved prior to rendering of the target 
+component.
 
 You can call `usable` multiple times. For instance, you can set a default to all props then specify a tighter
 restriction on one prop:
 
 ```js
-usable(0);
-usable({ producer: 1 })
+usable(1);
+usable({ categories: 5 })
 ```
 
 In addition to the property in question, usability-check functions are called with a second parameter: `props`. It

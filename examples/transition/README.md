@@ -200,7 +200,7 @@ The following function is used to manipulate the route:
     };
 ```
 
-And here's where we create our `Crossfade` object:
+The next line is where we create our `Crossfade` object:
 
 ```js
     methods.transition = new Crossfade(methods);
@@ -271,12 +271,12 @@ will match:
       } else ...
 ```
 
-[`ScreenStart`](./src/ScreenStart.js) is dynamically loaded. We then use `to` in `CrossFade` to transition to it.
+We load [`ScreenStart`](./src/ScreenStart.js) dynamically. We then use `CrossFade.to` to transition to it.
 Since there is no previous screen, `to` will yield the element and immediately return. We then begin awaiting the
 promise `eventual.alfa`. It is fulfilled when `on.alfa` is called.
 
 That's the basics of the Yield-Await-Promise model. We yield a visual element that prompts the user to do
-something then wait for him to do so. It's that simple. The model is reminiscent of the sort of simply text
+something then wait for him to do so. It's that simple. The model is reminiscent of the simple text
 programs that you might have written in your first-year CS class. Instead of a text prompt sent to the
 terminal, here we're outputting an HTML component, through React, to the web browser.
 
@@ -375,7 +375,7 @@ The `if` clause for [`ScreenDelta`](./src/ScreenDelta.js) also has a try-catch b
 ```
 
 This time we're catching the `RouteChangePending` error. When it occurs, we ask `ScreenDelta` to put up a
-dialog box by giving it a `onDetour` handler. We expect it to be called with either `true` or `false`. In the
+dialog box by giving it an `onDetour` handler. We expect it to be called with either `true` or `false`. In the
 first case, we rethrow the error so the outer catch block will approve the detour. Otherwise the detour is
 prevented and we land back in `ScreenDelta`.
 

@@ -35,7 +35,7 @@ any further state updates
 ## Notes
 
 `sequentialState` work differently from [`sequential`](./sequential) in that it does not directly apply changes
-after receiving data from the generator created by the given generator function. Instead,
-it reports changes back to the caller via `setState`. It also reports back any error it encounters via `setError`.
+after receiving data from the generator. Instead, it reports changes back to the caller via `setState`. It also
+reports back any error it encountered via `setError`.
 
 See documentation of [`sequential`](./sequential.md#notes) for details concerning the abort manager.

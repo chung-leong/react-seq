@@ -1,7 +1,7 @@
 # signal
 
 Signal from an instance of [`AbortController`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController/signal)
-which fires when the component is unmounted or when dependencies of the hook change.
+which fires when the component is unmounted or when dependencies of the hook change
 
 ## Providers
 

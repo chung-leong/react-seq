@@ -9,4 +9,4 @@ Update the component being tested
 ```
 ## Parameters
 
-* `element` - <ReactElement>
+* `element` - `<ReactElement>` 

@@ -1,5 +1,7 @@
 # withReactDOM(element, callback[, options]) <sup>async</sup>
 
+Render an element into the DOM and run tests against it
+
 ## Syntax
 
 ```js
@@ -14,13 +16,15 @@ test('payment form', async () => {
 
 ## Parameters
 
-* `element` - `<ReactElement>`
-* `callback` - `<AsyncFunction>`
+* `element` - `<ReactElement>` Component to be rendered
+* `callback` - `<AsyncFunction>` Function that will make assertions
 * `options` - `{ timeout }`
 
 ## options
 
-* `timeout` - `<number>`
+* `timeout` - `<number>` The maximum diration in milliseconds to wait for the first stoppage point
+(defaults to 2000). Applicable to subsequent calls to [`resolve`](./resolve.md) and [`reject`](./reject.md)
+as well. 
 
 ## Methods
 

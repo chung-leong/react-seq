@@ -11,7 +11,7 @@ Force the currently awaited promise to be fulfilled with a particular value set
 
 # Parameters
 
-* `object` - <Object> An object containing fulfillment values keyed by their names
+* `object` - `{ [key]: [value] }` An object containing fulfillment values keyed by their names
 
 # Notes
 

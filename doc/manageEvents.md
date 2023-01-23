@@ -47,9 +47,9 @@ per hook. Multiple calls would yield the same pair.
 `manageEvent` returns two objects, `on` and `eventual`. They are JavaScript
 [`Proxy`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) objects.
 Their properties are dynamically generated. When `on.click` is accessed, a handler gets automatically created.
-Calling it fulfills the promise returned by `eventual.click`. The value given to the handler will be placed
-in a object, keyed by the name of the handler/promise. Thus `on.click(1)` would result in `eventual.click` resolving
-to `{ click: 1 }`.
+Calling it fulfills the promise returned by `eventual.click`, also automatically generated. The value given to the 
+handler will be placed in a object, keyed by the name of the handler/promise. Thus `on.click(1)` would result in 
+`eventual.click` resolving to `{ click: 1 }`.
 
 Upon fulfillment the promise `eventual.click` vanishes. Accessing `eventual.click` again would create a new,
 unfulfilled promise, waiting for `on.click` to be called.
@@ -132,7 +132,7 @@ Meanwhile, `eventual.click.and.keyPress.and.mouseOver` is equivalent to:
 
 ```js
 Promise.all([
-  Promise.all([ eventual.click, eventual.keyPress ]),
+  Promise.all([ eventual.click, eventual.keyPress ]).then(arr => arr.flat().reduce((a, i) => Object.assign(a, i), {})),
   eventual.mouseOver
 ]).then(arr => arr.flat().reduce((a, i) => Object.assign(a, i), {}));
 ```
@@ -174,6 +174,11 @@ Valid time units are `millisecond`, `second`, `minute`, and `hour` (plus their p
 ## Abandoning Promises
 
 When the component is unmounted, all outstanding promises will be rejected with an `Abort` error.
+
+## Forced rejection
+
+You can use [`reject`](./reject.md) to force the currently awaited promise to be rejected. It's useful for 
+redirecting errors from components into generator functions.
 
 ## Notes
 
