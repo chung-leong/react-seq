@@ -427,7 +427,7 @@ the generator outputs only the next page.
 
 ![Transition sequence](./doc/img/transition.jpg)
 
-Thanks to the syntactic sugar provided by React-seq's event manager, orchestrating such a sequence is quite easy.
+Thanks to the syntactic sugar provided by React-seq's [event manager](./doc/managerEvents.md), orchestrating such a sequence is quite easy.
 
 To see the concept described here in action, check out the [transition example](./examples/transition/README.md).
 
