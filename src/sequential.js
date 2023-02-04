@@ -81,7 +81,7 @@ export function sequential(cb, options = {}) {
   methods.mount = (fn) => abortManager.mounted;
 
   // let callback set fallback content
-  let placeholder;
+  let placeholder = null;
   let sync = true;
   methods.fallback = (el) => {
     if (!sync) {

@@ -33,6 +33,7 @@ function ProductPage({ productId }) {
 
 * [`defer`](./defer.md)
 * [`flush`](./flush.md)
+* [`initial`](./initial.md)
 * [`manageEvents`](./manageEvents.md)
 * [`mount`](./mount.md)
 * [`reject`](./reject.md)
