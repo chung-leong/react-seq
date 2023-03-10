@@ -1,7 +1,8 @@
-import { useSequentialState, throwing } from 'react-seq';
+import { useSequentialState } from 'react-seq';
 
 export function useMediaCapture(options = {}) {
   const {
+    active = true,
     video = true,
     audio = true,
     preferredDevice = 'front',
@@ -9,9 +10,9 @@ export function useMediaCapture(options = {}) {
     watchVolume = false,
   } = options;
   return useSequentialState(async function*({ initial, mount, manageEvents, signal }) {
-    let status = 'acquiring';
+    let status = (active) ? 'acquiring' : 'pending';
     let duration;
-    let volume;
+    let volume = (watchVolume) ? -Infinity : undefined;
     let liveVideo;
     let liveAudio;
     let capturedVideo;
@@ -23,12 +24,12 @@ export function useMediaCapture(options = {}) {
 
     const [ on, eventual ] = manageEvents({});
 
-    function snap(mimeType, quality) {
-      on.userRequest({ type: 'snap', mimeType, quality });
+    function snap(options = {}) {
+      on.userRequest({ type: 'snap', options });
     }
 
-    function record(options, segment = undefined, callback = null) {
-      on.userRequest({ type: 'record', options, segment, callback });
+    function record(options = {}) {
+      on.userRequest({ type: 'record', options });
     }
 
     function pause() {
@@ -75,15 +76,18 @@ export function useMediaCapture(options = {}) {
       };
     }
 
-    if (typeof(navigator) !== 'object' || !navigator.mediaDevices) {
-      status = 'denied';
+    if (status === 'acquiring') {
+      if (typeof(navigator) !== 'object' || !navigator.mediaDevices) {
+        status = 'denied';
+      }  
     }
 
     // set initial state
     initial(currentState());
 
     // don't bother doing anything at all when there's no media support
-    if (status === 'denied') {
+    // (or if it's not yet needed)
+    if (status === 'denied' || status === 'pending') {
       return;
     }
 
@@ -92,7 +96,7 @@ export function useMediaCapture(options = {}) {
       const kind = (video) ? 'videoinput' : 'audioinput';
       devices = await enumerateDevices(kind);
       // we can't get the labels without obtaining permission first
-      if (devices.every(d => !d.label)) {
+      if (devices.length > 0 && devices.every(d => !d.label)) {
         // trigger request for permission, then enumerate again
         const stream = await getMediaStream({ video, audio });
         stopMediaStream(stream);
@@ -109,19 +113,24 @@ export function useMediaCapture(options = {}) {
       let device = devices.find(d => d.id === selectedDeviceId);
       if (!device) {
         // see if the label contains the right keyword
-        device = devices.find(d => d.label.toLowerCase().includes(preferredDevice))
+        const keyword = preferredDevice.toLowerCase();
+        device = devices.find(d => d.label.toLowerCase().includes(keyword));
       }
       if (!device) {
-        device = devices[0];
+        if (preferredDevice === 'front') {
+          device = devices[0];
+        } else {
+          device = devices[devices.length - 1];
+        }
       }
       // obtain a media stream with the correct constraints
       const constraints = { video, audio };
       if (device) {
         // put in device id
         if (video) {
-          constraints.video = { ...(video instanceof Object ? video : {}), deviceId: device.id };
+          constraints.video = { ...video, deviceId: device.id };
         } else if (audio) {
-          constraints.audio = { ...(audio instanceof Object ? audio : {}), deviceId: device.id };
+          constraints.audio = { ...audio, deviceId: device.id };
         }
       }
       stream = await getMediaStream(constraints);
@@ -139,7 +148,7 @@ export function useMediaCapture(options = {}) {
         track.onended = on.streamChange.bind({ type: 'streamend' });
       }
       // monitor audio volume
-      watchAudioVolume();
+      await watchAudioVolume();
     }
 
     function closeStream() {
@@ -157,14 +166,23 @@ export function useMediaCapture(options = {}) {
     let mediaDataCallback;
     let videoDimensions;
 
-    async function startRecorder(options, segment, callback) {
-      mediaRecorder = new MediaRecorder(stream, options);
+    async function startRecorder(options) {
+      // see https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder/MediaRecorder
+      const {
+        mimeType = (video) ? 'video/mp4' : 'audio/mpeg',
+        audioBitsPerSecond = 128000,
+        videoBitsPerSecond = 2500000,
+        timeslice,
+        callback,
+        keepLocalCopy = true, 
+      } = options;
+      mediaRecorder = new MediaRecorder(stream, { mimeType, audioBitsPerSecond, videoBitsPerSecond });
       mediaRecorder.addEventListener('dataavailable', onDataAvailable);
       mediaRecorder.addEventListener('start', startTimer);
       mediaRecorder.addEventListener('pause', stopTimer);
       mediaRecorder.addEventListener('resume', startTimer);
       mediaRecorder.addEventListener('stop', stopTimer);
-      mediaData = [];
+      mediaData = keepLocalCopy ? [] : null;
       mediaDataCallback = callback;
       duration = 0;
       if (liveVideo) {
@@ -172,8 +190,8 @@ export function useMediaCapture(options = {}) {
         videoDimensions = { width: liveVideo.width, height: liveVideo.height };
       }
       mediaRecorder.addEventListener('start', on.mediaStart, { once: true });
-      mediaRecorder.addEventListener('error', on.mediaError.bind(throwing), { once: true });
-      mediaRecorder.start(segment);
+      mediaRecorder.addEventListener('error', on.mediaError.throw, { once: true });
+      mediaRecorder.start(timeslice);
       await eventual.mediaStart.or.mediaError;
     }
 
@@ -183,7 +201,7 @@ export function useMediaCapture(options = {}) {
       mediaRecorder.stop();
       await eventual.mediaStop.or.mediaError;
       let recorded = false;
-      if (mediaData.length > 0) {
+      if (mediaData?.length > 0) {
         let blob = mediaData[0];
         if (mediaData.length > 1) {
           blob = new Blob(mediaData, { type: blob.type });
@@ -203,11 +221,15 @@ export function useMediaCapture(options = {}) {
       return recorded;
     }
 
-    async function createSnapShot(mimeType, quality) {
+    async function createSnapShot(options) {
+      const { 
+        mimeType = 'image/jpeg', 
+        quality = 0.9, 
+      } = options;
       const el = await createVideoElement(liveVideo.stream)
       const blob = await saveVideoSnapShot(el, mimeType, quality);
-      releaseVideoElement(el);
       capturedImage = { blob, width: el.videoWidth, height: el.videoHeight };
+      releaseVideoElement(el);
     }
 
     let interval;
@@ -235,48 +257,61 @@ export function useMediaCapture(options = {}) {
     }
 
     let audioContext;
-    let audioProcessor;
     let audioSource;
+    let audioAnalyser;
+    let audioInterval;
 
-    function watchAudioVolume() {
+    async function watchAudioVolume() {
       if (typeof(AudioContext) !== 'function' || !watchVolume || !audio) {
         return;
       }
-      audioContext = new AudioContext();
-      audioProcessor = audioContext.createScriptProcessor(4096, 1, 1);
-      audioSource = audioContext.createMediaStreamSource(stream);
-      audioProcessor.addEventListener('audioprocess', ({ inputBuffer }) => {
-        const samples = inputBuffer.getChannelData(0);
-        let max = 0;
-        for (const s of samples) {
-          if (s > max) {
-            max = s;
+      try {
+        audioContext = new AudioContext();
+        audioAnalyser = new AnalyserNode(audioContext, { fftSize: 256, smoothingTimeConstant: 0.3 });
+        audioSource = new MediaStreamAudioSourceNode(audioContext, { mediaStream: stream });
+        audioSource.connect(audioAnalyser);
+        const { frequencyBinCount } = audioAnalyser;
+        const { sampleRate } = audioContext;
+        const data = new Float32Array(frequencyBinCount);
+        const step = sampleRate / 2 / frequencyBinCount;
+        audioInterval = setInterval(() => {
+          let maxDb = -Infinity;
+          audioAnalyser.getFloatFrequencyData(data);
+          for (let i = (300 / step)|0, f = i * step; f <= 3400; i++, f += step) {
+            const db = data[i]
+            if (db > maxDb) {
+              maxDb = db;
+            }                
           }
-        }
-        const newVolume = Math.round(max * 100);
-        if (newVolume !== volume) {
-          volume = newVolume;
-          on.volumeChange({ type: 'volumechange' });
-        }
-      });
-      audioSource.connect(audioProcessor);
-      audioProcessor.connect(audioContext.destination);
+          const newVolume = Math.round(maxDb);
+          if (newVolume !== volume) {
+            volume = newVolume;
+            on.volumeChange({ type: 'volumechange' });  
+          }
+        }, 50);
+        /* c8 ignore next 2 */
+      } catch (err) {
+      }
     }
 
     function unwatchAudioVolume() {
       if (!audioContext) {
         return;
       }
-      audioProcessor.disconnect(audioContext.destination);
-      audioSource.disconnect(audioProcessor);
+      clearInterval(audioInterval);
+      audioSource.disconnect(audioAnalyser);
+      audioContext.close();
       audioContext = undefined;
       audioSource = undefined;
-      audioProcessor = undefined;
+      audioAnalyser = undefined;
       volume = undefined;
     }
 
-    function onDataAvailable({ data }) {
-      mediaData.push(data);
+    function onDataAvailable(evt) {
+      const { data } = evt;
+      if (mediaData) {
+        mediaData.push(data);
+      }
       if (mediaDataCallback) {
         mediaDataCallback(data);
       }
@@ -286,7 +321,7 @@ export function useMediaCapture(options = {}) {
     await mount();
 
     // set up event listeners
-    window.addEventListener('orientationchange', (evt) => {
+    const orientationChange = (evt) => {
       // wait for resize event to occur
       window.addEventListener('resize', async () => {
         if (liveVideo) {
@@ -297,13 +332,20 @@ export function useMediaCapture(options = {}) {
           }
         }
       }, { once: true });
-    }, { signal });
+    };
+    if (window.screen.orientation) {
+      window.screen.orientation.addEventListener('change', orientationChange, { signal });
+    } else {
+      window.addEventListener('orientationchange', orientationChange, { signal });
+    }
     navigator.mediaDevices.addEventListener('devicechange', on.deviceChange, { signal });
 
     // watch for permission change
-    for (const name of [ 'camera', 'microphone' ]) {
-      const status = await navigator.permissions.query({ name });
-      status.addEventListener('change', on.permissionChange, { signal });
+    if (navigator.permissions) {
+      for (const name of [ 'camera', 'microphone' ]) {
+        const status = await navigator.permissions.query({ name });
+        status.addEventListener('change', on.permissionChange, { signal });
+      } 
     }
 
     try {
@@ -316,10 +358,10 @@ export function useMediaCapture(options = {}) {
           } else if (status === 'previewing') {
             const res = await eventual.userRequest.or.streamChange.or.deviceChange.or.volumeChange;
             if (res.userRequest?.type === 'record') {
-              await startRecorder(res.userRequest.options, res.userRequest.segment, res.userRequest.callback);
+              await startRecorder(res.userRequest.options);
               status = 'recording';
             } else if (res.userRequest?.type === 'snap') {
-              await createSnapShot(res.userRequest.mimeType, res.userRequest.quality);
+              await createSnapShot(res.userRequest.options);
               status = 'recorded';
             } else if (res.userRequest?.type === 'select') {
               closeStream();
@@ -375,7 +417,7 @@ export function useMediaCapture(options = {}) {
               capturedImage = undefined;
               status = (stream) ? 'previewing' : 'acquiring';
               if (stream) {
-                watchAudioVolume();
+                await watchAudioVolume();
                 // refresh the list just in case something was plugged in
                 await getDevices();
               }
@@ -405,21 +447,17 @@ export function useMediaCapture(options = {}) {
       mediaRecorder?.stop();
       closeStream();
     }
-  }, [ video, audio, preferredDevice, selectNewDevice, watchVolume ]);
+  }, [ active, video, audio, preferredDevice, selectNewDevice, watchVolume ]);
 }
 
 async function enumerateDevices(kind) {
-  try {
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    return devices.filter(d => d.kind === kind).map(({ deviceId, label }) => {
-      return {
-        id: deviceId,
-        label: label || '',
-      };
-    });
-  } catch (err) {
-    return [];
-  }
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  return devices.filter(d => d.kind === kind).map(({ deviceId, label }) => {
+    return {
+      id: deviceId,
+      label: label || '',
+    };
+  });
 }
 
 async function getMediaStream(constraints) {
@@ -438,6 +476,7 @@ async function createVideoElement(stream) {
     const video = document.createElement('VIDEO');
     video.srcObject = stream;
     video.muted = true;
+    video.playsInline = true;
     video.oncanplay = () => resolve(video);
     video.onerror = (evt) => reject(evt.error);
     video.play();

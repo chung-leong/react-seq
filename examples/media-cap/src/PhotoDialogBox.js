@@ -17,7 +17,7 @@ export default function PhotoDialogBox({ onClose, onCapture }) {
     selectDevice,
   } = useMediaCapture({ watchVolume: false });
   const classNames = [ 'video-viewport', status ];
-  const size = constrainSize(liveVideo, { width: 320, height: 240 });
+  const size = constrainSize(liveVideo, { width: 480, height: 360 });
 
   const onSnap = useCallback(() => snap('image/jpeg', 90), [ snap ]);
   const onRetake = useCallback(() => clear(), [ clear ]);

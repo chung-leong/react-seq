@@ -105,15 +105,17 @@ export default function AudioDialogBox({ onClose, onCapture }) {
             return <div className="volume" />;
           }
           const iconClassNames = [ 'fa' ];
-          if (volume > 40) {
+          const top = -10, bottom = -90;
+          const percentage = Math.round(Math.min(1, Math.max(0, (volume - bottom) / (top - bottom))) * 100);
+          if (percentage >= 75) {
             iconClassNames.push('fa-volume-up');
-          } else if (volume > 10) {
+          } else if (percentage >= 25) {
             iconClassNames.push('fa-volume-down');
           } else {
             iconClassNames.push('fa-volume-off');
           }
           const barClassNames = [ 'volume-bar', status ];
-          const barStyle = { width: volume + '%' };
+          const barStyle = { width: `${percentage}%` };
           return (
             <div className="volume">
               <i className={iconClassNames.join(' ')} />

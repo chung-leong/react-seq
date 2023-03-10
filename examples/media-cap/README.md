@@ -4,6 +4,8 @@ In this example, we're going to create a React hook that allows a component to c
 utilize the [`useSequentialState`](../../doc/useSequentialState.md#readme) hook to help us manage the different stages of
 the capturing process.
 
+UPDATE: This example is now available as a [installable library](https://github.com/chung-leong/react-media-capture#readme).
+
 ## Seeing the code in action
 
 Go to the `examples/media-cap` folder. Run `npm install` then `npm start`. A browser window should automatically
@@ -82,11 +84,12 @@ simple component.
 
 ## The hook
 
-Let us move on and start examining [the hook itself](./src/media-cap.js):
+Let us move on and start examining [the hook itself](./src/media-cap.js#L1):
 
 ```js
 export function useMediaCapture(options = {}) {
   const {
+    active = true,
     video = true,
     audio = true,
     preferredDevice = 'front',
@@ -107,9 +110,9 @@ help of promises.
 The generator function begins by declaring variables that will get sent to the hook consumer:
 
 ```js
-    let status = 'acquiring';
+    let status = (active) ? 'acquiring' : 'pending';
     let duration;
-    let volume;
+    let volume = (watchVolume) ? -Infinity : undefined;
     let liveVideo;
     let liveAudio;
     let capturedVideo;
@@ -120,17 +123,17 @@ The generator function begins by declaring variables that will get sent to the h
     let selectedDeviceId;
 ```
 
-[Further down](./src/media-cap.js#L24), we see the functions that the hook consumer can call:
+[Further down](./src/media-cap.js#L25), we see the functions that the hook consumer can call:
 
 ```js
     const [ on, eventual ] = manageEvents({});
 
-    function snap(mimeType, quality) {
-      on.userRequest({ type: 'snap', mimeType, quality });
+    function snap(options = {}) {
+      on.userRequest({ type: 'snap', options });
     }
 
-    function record(options, segment = undefined, callback = null) {
-      on.userRequest({ type: 'record', options, segment, callback });
+    function record(options = {}) {
+      on.userRequest({ type: 'record', options });
     }
 
     function pause() {
@@ -184,14 +187,14 @@ We see next the function that packages our local variables into an object, for d
     }
 ```
 
-The function is first invoked on [line 83](./src/media-cap.js#L83) to set the initial state:
+The function is first invoked on [line 86](./src/media-cap.js#L86) to set the initial state:
 
 ```js
     initial(currentState());
 ```
 
 What follow are functions that deal with the nitty-gritty of the capturing process. We'll skip over these and head to
-[line 286](./src/media-cap.js#L286) where [`mount`](../../doc/mount.md#readme) is called:
+[line 321](./src/media-cap.js#L321) where [`mount`](../../doc/mount.md#readme) is called:
 
 ```js
   await mount();
@@ -214,26 +217,33 @@ first generator has shut its feed down but the second generator is still holding
 After establishing the checkpoint, we proceed to attach event listeners to various parts of the browser:
 
 ```js
-// set up event listeners
-window.addEventListener('orientationchange', (evt) => {
-  // wait for resize event to occur
-  window.addEventListener('resize', async () => {
-    if (liveVideo) {
-      const el = await createVideoElement(stream);
-      if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
-        liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
-        on.streamChange({ type: 'resize' });
-      }
+    // set up event listeners
+    const orientationChange = (evt) => {
+      // wait for resize event to occur
+      window.addEventListener('resize', async () => {
+        if (liveVideo) {
+          const el = await createVideoElement(stream);
+          if (el.videoWidth !== liveVideo.width || el.videoHeight !== liveVideo.height) {
+            liveVideo = { stream, width: el.videoWidth, height: el.videoHeight };
+            on.streamChange({ type: 'resize' });
+          }
+        }
+      }, { once: true });
+    };
+    if (window.screen.orientation) {
+      window.screen.orientation.addEventListener('change', orientationChange, { signal });
+    } else {
+      window.addEventListener('orientationchange', orientationChange, { signal });
     }
-  }, { once: true });
-}, { signal });
-navigator.mediaDevices.addEventListener('devicechange', on.deviceChange, { signal });
+    navigator.mediaDevices.addEventListener('devicechange', on.deviceChange, { signal });
 
-// watch for permission change
-for (const name of [ 'camera', 'microphone' ]) {
-  const status = await navigator.permissions.query({ name });
-  status.addEventListener('change', on.permissionChange, { signal });
-}
+    // watch for permission change
+    if (navigator.permissions) {
+      for (const name of [ 'camera', 'microphone' ]) {
+        const status = await navigator.permissions.query({ name });
+        status.addEventListener('change', on.permissionChange, { signal });
+      } 
+    }
 ```
 
 As you can see, there are quite a number of relevant events. The device can get rotated, thereby changing the
@@ -248,7 +258,7 @@ After this, the generator enters an infinite loop inside a try-finally block, wi
         try {
 ```
 
-Let us first examine the finally and catch blocks ([line 396](./src/media-cap.js#L396)) near the function's bottom:
+Let us first examine the finally and catch blocks ([line 438](./src/media-cap.js#L438)) near the function's bottom:
 
 ```js
         } catch (err) {
@@ -278,7 +288,7 @@ generator function. The UI will get updated to reflect the changes that have occ
 
 Now, let us look at what our event loop does in each of the possible statuses.
 
-## Status: "acquiring" ([line 312](./src/media-cap.js#L312))
+## Status: "acquiring" ([line 354](./src/media-cap.js#L354))
 
 ```js
           if (status === 'acquiring') {
@@ -291,7 +301,7 @@ Now, let us look at what our event loop does in each of the possible statuses.
 We try opening a media stream. If the operation succeeds, the status is changed to "previewing". If not, we end up in
 the catch block, described above.
 
-## Status: "previewing" ([line 316](./src/media-cap.js#L316))
+## Status: "previewing" ([line 358](./src/media-cap.js#L358))
 
 ```js
           } else if (status === 'previewing') {
@@ -352,7 +362,7 @@ If the volume level is different, we don't need to do anything, as the variable 
 yield statement at the bottom of the loop will deliver the new value to the hook consumer, which will adjust the
 appearance of the volume bar accordingly.
 
-## Status: "recording" ([line 343](./src/media-cap.js#L343))
+## Status: "recording" ([line 385](./src/media-cap.js#L385))
 
 ```js
           } else if (status === 'recording') {
@@ -384,7 +394,7 @@ nothing recorded.
 Fulfillment of `durationChange` or `volumeChange` does not require any additional action. The code just needs to
 "wake up" so the `yield` statement gets run.
 
-## Status: "paused" ([line 356](./src/media-cap.js#L356))
+## Status: "paused" ([line 398](./src/media-cap.js#L398))
 
 ```js
           } else if (status === 'paused') {
@@ -406,7 +416,7 @@ Fulfillment of `durationChange` or `volumeChange` does not require any additiona
 The code for the "paused" stage is nearly identical to that of the "recording" stage. The only difference is here the
 user can resume recording and we're not anticipating changes in the video duration.
 
-## Status: "recorded" ([line 369](./src/media-cap.js#L369))
+## Status: "recorded" ([line 411](./src/media-cap.js#L411))
 
 ```js
           } else if (status === 'recorded') {
@@ -418,7 +428,7 @@ user can resume recording and we're not anticipating changes in the video durati
               capturedImage = undefined;
               status = (stream) ? 'previewing' : 'acquiring';
               if (stream) {
-                watchAudioVolume();
+                await watchAudioVolume();
                 // refresh the list just in case something was plugged in
                 await getDevices();
               }
@@ -436,7 +446,7 @@ status to "previewing" once again--provided we still have the live stream. The u
 the camera while reviewing the video, requiring a trip to the "acquiring" stage. We also need to rescan the list
 of available devices, as we have been ignoring `eventual.deviceChange` in the prior stages.
 
-## Status: "denied" ([line 385](./src/media-cap.js#L385))
+## Status: "denied" ([line 427](./src/media-cap.js#L427))
 
 ```js
           } else if (status === 'denied') {
