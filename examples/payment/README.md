@@ -18,7 +18,7 @@ export function PaymentPage() {
 ```
 
 The [first line of the function](./src/PaymentPage.js#L5) is a call to
-[`useSequential`](../../doc/useSequential.md). The argument is an anonymous async generator function, which will yield
+[`useSequential`](../../doc/useSequential.md#readme). The argument is an anonymous async generator function, which will yield
 the contents of our component. Using object destructuring we obtain a pair of function from the hook: `fallback` and
 `manageEvents`. The former is called immediately on the next line:
 

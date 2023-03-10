@@ -31,13 +31,13 @@ function ProductPage({ productId }) {
 
 ## Configuration and management methods
 
-* [`defer`](./defer.md)
-* [`flush`](./flush.md)
-* [`initial`](./initial.md)
-* [`manageEvents`](./manageEvents.md)
-* [`mount`](./mount.md)
-* [`reject`](./reject.md)
-* [`signal`](./signal.md)
+* [`defer`](./defer.md#readme)
+* [`flush`](./flush.md#readme)
+* [`initial`](./initial.md#readme)
+* [`manageEvents`](./manageEvents.md#readme)
+* [`mount`](./mount.md#readme)
+* [`reject`](./reject.md#readme)
+* [`signal`](./signal.md#readme)
 
 ## Notes
 
@@ -46,11 +46,11 @@ function ProductPage({ productId }) {
 return the initial state. The async generator will get shut down immediately.
 
 Aside from the lack of Suspension API integration, `useSequentialState` works largely in the same way as
-[`useSequential`](./useSequential.md). See its documentation for more details.
+[`useSequential`](./useSequential.md#readme). See its documentation for more details.
 
 ## Examples
 
-* [Nobel Prize API](../examples/nobel/README.md)
-* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
-* [NPM Search](../examples/npm-input/README.md)
-* [Media capture](../examples/media-cap/README.md)
+* [Nobel Prize API](../examples/nobel/README.md#readme)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md#readme)
+* [NPM Search](../examples/npm-input/README.md#readme)
+* [Media capture](../examples/media-cap/README.md#readme)

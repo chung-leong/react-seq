@@ -57,10 +57,14 @@ higher-level components.
 
 ## Hooks
 
-* [`useSequential`](./doc/useSequential.md) - Return the last element outputted by an async generator function
-* [`useProgressive`](./doc/useProgressive.md) - Return an element filled with data from multiple async sources
-* [`useSequentialState`](./doc/useSequentialState.md) - Return the last value outputted by an async generator function
-* [`useProgressiveState`](./doc/useProgressiveState.md) - Return an object whose properties are drawn from async sources
+* [`useSequential`](./doc/useSequential.md#readme) - Return the last element outputted 
+by an async generator function
+* [`useProgressive`](./doc/useProgressive.md#readme) - Return an element filled with 
+data from multiple async sources
+* [`useSequentialState`](./doc/useSequentialState.md#readme) - Return the last value 
+outputted by an async generator function
+* [`useProgressiveState`](./doc/useProgressiveState.md#readme) - Return an object whose 
+properties are drawn from async sources
 
 ## Usage scenarios
 
@@ -82,24 +86,24 @@ higher-level components.
 
 ## API reference
 
-* [Hooks and other functions](./doc/README.md)
-* [Server-side rendering](./doc/server/README.md)
-* [Client-side SSR support](./doc/client/README.md)
-* [Test utilities](./doc/test-utils/README.md)
+* [Hooks and other functions](./doc/README.md#readme)
+* [Server-side rendering](./doc/server/README.md#readme)
+* [Client-side SSR support](./doc/client/README.md#readme)
+* [Test utilities](./doc/test-utils/README.md#readme)
 
 ## List of examples
 
-* [Payment form](./examples/payment/README.md) <sup>`useSequential`</sup>
-* [Star Wars API](./examples/swapi/README.md) <sup>`useProgressive`</sup>
-* [WordPress](./examples/wordpress/README.md) <sup>`useProgressive`</sup>
-* [Nobel Prize API](./examples/nobel/README.md) <sup>`useSequentialState`</sup>
-* [Star Wars API (alternate implementation)](./examples/swapi-hook/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
-* [WordPress (React Native)](./examples/wordpress-react-native/README.md) <sup>`useProgressive`</sup>
-* [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md) <sup>`useProgressive`</sup>
-* [NPM Search](./examples/npm-input/README.md) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
-* [Media capture](./examples/media-cap/README.md) <sup>`useSequentialState`</sup>
-* [Transition](./examples/transition/README.md) <sup>`useSequential`</sup>
-* [Ink CLI](./examples/ink-cli/README.md) <sup>`useSequential`</sup>
+* [Payment form](./examples/payment/README.md#readme) <sup>`useSequential`</sup>
+* [Star Wars API](./examples/swapi/README.md#readme) <sup>`useProgressive`</sup>
+* [WordPress](./examples/wordpress/README.md#readme) <sup>`useProgressive`</sup>
+* [Nobel Prize API](./examples/nobel/README.md#readme) <sup>`useSequentialState`</sup>
+* [Star Wars API (alternate implementation)](./examples/swapi-hook/README.md#readme) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
+* [WordPress (React Native)](./examples/wordpress-react-native/README.md#readme) <sup>`useProgressive`</sup>
+* [Star Wars API (server-side rendering)](./examples/swapi-ssr/README.md#readme) <sup>`useProgressive`</sup>
+* [NPM Search](./examples/npm-input/README.md#readme) <sup>`useSequentialState`</sup> <sup>`useProgressiveState`</sup>
+* [Media capture](./examples/media-cap/README.md#readme) <sup>`useSequentialState`</sup>
+* [Transition](./examples/transition/README.md#readme) <sup>`useSequential`</sup>
+* [Ink CLI](./examples/ink-cli/README.md#readme) <sup>`useSequential`</sup>
 
 ## Loading of remote data
 
@@ -191,17 +195,17 @@ function ProductPage({ productId }) {
 }
 ```
 
-The example above demonstrates the use of React-seq's [event manager](./doc/managerEvents.md). It's a key component
+The example above demonstrates the use of React-seq's [event manager](./doc/managerEvents.md#readme). It's a key component
 of the library. Its automatically generated promises and handlers connect your user interface with
 your async code. Here, it allows the user to manually trigger an update: Calling `on.updateRequest` causes the
 fulfillment of the `eventual.updateRequest` promise. That releases the generator function from the `await` operation
 inside the finally block.
 
 Since data loading happens so frequently in web applications, React-seq provides a specialized hook:
-[`useProgressive`](./doc/useProgressive.md). It works as a sort of async-to-sync translator, turning promises
+[`useProgressive`](./doc/useProgressive.md#readme). It works as a sort of async-to-sync translator, turning promises
 and generators into ordinary objects and arrays.
 
-Consider the following component taken from the [Star Wars API example](./examples/swapi/README.md):
+Consider the following component taken from the [Star Wars API example](./examples/swapi/README.md#readme):
 
 ```js
 export default function Character({ id }) {
@@ -253,12 +257,12 @@ The component `CharacterUI` would receive this as props:
 The various arrays would grow over time as data is retrieved from the remote server.
 
 It's possible to create a generator that pauses and resumes on user action. The
-[WordPress example](./examples/wordpress.md) shows how this can be used to implement an infinite-scrolling article
-list. The [React Native version of the example](./examples/wordpress-react-native.md) is also worth checking out.
+[WordPress example](./examples/wordpress.md#readme) shows how this can be used to implement an infinite-scrolling article
+list. The [React Native version of the example](./examples/wordpress-react-native.md#readme) is also worth checking out.
 
-Besides using [`useSequential`](./doc/useSequential.md) and [`useProgressive`](./doc/useProgressive.md), you can
-also load data with the help of React-seq's state hooks: [`useSequentialState`](./doc/useSequentialState.md)
-and [`useProgressiveState`](./doc/useProgressiveState.md). Instead of React elements, these hooks return simple values
+Besides using [`useSequential`](./doc/useSequential.md#readme) and [`useProgressive`](./doc/useProgressive.md#readme), you can
+also load data with the help of React-seq's state hooks: [`useSequentialState`](./doc/useSequentialState.md#readme)
+and [`useProgressiveState`](./doc/useProgressiveState.md#readme). Instead of React elements, these hooks return simple values
 (usually objects). They are useful for components that handle user input. For example:
 
 ```js
@@ -284,7 +288,7 @@ function SearchBar() {
 ```
 
 State hooks are also the right ones to use generally when you are creating custom hooks. Consult the
-[alternate implementation of the Star Wars API example](./examples/swapi-hook/README.md) to learn more about
+[alternate implementation of the Star Wars API example](./examples/swapi-hook/README.md#readme) to learn more about
 the advantages and drawbacks.
 
 ## Handling page navigation
@@ -346,7 +350,7 @@ Our code is in full control of navigation. It alters the route components and in
 and use of the browser's back/forward buttons are treated as exceptions. If a detour request manages to reach
 the top-level try-catch block, it gets approved.
 
-React-seq can handle nested generators. `useSequential` will in effect [flatten](./doc/linearize.md) the generator
+React-seq can handle nested generators. `useSequential` will in effect [flatten](./doc/linearize.md#readme) the generator
 provided by its callback. That allows us to break a long generator functions into more manageable subroutines:
 
 ```js
@@ -410,7 +414,7 @@ Since there is no `break` or `return` inside the loop, the only way to exit the 
 specific to this section, it can roll them back here.
 
 Please note that certain implementation details are left out of the code snippets above for brevity sake.
-Consult the [transition example](./examples/transition/README.md) for something that better represent a
+Consult the [transition example](./examples/transition/README.md#readme) for something that better represent a
 fully-developed, real-world solution. You'll also find further discussion on the Yield-Await-Promise model.
 
 ## Adding transition effects
@@ -427,9 +431,9 @@ the generator outputs only the next page.
 
 ![Transition sequence](./doc/img/transition.jpg)
 
-Thanks to the syntactic sugar provided by React-seq's [event manager](./doc/managerEvents.md), orchestrating such a sequence is quite easy.
+Thanks to the syntactic sugar provided by React-seq's [event manager](./doc/managerEvents.md#readme), orchestrating such a sequence is quite easy.
 
-To see the concept described here in action, check out the [transition example](./examples/transition/README.md).
+To see the concept described here in action, check out the [transition example](./examples/transition/README.md#readme).
 
 ## Handling authentication
 
@@ -487,7 +491,7 @@ State management using an async generator function is generally much easier, eve
 like data retrieval are involved. First of all, you have a variable scope that persists over time. When you need to
 remember something, just set a local variable. At the same time the number of states that need be tracked are sharply
 reduced thanks to async functions' ability to halt mid-execution. Consider the
-[following example](./examples/konami-code/README.md). It's a hook that listens for a sequence of keystrokes
+[following example](./examples/konami-code/README.md#readme). It's a hook that listens for a sequence of keystrokes
 matching the well-known [Konami code](https://en.wikipedia.org/wiki/Konami_Code):
 
 ```js
@@ -518,12 +522,12 @@ Notice how there isn't an array holding the keys that the user has pressed. No n
 the sequence has matched thus far either. There are no progress-tracking variables. We don't need them because the
 JavaScript engine is tracking progress for us. It knows where in the code it has stopped.
 
-Note also the use of [`signal`](./doc/signal.md) in the call to
+Note also the use of [`signal`](./doc/signal.md#readme) in the call to
 [`addEventListener`](https://developer.mozilla.org/en-US/docs/Web/API/EventTarget/addEventListener). That eliminates
 the need to call `removeEventListener`.
 
 For further demonstration of how React-seq can help you manage state, please consult the
-[media capture example](./examples/media-cap/README.md).
+[media capture example](./examples/media-cap/README.md#readme).
 
 ## Error handling
 
@@ -531,7 +535,7 @@ Errors encountered by React-seq hooks will trigger component updates and get ret
 allowing them to be handled by an error boundary further up the component tree.
 
 When you employ the Yield-Await-Promise model, you can funnel errors through the generator tree with the help of
-[`reject`](./reject.md). Example:
+[`reject`](./reject.md#readme). Example:
 
 ```js
 function App() {
@@ -654,7 +658,7 @@ general, the code responsible for triggering an error is in the best position to
 handled.
 
 Of course, not much can be done about a fatal error like a 404 aside from putting up an error message. In the
-[transition example](./examples/transition/README.md), you'll find a scenario where catching an error in a local
+[transition example](./examples/transition/README.md#readme), you'll find a scenario where catching an error in a local
 try-catch block actual makes sense.
 
 ## Server-side rendering
@@ -670,9 +674,9 @@ is essentially used as an app's fallback screen. Only a single function call is 
   });
 ```
 
-[`renderInChildProc`](./doc/server/renderInChildProc.md) will generate the page using the app's production build.
+[`renderInChildProc`](./doc/server/renderInChildProc.md#readme) will generate the page using the app's production build.
 No changes to your project's build configuration required. You only need to enable 
-[hydration](./doc/client/hydrateRoot.md) and [render-to-server](./doc/client/renderToServer.md) in your app's
+[hydration](./doc/client/hydrateRoot.md#readme) and [render-to-server](./doc/client/renderToServer.md#readme) in your app's
 boot-strap code:
 
 ```js
@@ -686,16 +690,16 @@ if (typeof(window) === 'object') {
 }
 ```
 
-To see SSR in action, clone the repository and run the [Star Wars API SSR example](./examples/swapi-ssr/README.md).
+To see SSR in action, clone the repository and run the [Star Wars API SSR example](./examples/swapi-ssr/README.md#readme).
 
 ## Logging
 
 React-seq provides a mean for you to examine what happens inside its hooks. When a hook detects the presence of
-an [`InspectorContext`](./doc/InspectorContext.md), it will start reporting events to the given inspector
+an [`InspectorContext`](./doc/InspectorContext.md#readme), it will start reporting events to the given inspector
 instance.
 
-The library comes with two built-in inspectors: [`ConsoleLogger`](./doc/ConsoleLogger.md) and
-[`PromiseLogger`](./doc/PromiseLogger.md). You can create you own by extending [`Inspector`](./doc/Inspector.md).
+The library comes with two built-in inspectors: [`ConsoleLogger`](./doc/ConsoleLogger.md#readme) and
+[`PromiseLogger`](./doc/PromiseLogger.md#readme). You can create you own by extending [`Inspector`](./doc/Inspector.md#readme).
 
 
 The [Payment form example](./examples/payment/README.md#logging) makes use of `ConsoleLogger`:
@@ -719,7 +723,7 @@ export default function App() {
 ## Unit testing
 
 For the purpose of unit testing React-seq provides two functions:
-[`withTestRenderer`](./doc/test-utils/withTestRenderer.md) and [`withRestDOM`](./doc/test-utils/withRestDOM.md).
+[`withTestRenderer`](./doc/test-utils/withTestRenderer.md#readme) and [`withRestDOM`](./doc/test-utils/withRestDOM.md#readme).
 One utilizes [React Test Renderer](https://reactjs.org/docs/test-renderer.html) while the other relies on the DOM. 
 They have the same interface.
 

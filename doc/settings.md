@@ -19,7 +19,7 @@ const stream = await renderToReadableStream(element);
 
 * `ssr` - "server" or "hydrate" or `false`. When `ssr` is set to "server", content deferment delay becomes Infinity,
 causing all intermediate content updates to be ignored. In addition, generators created by
-[`useSequentialState`](./useSequentialState.md) and [`useProgressState`](./useProgressiveState) are immediately
+[`useSequentialState`](./useSequentialState.md#readme) and [`useProgressState`](./useProgressiveState) are immediately
 shut down. Setting `ssr` to "hydrate" has the same effect on rendering deferment but has no impact on state hooks.
 * `ssr_timeout` - `<number>` Duration in milliseconds within which components must yield displayable contents
 during server-side rendering (i.e. `ssr` = "server"). The default is `3000`.
@@ -28,5 +28,5 @@ value will be sent as the affected component's content. The default is `null` (c
 
 ## Notes
 
-The helper functions provided by [`react-seq/server`](./server-side.md) and [`react-seq/client`](./client-side.md)
+The helper functions provided by [`react-seq/server`](./server-side.md#readme) and [`react-seq/client`](./client-side.md#readme)
 will set `ssr` on your behalf. You have no need to worry about it if you choose to use the provided helpers.

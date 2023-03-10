@@ -1,7 +1,7 @@
 # Nobel Prize API example
 
-This example demonstrates the use of [`useSequentialState`](../../doc/useSequentialState.md) in creating a custom
-data hook. Unlike [`useSequential`](../../doc/useSequential.md) which returns an element and is tied into React's
+This example demonstrates the use of [`useSequentialState`](../../doc/useSequentialState.md#readme) in creating a custom
+data hook. Unlike [`useSequential`](../../doc/useSequential.md#readme) which returns an element and is tied into React's
 suspension mechanism, `useSequentialState` just gives you what comes out of an async generator. It's more agnostic
 in a sense and can be employed in more situations. Basically, any time when your component needs some remote data
 set that requires multiple requests to retrieve.

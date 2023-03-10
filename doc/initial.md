@@ -4,8 +4,8 @@ Specify the initial state of hook, before the async generator yielded anything
 
 ## Providers
 
-* [`useSequentialState`](useSequentialState.md)
-* [`useProgressiveState`](useProgressiveState.md)
+* [`useSequentialState`](useSequentialState.md#readme)
+* [`useProgressiveState`](useProgressiveState.md#readme)
 
 ## Syntax
 
@@ -42,13 +42,13 @@ function ProductPage({ id }) {
 
 ## Notes
 
-The default initial value for [`useSequentialState`](useSequentialState.md) is `undefined`, where as the default
-initial value for [`useProgressiveState`](useProgressiveState.md) is an empty object (since that hook always returns
+The default initial value for [`useSequentialState`](useSequentialState.md#readme) is `undefined`, where as the default
+initial value for [`useProgressiveState`](useProgressiveState.md#readme) is an empty object (since that hook always returns
 objects).
 
-Do not use `initial` with [`useProgressiveState`](./useProgressiveState.md). See the hook's documentation for an 
+Do not use `initial` with [`useProgressiveState`](./useProgressiveState.md#readme). See the hook's documentation for an 
 explanation.
 
 ## Examples
 
-* [Media capture](../examples/media-cap/README.md)
+* [Media capture](../examples/media-cap/README.md#readme)

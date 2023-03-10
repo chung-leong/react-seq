@@ -20,7 +20,7 @@ First, let us look at the transition code. We're not being overly ambitious here
 be relatively simple: a crossfade. The old screen will go from an opacity of 1 to 0, while the new screen will go
 from an opacity of 0 to 1.
 
-From inside a [`useSequential`](../../doc/useSequential.md) hook we can yield either a React element or an async
+From inside a [`useSequential`](../../doc/useSequential.md#readme) hook we can yield either a React element or an async
 generator representing a sequence of React elements. That makes it every easy to add transition effects to an app.
 We just need to go from this:
 
@@ -135,14 +135,14 @@ Now let us examine how our Crossfade class is put to use.
 
 ## App component
 
-The example app uses [Array-router](https://github.com/chung-leong/array-router/README.md), a minimalist library also
+The example app uses [Array-router](https://github.com/chung-leong/array-router/README.md#readme), a minimalist library also
 used in the other examples. The specialized hook
-[`useSequentialRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useSequentialRouter.md)
-is used here. It differs from [`useRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useRouter.md) in
+[`useSequentialRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useSequentialRouter.md#readme)
+is used here. It differs from [`useRouter`](https://github.com/chung-leong/array-router/blob/main/doc/useRouter.md#readme) in
 that it does not trigger component updates when the route changes. It also offers more flexibility on how its context
 provider and error boundary are created.
 
-After creating the router, we call [`useSequential`](../../doc/useSequential.md). Instead of an async generator
+After creating the router, we call [`useSequential`](../../doc/useSequential.md#readme). Instead of an async generator
 function, we use an async function that will return an async generator:
 
 ```js
@@ -154,13 +154,13 @@ export function App({ main }) {
     const { fallback, reject, mount, wrap, trap } = methods;
 ```
 
-We use [`fallback`](../../doc/fallback.md) to provide a fallback element:
+We use [`fallback`](../../doc/fallback.md#readme) to provide a fallback element:
 
 ```js
     fallback(<ScreenLoading />);
 ```
 
-We use [`wrap`](../../doc/wrap.md) to place the router's error boundary around contents from the generator:
+We use [`wrap`](../../doc/wrap.md#readme) to place the router's error boundary around contents from the generator:
 
 ```js
     wrap(children => createBoundary(children));
@@ -170,8 +170,8 @@ The error boundary needs to be inside the element created by `useSequential`. If
 would get unmounted by React when an error occurs, causing the generator to be shut down.
 
 We then wait for the component to mount, then use the router's
-[`trap`](https://github.com/chung-leong/array-router/blob/main/doc/trap.md) function to capture errors caught at its
-error boundary. We use [`reject`](../../doc/reject.md) to redirect the error to the active `await` statement:
+[`trap`](https://github.com/chung-leong/array-router/blob/main/doc/trap.md#readme) function to capture errors caught at its
+error boundary. We use [`reject`](../../doc/reject.md#readme) to redirect the error to the active `await` statement:
 
 ```js
     await mount();
@@ -232,7 +232,7 @@ export async function* main(state, methods) {
 
 `manageEvents` and `wrap` come from `useSequential`, while `throw404` and `isDetour` are provided by the router.
 
-`manageRoute` returns a [proxy object](https://github.com/chung-leong/array-router/blob/main/doc/arrayProxy.md), whose
+`manageRoute` returns a [proxy object](https://github.com/chung-leong/array-router/blob/main/doc/arrayProxy.md#readme), whose
 `screen` property is mapped to the first part of the path. When the path is "/alfa", `route.screen` will be "alfa".
 
 The function then enters an endless loop holding a [try-catch block](./src/main.js#L14):
@@ -243,7 +243,7 @@ The function then enters an endless loop holding a [try-catch block](./src/main.
 ```
 
 The [catch block](./src/main.js#L82) handles
-[detour requests](https://github.com/chung-leong/array-router/blob/main/doc/RouteChangePending.md) (always approving
+[detour requests](https://github.com/chung-leong/array-router/blob/main/doc/RouteChangePending.md#readme) (always approving
 them) and shows an error screen for other error types:
 
 ```js

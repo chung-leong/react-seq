@@ -14,4 +14,4 @@ Return the element being displayed currently
 
 ## Notes
 
-`displaying` basically returns the last item of the array from [`displayed`](./displayed.md).
+`displaying` basically returns the last item of the array from [`displayed`](./displayed.md#readme).

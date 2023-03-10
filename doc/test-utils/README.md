@@ -2,18 +2,18 @@
 
 ## Test wrappers
 
-* [`withReactDOM`](./withReactDOM.md)
-* [`withTestRenderer`](./withTestRenderer.md)
+* [`withReactDOM`](./withReactDOM.md#readme)
+* [`withTestRenderer`](./withTestRenderer.md#readme)
 
 ## Wrapper methods
 
-* [`awaiting`](./awaiting.md)
-* [`displayed`](./displayed.md)
-* [`displaying`](./displaying.md)
-* [`reject`](./reject.md)
-* [`resolve`](./resolve.md)
-* [`showing`](./showing.md)
-* [`shown`](./shown.md)
-* [`timeout`](./timeout.md)
-* [`unmount`](./unmount.md)
-* [`update`](./update.md)
+* [`awaiting`](./awaiting.md#readme)
+* [`displayed`](./displayed.md#readme)
+* [`displaying`](./displaying.md#readme)
+* [`reject`](./reject.md#readme)
+* [`resolve`](./resolve.md#readme)
+* [`showing`](./showing.md#readme)
+* [`shown`](./shown.md#readme)
+* [`timeout`](./timeout.md#readme)
+* [`unmount`](./unmount.md#readme)
+* [`update`](./update.md#readme)

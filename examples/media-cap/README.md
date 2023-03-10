@@ -1,7 +1,7 @@
 # Media Capture Example
 
 In this example, we're going to create a React hook that allows a component to capture image, video, or audio. We'll
-utilize the [`useSequentialState`](../../doc/useSequentialState.md) hook to help us manage the different stages of
+utilize the [`useSequentialState`](../../doc/useSequentialState.md#readme) hook to help us manage the different stages of
 the capturing process.
 
 ## Seeing the code in action
@@ -97,7 +97,7 @@ export function useMediaCapture(options = {}) {
 ```
 
 It starts out by extracting some option variables from the object given. Then it immediately calls
-[`useSequentialState`](../../doc/useSequentialState.md). The async generator function is where most of the action
+[`useSequentialState`](../../doc/useSequentialState.md#readme). The async generator function is where most of the action
 happens.
 
 We make use of three functions provided by `useSequentialState`: `initial` to set the hook's initial state, `mount`
@@ -154,7 +154,7 @@ The generator function begins by declaring variables that will get sent to the h
     }
 ```
 
-As you can see, each of them will fulfill the [`eventual.userRequest`](../../doc/manageEvents.md) promise.
+As you can see, each of them will fulfill the [`eventual.userRequest`](../../doc/manageEvents.md#readme) promise.
 
 We see next the function that packages our local variables into an object, for delivery to the hook consumer:
 
@@ -191,7 +191,7 @@ The function is first invoked on [line 83](./src/media-cap.js#L83) to set the in
 ```
 
 What follow are functions that deal with the nitty-gritty of the capturing process. We'll skip over these and head to
-[line 286](./src/media-cap.js#L286) where [`mount`](../../doc/mount.md) is called:
+[line 286](./src/media-cap.js#L286) where [`mount`](../../doc/mount.md#readme) is called:
 
 ```js
   await mount();
@@ -334,7 +334,7 @@ The user is now seeing the output from his camera. At this point, he might:
 * Speak into the microphone (fulfilling `eventual.volumeChange`)
 
 We explicitly anticipate all these possibilities in our `await` statement. (If the statement looks strange to you,
-please consult the documentation of [`manageEvents`](../../doc/manageEvents.md).)
+please consult the documentation of [`manageEvents`](../../doc/manageEvents.md#readme).)
 
 If the user clicks the Start button, we start the recorder then change the status to "recording".
 

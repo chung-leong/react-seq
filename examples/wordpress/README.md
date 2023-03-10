@@ -1,7 +1,7 @@
 # WordPress Example
 
 In this example, we're going to build page that displays WordPress articles with infinite scrolling. For this purpose,
-we're going to employ the [`useProgress`](../../doc/useProgressive.md) hook. It's a specialized hook designed for
+we're going to employ the [`useProgress`](../../doc/useProgressive.md#readme) hook. It's a specialized hook designed for
 loading data into a component. It acts sort of as a translator of data from the async world, turning promises into
 objects and async generators into arrays.
 

@@ -25,5 +25,5 @@ const stream = renderInChildProc(location, buildPath);
 
 ## Notes
 
-During development, [`renderToInnerHTML`](../client/renderToInnerHTML.md) can be used on the client 
+During development, [`renderToInnerHTML`](../client/renderToInnerHTML.md#readme) can be used on the client 
 side to simulate server-side generated contents.

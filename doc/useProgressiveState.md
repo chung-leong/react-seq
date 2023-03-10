@@ -34,24 +34,24 @@ function ProductPage({ productId }) {
 
 ## Configuration and management methods
 
-* [`defer`](./defer.md)
-* [`flush`](./flush.md)
-* [`initial`](./initial.md)
-* [`manageEvents`](./manageEvents.md)
-* [`mount`](./mount.md)
-* [`reject`](./reject.md)
-* [`signal`](./signal.md)
-* [`usable`](./usable.md)
+* [`defer`](./defer.md#readme)
+* [`flush`](./flush.md#readme)
+* [`initial`](./initial.md#readme)
+* [`manageEvents`](./manageEvents.md#readme)
+* [`mount`](./mount.md#readme)
+* [`reject`](./reject.md#readme)
+* [`signal`](./signal.md#readme)
+* [`usable`](./usable.md#readme)
 
 ## Notes
 
-`useProgressiveState` works in a completely analogous way as [`useProgressive`](./useProgressive.md).
+`useProgressiveState` works in a completely analogous way as [`useProgressive`](./useProgressive.md#readme).
 Consult its documentation for more information.
 
 Since states returned by `useProgressiveState` are always objects, its default initial state is `{}`, unlike
-[`useSequentialState`](./useSequentialState.md), which has `undefined` as its default initial state.
+[`useSequentialState`](./useSequentialState.md#readme), which has `undefined` as its default initial state.
 
-Do not use [`initial](./initial.md) to set default properties, as they can get overwritten by `undefined`. 
+Do not use [`initial](./initial.md#readme) to set default properties, as they can get overwritten by `undefined`. 
 The following is incorrect:
 
 ```js
@@ -79,5 +79,5 @@ Use JavaScript's standard way of assigning default values intead:
 
 ## Examples
 
-* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
-* [NPM Search](../examples/npm-input/README.md)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md#readme)
+* [NPM Search](../examples/npm-input/README.md#readme)

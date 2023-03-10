@@ -36,5 +36,5 @@ of [`useEffect`](https://reactjs.org/docs/hooks-reference.html#useeffect)).
 
 `AbortManager` is a subclass of [`AbortController`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController).
 It has added methods related to the React component lifecycle. `onMount` triggers the fulfillment of the promise
-returned by [`mount`](./mount.md). `onUnmount` initiates an abort of the generator (unless the component is immediately
+returned by [`mount`](./mount.md#readme). `onUnmount` initiates an abort of the generator (unless the component is immediately
 remounted, something that happens when [strict mode](https://reactjs.org/docs/strict-mode.html) is used).

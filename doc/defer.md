@@ -4,10 +4,10 @@ Specify the time interval between content updates
 
 ## Providers
 
-* [`useSequential`](useSequential.md)
-* [`useProgressive`](useProgressive.md)
-* [`useSequentialState`](useSequentialState.md)
-* [`useProgressiveState`](useProgressiveState.md)
+* [`useSequential`](useSequential.md#readme)
+* [`useProgressive`](useProgressive.md#readme)
+* [`useSequentialState`](useSequentialState.md#readme)
+* [`useProgressiveState`](useProgressiveState.md#readme)
 
 ## Syntax
 
@@ -55,7 +55,7 @@ In the example above, delay is set to 200ms. Suppose `taskA` requires 40ms, `tas
 ```
 
 The total execution time is 160ms--well below 200ms. As such, none of the "Performing..." messages will appears.
-The visual appearance of the widget will go directly from a spinner (specified using [`fallback`](./fallback.md))
+The visual appearance of the widget will go directly from a spinner (specified using [`fallback`](./fallback.md#readme))
 to "Finished".
 
 Now suppose the delay is lowered to 50ms:
@@ -87,16 +87,16 @@ Do not use small numbers. The difference between 0 and 1 is huge! A timer that f
 something you want. Remember, 24 FPS corresponds to a frame time of 42ms. A delay of ~200ms is barely
 perceptible.
 
-During server-side rendering ([SSR](./settings.md)), deferment is always infinite. Content updates only occur at
-stoppage points--when the generator returns or when it awaits a promise from the [event manager](./manageEvents.md).
+During server-side rendering ([SSR](./settings.md#readme)), deferment is always infinite. Content updates only occur at
+stoppage points--when the generator returns or when it awaits a promise from the [event manager](./manageEvents.md#readme).
 
-Awaiting a promise from the event manager causes an automatic [flush](./flush.md). It also disables deferment until
-the promise is fulfilled. The latter behavior is only relevant for [`useProgressive`](./useProgressive.md) and
-[`useProgressiveState`](./useProgressiveState.md), where you're be pulling data from multiple generators.
+Awaiting a promise from the event manager causes an automatic [flush](./flush.md#readme). It also disables deferment until
+the promise is fulfilled. The latter behavior is only relevant for [`useProgressive`](./useProgressive.md#readme) and
+[`useProgressiveState`](./useProgressiveState.md#readme), where you're be pulling data from multiple generators.
 
 You might wish to disable progressive rendering after a component has reached a stage of readiness and the
 generator is kept active only to update it occasionally with fresh data from the server. The following example uses
-the [`useSequentialState`](./useSequentialState.md) hook with a infinite-loop generator to obtain and
+the [`useSequentialState`](./useSequentialState.md#readme) hook with a infinite-loop generator to obtain and
 maintain up-to-date information about a movie:
 
 ```js
@@ -140,7 +140,7 @@ relies on the automatic flushing mechanism mentioned above.
 
 ## Examples
 
-* [Star Wars API](../examples/swapi/README.md)
-* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
-* [Word Press (React Native)](../examples/wordpress-react-native.md)
-* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)
+* [Star Wars API](../examples/swapi/README.md#readme)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md#readme)
+* [Word Press (React Native)](../examples/wordpress-react-native.md#readme)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md#readme)

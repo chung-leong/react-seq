@@ -42,16 +42,16 @@ function ProductPage({ productId }) {
 
 ## Configuration and management methods
 
-* [`defer`](./defer.md)
-* [`fallback`](./fallback.md)
-* [`flush`](./flush.md)
-* [`manageEvents`](./manageEvents.md)
-* [`mount`](./mount.md)
-* [`reject`](./reject.md)
-* [`signal`](./signal.md)
-* [`suspend`](./suspend.md)
-* [`unsuspend`](./unsuspend.md)
-* [`wrap`](./wrap.md)
+* [`defer`](./defer.md#readme)
+* [`fallback`](./fallback.md#readme)
+* [`flush`](./flush.md#readme)
+* [`manageEvents`](./manageEvents.md#readme)
+* [`mount`](./mount.md#readme)
+* [`reject`](./reject.md#readme)
+* [`signal`](./signal.md#readme)
+* [`suspend`](./suspend.md#readme)
+* [`unsuspend`](./unsuspend.md#readme)
+* [`wrap`](./wrap.md#readme)
 
 ## Notes
 
@@ -102,6 +102,6 @@ you return anything other than `undefined`.
 
 ## Examples
 
-* [Payment form](../examples/payment/README.md)
-* [Transition](../examples/transition/README.md)
-* [Ink CLI](./examples/transition/README.md)
+* [Payment form](../examples/payment/README.md#readme)
+* [Transition](../examples/transition/README.md#readme)
+* [Ink CLI](./examples/transition/README.md#readme)

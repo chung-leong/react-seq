@@ -10,4 +10,4 @@ Return array of element types rendered between the previous stoppage point and t
 
 ## Notes
 
-Use [displayed](./displayed.md) when you need to check the elements' props.
+Use [displayed](./displayed.md#readme) when you need to check the elements' props.

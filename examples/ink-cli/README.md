@@ -41,7 +41,7 @@ render(<App />);
 ```
 
 The `App` component is as barebone as can be. All it does is return what 
-[`useSequential`](../../doc/useSequential.md) returns. The real action takes place inside the main 
+[`useSequential`](../../doc/useSequential.md#readme) returns. The real action takes place inside the main 
 function.
 
 ## The main function
@@ -69,7 +69,7 @@ We're just pretending to be busy here. Nothing is actually happening. No one wil
 underpants as a result of you running this demo. In a real program the functions would do 
 actual work like downloading a file or unpacking a tarball. But you get the idea.
 
-Note the use of [`fallback`](../../fallback.md). Ink does not like `<Suspense>` without a 
+Note the use of [`fallback`](../../fallback.md#readme). Ink does not like `<Suspense>` without a 
 fallback for some reason. An error would occur if we don't give it that empty text block. A
 real-life program that performs lengthy initiation might actually use `fallback` to indicate 
 that it's starting up.

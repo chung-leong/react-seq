@@ -1,6 +1,6 @@
 # generateProps(asyncProps, usability) 
 
-Internal function used by [`progressive`](./progressive.md) and [`progressiveState`](./progressiveState.md)
+Internal function used by [`progressive`](./progressive.md#readme) and [`progressiveState`](./progressiveState.md#readme)
 
 ## Syntax
 
@@ -27,10 +27,10 @@ for await (const props of generator) {
 
 ## Notes
 
-See documentation for [`useProgressive`](./useProgressive.md) and [`usable`](./usable.md) for more details.
+See documentation for [`useProgressive`](./useProgressive.md#readme) and [`usable`](./usable.md#readme) for more details.
 
 `usability` must be an object. An empty object means no minimum requirements for all props. 
 
 ## Examples
 
-* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md#readme)

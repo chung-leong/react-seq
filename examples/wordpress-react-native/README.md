@@ -1,7 +1,7 @@
 # WordPress React Native example
 
 In this example, we're going to create a simple [React Native](https://reactnative.dev/) app based on the earlier
-[WordPress example](../wordpress/README.md). The main motivation is to show that React-seq works on that platform.
+[WordPress example](../wordpress/README.md#readme). The main motivation is to show that React-seq works on that platform.
 
 Disclaimer: I'm a novice at React Native. The code shown here might not conform to best practices. If you see any
 shortcoming, please leave a comment in on the [discussion board](https://github.com/chung-leong/react-seq/discussions).

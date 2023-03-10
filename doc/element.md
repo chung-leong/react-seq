@@ -1,11 +1,11 @@
 # element(fn)
 
-Supply a content generating function to [`useProgressive`](useProgressive.md) in lieu of a
-[component type](./type.md)
+Supply a content generating function to [`useProgressive`](useProgressive.md#readme) in lieu of a
+[component type](./type.md#readme)
 
 ## Providers
 
-* [`useProgressive`](useProgressive.md)
+* [`useProgressive`](useProgressive.md#readme)
 
 ## Syntax
 

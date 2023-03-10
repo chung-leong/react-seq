@@ -1,6 +1,6 @@
 # Star Wars SSR example
 
-In this example we're going to enhance the [Star Wars API example](../swapi/README.md) with server-side rendering
+In this example we're going to enhance the [Star Wars API example](../swapi/README.md#readme) with server-side rendering
 (SSR). As you will see, it does not require much effort.
 
 ## Seeing the code in action
@@ -101,7 +101,7 @@ The [next route](./server/index.mjs#L37) is where the real action takes place:
 ```
 
 When there's a dot in the path, we assume it's a request for a static file. Otherwise we assume it's a path in
-our app. Regenerating the full URL, we pass it to [`renderInChildProc`](../../doc/client-side/renderInChildProc.md)
+our app. Regenerating the full URL, we pass it to [`renderInChildProc`](../../doc/client-side/renderInChildProc.md#readme)
 along with the path to our CRA production build. A child instance of Node.js then runs the exact same code that the
 browser would.
 

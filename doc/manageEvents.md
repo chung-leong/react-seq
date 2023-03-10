@@ -4,10 +4,10 @@ Manage events with the help of automatically generated promises
 
 ## Providers
 
-* [`useSequential`](useSequential.md)
-* [`useProgressive`](useProgressive.md)
-* [`useSequentialState`](useSequentialState.md)
-* [`useProgressiveState`](useProgressiveState.md)
+* [`useSequential`](useSequential.md#readme)
+* [`useProgressive`](useProgressive.md#readme)
+* [`useSequentialState`](useSequentialState.md#readme)
+* [`useProgressiveState`](useProgressiveState.md#readme)
 
 ## Syntax
 
@@ -55,10 +55,10 @@ Upon fulfillment the promise `eventual.click` vanishes. Accessing `eventual.clic
 unfulfilled promise, waiting for `on.click` to be called.
 
 When `on.click` is called and there is no code awaiting `eventual.click`, the event would go ignored. You can
-change this behavior using [`preserving`](./preserving.md) or through the use of `on.click.preserve`.
+change this behavior using [`preserving`](./preserving.md#readme) or through the use of `on.click.preserve`.
 
 Error objects are treated like any other values. You can force the rejection of a promise using
-[`throwing`](./throwing.md) or through the use of `on.click.throw`.
+[`throwing`](./throwing.md#readme) or through the use of `on.click.throw`.
 
 ## Fulfillment value filtering
 
@@ -177,7 +177,7 @@ When the component is unmounted, all outstanding promises will be rejected with 
 
 ## Forced rejection
 
-You can use [`reject`](./reject.md) to force the currently awaited promise to be rejected. It's useful for 
+You can use [`reject`](./reject.md#readme) to force the currently awaited promise to be rejected. It's useful for 
 redirecting errors from components into generator functions.
 
 ## Notes
@@ -187,16 +187,16 @@ arguments (i.e. not objects) are involved due to garbage accumulation concerns. 
 kept in a [`WeakMap`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap)
 hence there is no limit to their number.
 
-Awaiting a promise from the event manager will cause an automatic [flush](./flush.md).
+Awaiting a promise from the event manager will cause an automatic [flush](./flush.md#readme).
 
 If you're using React-seq in a library and have no need for sophisticated event handling, you can exclude the
 event manager from your build by setting the environment variable `REACT_APP_SEQ_NO_EM` to 1.
 
 ## Examples
 
-* [Payment form](../examples/payment/README.md)
-* [Word Press](../examples/wordpress.md)
-* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
-* [Word Press (React Native)](../examples/wordpress-react-native.md)
-* [Media capture](../examples/media-cap/README.md)
-* [Transition](../examples/transition/README.md)
+* [Payment form](../examples/payment/README.md#readme)
+* [Word Press](../examples/wordpress.md#readme)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md#readme)
+* [Word Press (React Native)](../examples/wordpress-react-native.md#readme)
+* [Media capture](../examples/media-cap/README.md#readme)
+* [Transition](../examples/transition/README.md#readme)

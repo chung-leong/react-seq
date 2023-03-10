@@ -1,3 +1,3 @@
 # Server-side rendering
 
-* [`renderInChildProc`](./renderInChildProc.md)
+* [`renderInChildProc`](./renderInChildProc.md#readme)

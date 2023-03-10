@@ -1,8 +1,8 @@
 # Star Wars API example redux
 
 React-seq provides four hooks. Each of them is designed for particular usage scenarios. In this example, we're
-going to reimplement the previous [Star Wars API example](../swapi/README.md) using the two state hooks:
-[useSequentialState](../../doc/useSequentialState.md) and [useProgressiveState](../../doc/useProgressiveState.md).
+going to reimplement the previous [Star Wars API example](../swapi/README.md#readme) using the two state hooks:
+[useSequentialState](../../doc/useSequentialState.md#readme) and [useProgressiveState](../../doc/useProgressiveState.md#readme).
 Neither is the optimal tool for the task. We're going to discuss what the shortcomings are.
 
 State hooks have the advantage of requiring less "buy-in". They're just hook functions that return data. You can use
@@ -94,10 +94,10 @@ export function useSWAPI(type, params = {}, options = {}) {
     onRef.current = on;
 ```
 
-We use [`initial`](../../doc/initial.md) to set the hook's initial state to an empty object.
+We use [`initial`](../../doc/initial.md#readme) to set the hook's initial state to an empty object.
 
 We use a `useRef` hook to create a state variable for holding a copy of `on` from
-[`manageEvents`](../../doc/manageEvents.md). We need to do this because the hook is going to return a handler:
+[`manageEvents`](../../doc/manageEvents.md#readme). We need to do this because the hook is going to return a handler:
 
 ```js
   return [ state, onRef.current.updateRequest ];
@@ -205,7 +205,7 @@ You can verify that the component does refresh itself by opening the development
 ## Downsides of using state hooks
 
 As said at the beginning, the state hooks require less of a buy-in. The element returning hooks
-([useSequential](../../useSequential.md) and [useProgressive](../../useProgressive.md)), by their nature, are
+([useSequential](../../useSequential.md#readme) and [useProgressive](../../useProgressive.md#readme)), by their nature, are
 closer to the presentation layer. More of your code needs to conform to React-seq's way of doing things. The use
 of React-seq state hooks can be easily isolated to a single file, as we've done so in this example. If one day 
 you decide that this library stinks, you could remove the dependency without much effort.
@@ -225,7 +225,7 @@ A large part of that is due to the way we have implemented our hook. It doesn't 
 fashion. The hook would wait for a dozen HTTP requests and return the results all at once.
 
 If you go to the **Films** page, you'll notice that it shows things more progressively. This is because that page
-uses an alternate implementation that uses [`useProgressiveState`](../../doc/useProgressiveState.md).
+uses an alternate implementation that uses [`useProgressiveState`](../../doc/useProgressiveState.md#readme).
 
 ## Using useProgressive
 

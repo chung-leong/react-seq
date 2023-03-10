@@ -18,4 +18,4 @@ Return array of elements rendered between the previous stoppage point and the cu
 
 The array include the last element rendered.
 
-Use [shown](./shown.md) when you are only interested in the types of elements displayed.
+Use [shown](./shown.md#readme) when you are only interested in the types of elements displayed.

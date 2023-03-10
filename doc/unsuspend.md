@@ -1,12 +1,12 @@
 # unsuspend(fn)
 
 Set a function that is called when the element returned by the hook unsuspend (i.e. just before the
-  [`fallback`](./fallback.md) is taken down)
+  [`fallback`](./fallback.md#readme) is taken down)
 
 ## Providers
 
-* [`useSequential`](useSequential.md)
-* [`useProgressive`](useProgressive.md)
+* [`useSequential`](useSequential.md#readme)
+* [`useProgressive`](useProgressive.md#readme)
 
 ## Syntax
 

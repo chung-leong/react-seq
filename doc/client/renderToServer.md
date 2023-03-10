@@ -21,4 +21,4 @@ if (typeof(window) === 'object') {
 ## Notes
 
 `renderToServer` passes a promise to a stream to `process.send`. The package runner will then dump the output of this
-stream into stdout, which is then read by [`renderInChildProc`](../server/renderInChildProc.md). 
+stream into stdout, which is then read by [`renderInChildProc`](../server/renderInChildProc.md#readme). 

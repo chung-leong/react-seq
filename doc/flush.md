@@ -4,10 +4,10 @@ Perform deferred update immediately or abandon it
 
 ## Providers
 
-* [`useSequential`](useSequential.md)
-* [`useProgressive`](useProgressive.md)
-* [`useSequentialState`](useSequentialState.md)
-* [`useProgressiveState`](useProgressiveState.md)
+* [`useSequential`](useSequential.md#readme)
+* [`useProgressive`](useProgressive.md#readme)
+* [`useSequentialState`](useSequentialState.md#readme)
+* [`useProgressiveState`](useProgressiveState.md#readme)
 
 ## Parameters
 
@@ -30,7 +30,7 @@ function Widget({ id }) {
 ## Notes
 
 A flush will happen automatically when the generator function awaits a promise from the
-[event manager](./manageEvents.md).
+[event manager](./manageEvents.md#readme).
 
 `flush(false)` can be used in a catch block to abandon incomplete updates.
 
@@ -38,4 +38,4 @@ A flush will happen automatically when the generator function awaits a promise f
 
 ## Examples
 
-* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md)
+* [Star Wars API (alternate implementation)](../examples/swapi-hook/README.md#readme)

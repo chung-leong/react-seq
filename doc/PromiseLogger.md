@@ -1,6 +1,6 @@
 # PromiseLogger
 
-[Inspector](./Inspector.md) used for unit testing
+[Inspector](./Inspector.md#readme) used for unit testing
 
 ## Methods
 

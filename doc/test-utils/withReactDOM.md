@@ -23,22 +23,22 @@ test('payment form', async () => {
 ## options
 
 * `timeout` - `<number>` The maximum diration in milliseconds to wait for the first stoppage point
-(defaults to 2000). Applicable to subsequent calls to [`resolve`](./resolve.md) and [`reject`](./reject.md)
+(defaults to 2000). Applicable to subsequent calls to [`resolve`](./resolve.md#readme) and [`reject`](./reject.md#readme)
 as well. 
 
 ## Methods
 
 * `act` - [act()](https://reactjs.org/docs/test-utils.html#act) from
 ['react-dom/test-utils'](https://reactjs.org/docs/test-utils.html)
-* [`awaiting`](./awaiting.md)
-* [`displayed`](./displayed.md)
-* [`displaying`](./displaying.md)
+* [`awaiting`](./awaiting.md#readme)
+* [`displayed`](./displayed.md#readme)
+* [`displaying`](./displaying.md#readme)
 * `node` - The DOM DIV element into which the component being tested was rendered
-* [`reject`](./reject.md)
-* [`resolve`](./resolve.md)
+* [`reject`](./reject.md#readme)
+* [`resolve`](./resolve.md#readme)
 * `root` - ReactDOM client root
-* [`showing`](./showing.md)
-* [`shown`](./shown.md)
-* [`timeout`](./timeout.md)
-* [`unmount`](./unmount.md)
-* [`update`](./update.md)
+* [`showing`](./showing.md#readme)
+* [`shown`](./shown.md#readme)
+* [`timeout`](./timeout.md#readme)
+* [`unmount`](./unmount.md#readme)
+* [`update`](./update.md#readme)

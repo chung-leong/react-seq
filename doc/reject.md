@@ -4,10 +4,10 @@ Cause a rejection of the promise currently being awaited
 
 ## Providers
 
-* [`useSequential`](useSequential.md)
-* [`useProgressive`](useProgressive.md)
-* [`useSequentialState`](useSequentialState.md)
-* [`useProgressiveState`](useProgressiveState.md)
+* [`useSequential`](useSequential.md#readme)
+* [`useProgressive`](useProgressive.md#readme)
+* [`useSequentialState`](useSequentialState.md#readme)
+* [`useProgressiveState`](useProgressiveState.md#readme)
 
 ## Syntax
 
@@ -24,13 +24,13 @@ Cause a rejection of the promise currently being awaited
 by the generator function's `catch` block. It can also be used for other "unexpected" events, such as 
 the user clicking on a global navigation element or use the back button while filling out a form.
 
-[`wrap`](./wrap.md) can be used to place an error boundary around contents outputted by a generator.
+[`wrap`](./wrap.md#readme) can be used to place an error boundary around contents outputted by a generator.
 
-If the active generator is not awaiting a promise from the [event manager](./manageEvents.md), the error will be kept
+If the active generator is not awaiting a promise from the [event manager](./manageEvents.md#readme), the error will be kept
 until an await occurs.
 
 Not present when `REACT_APP_SEQ_NO_EM` is set.
 
 ## Examples
 
-* [Transition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md#readme)

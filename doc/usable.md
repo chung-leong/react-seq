@@ -4,8 +4,8 @@ Control whether content update occurs when the data set is incomplete
 
 ## Providers
 
-* [`useProgressive`](useProgressive.md)
-* [`useProgressiveState`](useProgressiveState.md)
+* [`useProgressive`](useProgressive.md#readme)
+* [`useProgressiveState`](useProgressiveState.md#readme)
 
 ## Syntax
 
@@ -82,7 +82,7 @@ based on the length of another prop.
 
 ## Examples
 
-* [Star Wars API](../examples/swapi/README.md)
-* [Word Press](../examples/wordpress.md)
-* [Word Press (React Native)](../examples/wordpress-react-native.md)
-* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)
+* [Star Wars API](../examples/swapi/README.md#readme)
+* [Word Press](../examples/wordpress.md#readme)
+* [Word Press (React Native)](../examples/wordpress-react-native.md#readme)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md#readme)

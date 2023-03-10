@@ -34,8 +34,8 @@ any further state updates
 
 ## notes
 
-`progressiveState` calls [`sequentialState`](./sequentialState.md) internally. The generator function simply
-yields the generator from [`generateProps`](./generateProps.md), using properties returned by the callback.
+`progressiveState` calls [`sequentialState`](./sequentialState.md#readme) internally. The generator function simply
+yields the generator from [`generateProps`](./generateProps.md#readme), using properties returned by the callback.
 
 See documentation of [`sequentialState`](./sequentialState.md#notes) for more details.
 

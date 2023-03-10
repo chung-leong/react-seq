@@ -24,4 +24,4 @@ if (typeof(window) === 'object') {
 `options` are passed unmodified to React-DOM's
 [hydrateRoot](https://reactjs.org/docs/react-dom-client.html#hydrateroot).
 
-You can use [`renderToInnerHTML`](./renderToInnerHTML.md) to simulate server generated contents during development.
+You can use [`renderToInnerHTML`](./renderToInnerHTML.md#readme) to simulate server generated contents during development.

@@ -4,8 +4,8 @@ Add wrapper element around contents yielded by generator
 
 ## Providers
 
-* [`useSequential`](useSequential.md)
-* [`useProgressive`](useProgressive.md)
+* [`useSequential`](useSequential.md#readme)
+* [`useProgressive`](useProgressive.md#readme)
 
 ## Syntax
 
@@ -81,7 +81,7 @@ function App() {
 }
 ```
 
-The code above uses [`reject`](./reject.md) to redirect errors caught by the error boundary into the generator
+The code above uses [`reject`](./reject.md#readme) to redirect errors caught by the error boundary into the generator
 function.
 
 Wrap functions do not receive all elements yielded by a generator, only those that get rendered. They will never
@@ -89,4 +89,4 @@ receive an async generator.
 
 ## Examples
 
-* [Transition](../examples/transition/README.md)
+* [Transition](../examples/transition/README.md#readme)

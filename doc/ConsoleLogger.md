@@ -1,6 +1,6 @@
 # ConsoleLogger
 
-[Inspector](./Inspector.md) that outputs events to the development console
+[Inspector](./Inspector.md#readme) that outputs events to the development console
 
 ![Development console](./img/console-logger.jpg)
 

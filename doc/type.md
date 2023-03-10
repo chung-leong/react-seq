@@ -1,10 +1,10 @@
 # type(arg)
 
-Specify the type of element to be created by [`useProgressive`](useProgressive.md)
+Specify the type of element to be created by [`useProgressive`](useProgressive.md#readme)
 
 ## Providers
 
-* [`useProgressive`](useProgressive.md)
+* [`useProgressive`](useProgressive.md#readme)
 
 ## Syntax
 
@@ -65,7 +65,7 @@ separate component.
 
 ## Examples
 
-* [Star Wars API](../examples/swapi/README.md)
-* [Word Press](../examples/wordpress.md)
-* [Word Press (React Native)](../examples/wordpress-react-native.md)
-* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)
+* [Star Wars API](../examples/swapi/README.md#readme)
+* [Word Press](../examples/wordpress.md#readme)
+* [Word Press (React Native)](../examples/wordpress-react-native.md#readme)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md#readme)

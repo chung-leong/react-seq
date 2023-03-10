@@ -1,7 +1,7 @@
 # Star Wars API example
 
 In this example, we're going to build a simple website that displays information about Star Wars. We're going to
-be using [useProgressive](../../doc/useProgressive.md), a specialized hook for feeding data into a component in
+be using [useProgressive](../../doc/useProgressive.md#readme), a specialized hook for feeding data into a component in
 a piece-meal fashion. Given any number of async generators, it will translate them into progressively filled arrays.
 
 ## Seeing the code in action
@@ -79,15 +79,15 @@ export default function CharacterList() {
 ```
 
 All it does is call `useProgress`. The hook expects an async function as parameter. This function is responsible
-for setting up async generators. It is given a number of config functions. We use [`type`](../../doc/type.md) to
-specify the data recipient. We use [`defer`](../../doc/defer.md) to tell the hook that we don't it to rerender as soon
+for setting up async generators. It is given a number of config functions. We use [`type`](../../doc/type.md#readme) to
+specify the data recipient. We use [`defer`](../../doc/defer.md#readme) to tell the hook that we don't it to rerender as soon
 as data becomes available but to instead check every 200ms. If three HTTP requests are needed and all three 
 complete in less than 200ms, only a single update would occur.
 
-We call [`usable`](../../doc/usable.md) to specify that the data set is valid when there's at least 10 items in every
+We call [`usable`](../../doc/usable.md#readme) to specify that the data set is valid when there's at least 10 items in every
 array. In this case, the criteria applies to `people`.
 
-`useProgressive` normally returns a `Suspense` containing a lazy component. We call [`suspend`](../../doc/suspend.md)
+`useProgressive` normally returns a `Suspense` containing a lazy component. We call [`suspend`](../../doc/suspend.md#readme)
 tell the hook to omit the suspense since we have on in `App` already. As we're allowing suspension to "pop through" 
 this component, we need to provide a unique key so that `useProgressive` can find the work it has
 performed already when the component is recreated at the end of suspension. Without this key `useProgressive` would
@@ -106,7 +106,7 @@ function CharacterListUI({ people }) {
 }
 ```
 
-As an alternative to defining a separate component, we could have used [`element`](../../doc/element.md) instead:
+As an alternative to defining a separate component, we could have used [`element`](../../doc/element.md#readme) instead:
 
 ```js
 export default function CharacterList() {

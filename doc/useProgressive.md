@@ -35,19 +35,19 @@ function ProductPageUI(product, producer, relatedProducts = []) {
 
 ## Configuration and management methods
 
-* [`defer`](./defer.md)
-* [`element`](./element.md)
-* [`fallback`](./fallback.md)
-* [`flush`](./flush.md)
-* [`manageEvents`](./manageEvents.md)
-* [`mount`](./mount.md)
-* [`reject`](./reject.md)
-* [`signal`](./signal.md)
-* [`suspend`](./suspend.md)
-* [`type`](./type.md)
-* [`usable`](./usable.md)
-* [`unsuspend`](./unsuspend.md)
-* [`wrap`](./wrap.md)
+* [`defer`](./defer.md#readme)
+* [`element`](./element.md#readme)
+* [`fallback`](./fallback.md#readme)
+* [`flush`](./flush.md#readme)
+* [`manageEvents`](./manageEvents.md#readme)
+* [`mount`](./mount.md#readme)
+* [`reject`](./reject.md#readme)
+* [`signal`](./signal.md#readme)
+* [`suspend`](./suspend.md#readme)
+* [`type`](./type.md#readme)
+* [`usable`](./usable.md#readme)
+* [`unsuspend`](./unsuspend.md#readme)
+* [`wrap`](./wrap.md#readme)
 
 ## Progressive loading explained
 
@@ -79,7 +79,7 @@ props:
 }
 ```
 
-You can use [`usable`](./usable.md) to impose minimum requirements. If `usable(1)` were added to the code, the first
+You can use [`usable`](./usable.md#readme) to impose minimum requirements. If `usable(1)` were added to the code, the first
 element would have these props:
 
 ```js
@@ -103,7 +103,7 @@ If `usable({ producer: 1 })` were used instead, the props would be:
 ```
 
 By default, the arrival of each item from a generator causes an update. If the prop set has 3 generators, each
-yielding 100 times, then 300 updates would eventually occur. Generally you would use [`defer`](./defer.md) to limit
+yielding 100 times, then 300 updates would eventually occur. Generally you would use [`defer`](./defer.md#readme) to limit
 the number of updates. The example above uses a delay of 100 milliseconds. That means at most 10 updates can happen
 in a second. If all 300 async operations required by our hypothetical component finish in 3 seconds, then only 30
 updates would occur. If they finish in less than 100 milliseconds (due to caching, for instance), then only a single
@@ -113,7 +113,7 @@ update would occur.
 
 You can catch errors encountered during data retrieval using an [error boundary](https://reactjs.org/docs/error-boundaries.html).
 
-`useProgressive` uses [`useSequential`](./useSequential.md) and [`generateProps`](./generateProps.md) internally. With the help of
+`useProgressive` uses [`useSequential`](./useSequential.md#readme) and [`generateProps`](./generateProps.md#readme) internally. With the help of
 these two functions you can with implement your own hook that provide additional functionalities.
 
 Nested generators get flattened (while arrays are not). You can output multiple items at the same time by yielding an array 
@@ -162,7 +162,7 @@ function ProductPage({ productId }) {
 
 ## Examples
 
-* [Star Wars API](../examples/swapi/README.md)
-* [Word Press](../examples/wordpress.md)
-* [Word Press (React Native)](../examples/wordpress-react-native.md)
-* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md)
+* [Star Wars API](../examples/swapi/README.md#readme)
+* [Word Press](../examples/wordpress.md#readme)
+* [Word Press (React Native)](../examples/wordpress-react-native.md#readme)
+* [Star Wars API (server-side rendering)](../examples/swapi-ssr/README.md#readme)

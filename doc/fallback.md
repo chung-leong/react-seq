@@ -4,8 +4,8 @@ Specify an element to be shown while the React-seq hook in question retrieves th
 
 ## Providers
 
-* [`useSequential`](useSequential.md)
-* [`useProgressive`](useProgressive.md)
+* [`useSequential`](useSequential.md#readme)
+* [`useProgressive`](useProgressive.md#readme)
 
 ## Syntax
 
@@ -35,13 +35,13 @@ the fallback element
 `element` will be handed to the [`<React.Suspense>`](https://reactjs.org/docs/react-api.html#suspense)
 element wrapping the lazy component created by React-seq.
 
-`fallback` and [`suspend`](suspend.md) cannot be used at the same time.
+`fallback` and [`suspend`](suspend.md#readme) cannot be used at the same time.
 
-[`initial`](./initial.md) is the equivalent function for state hooks ([useSequentialState](useSequentialState.md),
-[useProgressiveState](useProgressiveState.md)).
+[`initial`](./initial.md#readme) is the equivalent function for state hooks ([useSequentialState](useSequentialState.md#readme),
+[useProgressiveState](useProgressiveState.md#readme)).
 
 ## Examples
 
-* [Star Wars API](../examples/swapi/README.md)
-* [Word Press](../examples/wordpress.md)
-* [Transition](../examples/transition/README.md)
+* [Star Wars API](../examples/swapi/README.md#readme)
+* [Word Press](../examples/wordpress.md#readme)
+* [Transition](../examples/transition/README.md#readme)
