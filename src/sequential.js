@@ -121,7 +121,8 @@ export function sequential(cb, options = {}) {
   methods.unsuspend = (fn) => unsuspendFn = fn;
 
   let awaiting = false;
-  if (!process.env.REACT_APP_SEQ_NO_EM) {
+  /* c8 ignore next */
+  if (!((typeof(process) === 'object' && process.env) || import.meta.env).REACT_APP_SEQ_NO_EM) {
     // let callback manages events with help of promises
     let eventManager;
     methods.manageEvents = () => {
@@ -188,7 +189,8 @@ export function sequential(cb, options = {}) {
           }
         } else {
           stop = finished = true;
-          if (process.env.NODE_ENV === 'development' && value !== undefined) {
+          /* c8 ignore next */
+          if (((typeof(process) === 'object' && process.env.NODE_ENV === 'development') || import.meta.env?.DEV) && value !== undefined) {
             console.warn('Return value from generator function is not undefined');
           }
       }
@@ -324,7 +326,8 @@ export function sequential(cb, options = {}) {
             updateContent({ conditional: true });
           } else {
             stop = true;
-            if (process.env.NODE_ENV === 'development' && value !== undefined) {
+            /* c8 ignore next */
+            if (((typeof(process) === 'object' && process.env.NODE_ENV === 'development') || import.meta.env?.DEV) && value !== undefined) {
               console.warn('Return value from generator function is not undefined');
             }
           }

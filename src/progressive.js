@@ -18,12 +18,14 @@ export function progressive(cb, options = {}) {
         elementType = type.default;
       } else if (typeof(type) === 'object' && type.constructor == null) {
         // module object has no constructor
-        if (process.env.NODE_ENV === 'development') {
+        /* c8 ignore next */
+        if ((typeof(process) === 'object' && process.env.NODE_ENV === 'development') || import.meta.env?.DEV) {
           console.warn('You seem to have passed a module without a default export');
         }
         elementType = type;
       } else {
-        if (process.env.NODE_ENV === 'development') {
+        /* c8 ignore next */
+        if ((typeof(process) === 'object' && process.env.NODE_ENV === 'development') || import.meta.env?.DEV) {
           if (isPromise(type)) {
             console.warn('You passed a promise, probably having forgotten to use await on import()');
           }
@@ -76,7 +78,8 @@ export function checkAsyncProps(asyncProps, usability, usableDefault) {
   if (!(asyncProps instanceof Object)) {
     throw new Error('Callback function did not return an object');
   }
-  if (process.env.NODE_ENV === 'development') {
+  /* c8 ignore next */
+  if ((typeof(process) === 'object' && process.env.NODE_ENV === 'development') || import.meta.env?.DEV) {
     for (const name of Object.keys(usability)) {
       if (!(name in asyncProps)) {
         console.warn(`The prop "${name}" is given a usability criteria but is absent from the object returned`);

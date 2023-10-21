@@ -84,7 +84,9 @@ export function sequentialState(cb, setState, setError, options = {}) {
 
   // let callback manages events with help of promises
   let awaiting = false;
-  if (!process.env.REACT_APP_SEQ_NO_EM) {
+
+  /* c8 ignore next */
+  if (!((typeof(process) === 'object' && process.env) || import.meta.env)?.REACT_APP_SEQ_NO_EM) {
     let eventManager;
     methods.manageEvents = () => {
       if (!eventManager) {

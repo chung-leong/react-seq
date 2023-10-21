@@ -1,5 +1,5 @@
 const location = typeof(window) === 'object' ? window.location : global.location;
-const dev = (process.env.NODE_ENV === 'development');
+const dev = (typeof(process) === 'object' && process.env.NODE_ENV === 'development') || import.meta.env?.DEV;
 const baseURL = new URL('/api/', (dev) ? 'http://localhost:8080' : location.href);
 
 export function trimURL(url) {
